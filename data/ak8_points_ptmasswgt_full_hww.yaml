@@ -139,7 +139,7 @@ weights:
    reweight_method: flat
    reweight_vars:
       fj_pt: [200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]
-      fj_sdmass: list(range(30, 251, 10))
+      fj_sdmass: [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250]
    reweight_classes: [
       label_H_WW_qqqq,
       label_H_WW_lnuqq,
