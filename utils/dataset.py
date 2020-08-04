@@ -34,7 +34,7 @@ def _build_weights(table, data_config):
 
 def _finalize_inputs(table, data_config):
     for k, params in data_config.preprocess_params.items():
-        if data_config._auto_standardization and params['center'] is None:
+        if data_config._auto_standardization and params['center'] == 'auto':
             raise ValueError('No valid standardization params for %s' % k)
         if params['center'] is not None:
             table[k] = _clip((table[k] - params['center']) * params['scale'], params['min'], params['max'])
@@ -47,7 +47,10 @@ def _finalize_inputs(table, data_config):
             table[k] = np.nan_to_num(table[k])
     # stack variables for each input group
     for k, names in data_config.input_dicts.items():
-        table['_' + k] = np.stack([table[n] for n in names], axis=1)
+        if len(names) == 1 and data_config.preprocess_params[names[0]]['length'] is None:
+            table['_' + k] = table[names[0]]
+        else:
+            table['_' + k] = np.stack([table[n] for n in names], axis=1)
     # reduce memory usage
     for n in set(chain(*data_config.input_dicts.values())):
         if n not in data_config.label_names and n not in data_config.observer_names:
@@ -275,20 +278,27 @@ class SimpleIterDataset(torch.utils.data.IterableDataset):
             data_config_file = data_config_autogen_file
             _logger.info('Found file %s w/ auto-generated preprocessing information, will use that instead!' % data_config_file)
 
-        # load data config
-        self._data_config = DataConfig.load(data_config_file, load_observers=(not for_training))
+        # load data config (w/ observers now -- so they will be included in the auto-generated yaml)
+        self._data_config = DataConfig.load(data_config_file)
 
-        # produce variable standardization info if needed
-        if self._data_config._missing_standardization_info:
-            s = AutoStandardizer(filelist, self._data_config)
-            self._data_config = s.produce(data_config_autogen_file)
+        if for_training:
+            # produce variable standardization info if needed
+            if self._data_config._missing_standardization_info:
+                s = AutoStandardizer(filelist, self._data_config)
+                self._data_config = s.produce(data_config_autogen_file)
 
-        # produce reweight info if needed
-        if self._sampler_options['reweight'] and self._data_config.weight_name and not self._data_config.use_precomputed_weights:
-            if remake_weights or self._data_config.reweight_hists is None:
-                w = WeightMaker(filelist, self._data_config)
-                self._data_config = w.produce(data_config_autogen_file)
-        
+            # produce reweight info if needed
+            if self._sampler_options['reweight'] and self._data_config.weight_name and not self._data_config.use_precomputed_weights:
+                if remake_weights or self._data_config.reweight_hists is None:
+                    w = WeightMaker(filelist, self._data_config)
+                    self._data_config = w.produce(data_config_autogen_file)
+
+            # reload data_config w/o observers for training
+            if os.path.exists(data_config_autogen_file) and data_config_file != data_config_autogen_file:
+                data_config_file = data_config_autogen_file
+                _logger.info('Found file %s w/ auto-generated preprocessing information, will use that instead!' % data_config_file)
+            self._data_config = DataConfig.load(data_config_file, load_observers=False)
+
         # derive all variables added to self.__dict__
         self._init_args = set(self.__dict__.keys()) - _init_args
 

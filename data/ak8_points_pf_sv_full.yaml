@@ -107,6 +107,7 @@ labels:
 
 observers:
    - event_no
+   - fj_label
    - fj_pt
    - fj_eta
    - fj_phi
@@ -145,7 +146,7 @@ weights:
       label_H_bb, label_H_cc, label_H_qqqq,
       ]
    class_weights: [
-      2,
+      1,
       1,
       1,
       1,

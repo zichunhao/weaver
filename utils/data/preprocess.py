@@ -53,7 +53,7 @@ class AutoStandardizer(object):
         self.keep_branches = set()
         self.load_branches = set()
         for k, params in self._data_config.preprocess_params.items():
-            if params['center'] in (None, 'auto'):
+            if params['center'] == 'auto':
                 self.keep_branches.add(k)
                 if k in self._data_config.var_funcs:
                     expr = self._data_config.var_funcs[k]
@@ -74,10 +74,9 @@ class AutoStandardizer(object):
         _logger.info('Using %d events to calculate standardization info', len(table[list(table.keys())[0]]))
         preprocess_params = copy.deepcopy(self._data_config.preprocess_params)
         for k, params in self._data_config.preprocess_params.items():
-            if params['center'] in (None, 'auto'):
+            if params['center'] == 'auto':
                 if k.endswith('_mask'):
-                    params['center'] = 0
-                    params['scale'] = 1
+                    params['center'] = None
                 else:
                     a = table[k]
                     try:
@@ -171,7 +170,7 @@ class WeightMaker(object):
                 hist = result[label]
                 nonzero_vals = hist[hist > 0]
                 min_val, med_val = np.min(nonzero_vals), np.median(hist)  # not really used
-                ref_val = np.percentile(nonzero_vals, 10)
+                ref_val = np.percentile(nonzero_vals, self._data_config.reweight_threshold)
                 _logger.debug('label:%s, median=%f, min=%f, ref=%f, ref/min=%f' %
                               (label, med_val, min_val, ref_val, ref_val / min_val))
                 # wgt: bins w/ 0 elements will get a weight of 0; bins w/ content<ref_val will get 1
@@ -185,7 +184,7 @@ class WeightMaker(object):
             for label, classwgt in zip(self._data_config.reweight_classes, self._data_config.class_weights):
                 # wgt: bins w/ 0 elements will get a weight of 0; bins w/ content<ref_val will get 1
                 ratio = np.nan_to_num(hist_ref / result[label], posinf=0)
-                upper = np.percentile(ratio[ratio > 0], 90)
+                upper = np.percentile(ratio[ratio > 0], 100 - self._data_config.reweight_threshold)
                 wgt = np.clip(ratio / upper, 0, 1)  # -> [0,1]
                 result[label] = wgt
                 # divide by classwgt here will effective increase the weight later
