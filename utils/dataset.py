@@ -158,7 +158,6 @@ class _SimpleIter(object):
         self._try_get_next()
 
     def __next__(self):
-        # print(self.ipos, self.cursor)
         if len(self.filelist) == 0:
             raise StopIteration
         try:
@@ -170,11 +169,15 @@ class _SimpleIter(object):
                 if self._async_load:
                     self.executor.shutdown(wait=False)
                 raise StopIteration
-            # get result from prefetch
-            if self._async_load:
-                self.table, self.indices = self.prefetch.result()
-            else:
-                self.table, self.indices = self.prefetch
+            try:
+                # get result from prefetch
+                if self._async_load:
+                    self.table, self.indices = self.prefetch.result()
+                else:
+                    self.table, self.indices = self.prefetch
+            except:
+                print('stop iteration')
+                #raise StopIteration
             # try to load the next ones asynchronously
             self._try_get_next()
             # reset cursor
@@ -198,7 +201,7 @@ class _SimpleIter(object):
             else:
                 filelist = self.filelist
                 load_range = (self.ipos, min(self.ipos + self._fetch_step, self.load_range[1]))
-        # _logger.info('Start fetching next batch, len(filelist)=%d, load_range=%s'%(len(filelist), load_range))
+        _logger.debug('Start fetching next batch, len(filelist)=%d, load_range=%s'%(len(filelist), load_range))
         if self._async_load:
             self.prefetch = self.executor.submit(_load_next, self._data_config, filelist, load_range, self._sampler_options)
         else:
