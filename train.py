@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import setGPU
+#import setGPU
 import os
 import shutil
 import glob
@@ -73,6 +73,8 @@ def main():
                         'needs to set `--data-config`, `--network-config`, and `--model-prefix` (requires the full model path)')
     parser.add_argument('--io-test', action='store_true', default=False,
                         help='test throughput of the dataloader')
+    parser.add_argument('--pin', action='store_true', default=False,
+                        help='pin memory')
 
     args = parser.parse_args()
     _logger.info(args)
@@ -102,7 +104,7 @@ def main():
         np.random.shuffle(filelist)
         if args.demo:
             filelist = filelist[:20]
-            _logger.info(filelist)
+            #_logger.info(filelist)
             args.data_fraction = 0.1
             args.fetch_step = 0.002
         num_workers = min(args.num_workers, len(filelist) // args.data_dilation)
@@ -110,8 +112,8 @@ def main():
                                        dilation=args.data_dilation, fetch_by_files=args.fetch_by_files, fetch_step=args.fetch_step)
         val_data = SimpleIterDataset(filelist, args.data_config, for_training=True, load_range_and_fraction=((args.train_val_split, 1), args.data_fraction),
                                      dilation=args.data_dilation, fetch_by_files=args.fetch_by_files, fetch_step=args.fetch_step)
-        train_loader = DataLoader(train_data, num_workers=num_workers, batch_size=args.batch_size, drop_last=True, pin_memory=True)
-        val_loader = DataLoader(val_data, num_workers=num_workers, batch_size=args.batch_size, drop_last=True, pin_memory=True)
+        train_loader = DataLoader(train_data, num_workers=num_workers, batch_size=args.batch_size, drop_last=True, pin_memory=args.pin)
+        val_loader = DataLoader(val_data, num_workers=num_workers, batch_size=args.batch_size, drop_last=True, pin_memory=args.pin)
         data_config = train_data.config
     else:
         filelist = sorted(sum([glob.glob(f) for f in args.data_test], []))
@@ -136,7 +138,7 @@ def main():
     if args.export_onnx:
         network_options['for_inference'] = True
     model, model_info = network_module.get_model(data_config, **network_options)
-    _logger.info(model)
+    #_logger.info(model)
 
     # export to ONNX
     if args.export_onnx:
@@ -209,6 +211,7 @@ def main():
 
         # mutli-gpu
         if gpus is not None and len(gpus) > 1:
+            #print('multi-gpu ',gpus)
             model = torch.nn.DataParallel(model, device_ids=gpus)  # model becomes `torch.nn.DataParallel` w/ model.module being the orignal `torch.nn.Module`
         model = model.to(dev)
 
@@ -257,6 +260,7 @@ def main():
             _logger.info('Loading model %s for eval' % model_path)
             model.load_state_dict(torch.load(model_path, map_location=dev))
             if gpus is not None and len(gpus) > 1:
+                #print('multi-gpu predict ',gpus)
                 model = torch.nn.DataParallel(model, device_ids=gpus)
             model = model.to(dev)
             test_acc, scores, labels, observers = evaluate(model, test_loader, dev, for_training=False)
