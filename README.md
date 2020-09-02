@@ -173,6 +173,32 @@ Note:
  - for inference, one can specify the full path of the model parameters in `--model-prefix`.
  - `--predict-output` sets the path for the output file. Currently support saving to ROOT files (use `.root` extension) or awkward arrays (use `.awkd` extension).
 
+### In Caltech GPU
+
+The data is available in:
+```bash
+/mnt/hadoop/store/user/cmantill/DNNTuples/train/*/*.root
+```
+and
+```bash
+/mnt/hadoop/store/user/cmantill/DNNTuples/test/*/*.root
+```
+for training and testing respectively.
+
+Check which gpus are available with `nvidia-smi`.
+
+An example training command is:
+```bash
+python train.py --data-train '/mnt/hadoop/store/user/cmantill/DNNTuples/train/*/*.root' --data-config data/ak8_points_pf_sf_hww.yaml --network-config networks/particle_net_pf_sv.py --model-prefix models/test --start-lr 1e-3 --num-epochs 4 --optimizer ranger --num-workers 4 --gpus 1,2,3,4 --fetch-step 0.015 --batch-size 512
+```
+here, you want to choose the number of gpus as they are available, and the batch size. The fetch step and num of workers should be related to the loading of data instead and the local memory.
+
+An example command for obtaining the prediction is:
+```bash
+python train.py --predict --data-test '/mnt/hadoop/store/user/cmantill/DNNTuples/test/*/*.root'  --data-config data/ak8_points_pf_sf_hww.yaml --network-config networks/particle_net_pf_sv.py --model-prefix models/testall_best_acc_state.pt --num-workers 3 --gpus 0,1,2,3 --batch-size 512  --predict-output output/testall_epoch3.root 
+```
+this should save all the variables you need into .root files which then you can use to plot the score of the classifier or a ROC curve (see `run_metrics.py`).
+
 ### Model exportation
 
 When you are satisfied with the trained model, you could export it from PyTorch to ONNX format for inference (e.g., using [ONNXRuntime](https://github.com/microsoft/onnxruntime)):
