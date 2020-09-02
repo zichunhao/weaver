@@ -97,11 +97,15 @@ labels:
    ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
    type: simple
    value: [
-      label_H_WW_qqqq, 
-      #label_H_WW_lnuqq, 
-      #label_H_ZZ_qqqq,
-      #label_Top_bcq, label_Top_bqq, label_Top_bc, label_Top_bq, label_Top_bele, label_Top_bmu, label_Top_btau,
+      label_H_WW_qqqq,
+      label_H_WW_lnuqq,
+      label_H_ZZ_qqqq,
+      fj_isTop,
+      fj_isW,
+      fj_isZ,
       fj_isQCD
+      #label_H_WW_qqqq, label_H_WW_lnuqq, label_H_ZZ_qqqq,
+      #label_Top_bcq, label_Top_bqq, label_Top_bc, label_Top_bq, label_Top_bele, label_Top_bmu, label_Top_btau,
       #label_QCD_bb, label_QCD_cc, label_QCD_b, label_QCD_c, label_QCD_others,
       ]
    ### [option 2] otherwise use `custom` to define the label, then `value` is a map
