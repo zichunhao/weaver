@@ -105,8 +105,8 @@ def main():
                                        file_fraction=args.file_fraction, fetch_by_files=args.fetch_by_files, fetch_step=args.fetch_step)
         val_data = SimpleIterDataset(filelist, args.data_config, for_training=True, load_range_and_fraction=((args.train_val_split, 1), args.data_fraction),
                                      file_fraction=args.file_fraction, fetch_by_files=args.fetch_by_files, fetch_step=args.fetch_step)
-        train_loader = DataLoader(train_data, num_workers=num_workers, batch_size=args.batch_size, drop_last=True, pin_memory=True)
-        val_loader = DataLoader(val_data, num_workers=num_workers, batch_size=args.batch_size, drop_last=True, pin_memory=True)
+        train_loader = DataLoader(train_data, num_workers=num_workers, batch_size=args.batch_size, drop_last=True, pin_memory=False)
+        val_loader = DataLoader(val_data, num_workers=num_workers, batch_size=args.batch_size, drop_last=True, pin_memory=False)
         data_config = train_data.config
     else:
         filelist = sorted(sum([glob.glob(f) for f in args.data_test], []))
@@ -114,8 +114,10 @@ def main():
         test_data = SimpleIterDataset(filelist, args.data_config, for_training=False,
                                       load_range_and_fraction=((0, 1), args.data_fraction),
                                       fetch_by_files=True, fetch_step=1)
-        test_loader = DataLoader(test_data, num_workers=num_workers, batch_size=args.batch_size, drop_last=False, pin_memory=True)
+        test_loader = DataLoader(test_data, num_workers=num_workers, batch_size=args.batch_size, drop_last=False, pin_memory=False)
         data_config = test_data.config
+        print('test loader done ')
+        print(data_config)
 
     if args.io_test:
         from tqdm.auto import tqdm
