@@ -97,6 +97,7 @@ class DataConfig(object):
         else:
             self.label_names = tuple(self.label_value.keys())
             self.var_funcs.update(self.label_value)
+            self.label_value = opts['labels']['label_list']
         # weights: TODO
         self.weight_name = None
         if opts['weights'] is not None:
