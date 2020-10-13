@@ -79,7 +79,7 @@ labels:
        label_H_WW_lnuqq: label[:, 1]
        fj_isTop: label[:, 3]
        fj_isQCD: label[:, 6]
-   label_list: [label_H_WW_qqqq,fj_isTop,fj_isQCD]
+   label_list: [label_H_WW_lnuqq,fj_isTop,fj_isQCD]
 
 observers:
    - label
