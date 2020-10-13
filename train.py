@@ -85,6 +85,7 @@ def main():
     # device
     if args.gpus:
         gpus = [int(i) for i in args.gpus.split(',')]
+        print(gpus,gpus[0])
         dev = torch.device(gpus[0])
     else:
         gpus = None
@@ -229,13 +230,21 @@ def main():
 
         # training loop
         best_valid_acc = 0
+        acc_vals_validation = np.zeros(args.num_epochs)
+        loss_vals_training = np.zeros(args.num_epochs)
+        loss_std_training = np.zeros(args.num_epochs)
+        loss_vals_validation = np.zeros(args.num_epochs)
+        loss_std_validation = np.zeros(args.num_epochs)
         for epoch in range(args.num_epochs):
             if args.load_epoch is not None:
                 if epoch <= args.load_epoch:
                     continue
             print('-' * 50)
             _logger.info('Epoch #%d training' % epoch)
-            train(model, loss_func, opt, scheduler, train_loader, dev, grad_scaler=scaler)
+            loss_mean,loss_std = train(model, loss_func, opt, scheduler, train_loader, dev, grad_scaler=scaler)
+            loss_vals_training[epoch] =loss_mean
+            loss_std_training[epoch] = loss_std
+
             if args.model_prefix:
                 dirname = os.path.dirname(args.model_prefix)
                 if dirname and not os.path.exists(dirname):
@@ -245,13 +254,22 @@ def main():
                 torch.save(opt.state_dict(), args.model_prefix + '_epoch-%d_optimizer.pt' % epoch)
 
             _logger.info('Epoch #%d validating' % epoch)
-            valid_acc = evaluate(model, val_loader, dev, loss_func=loss_func)
+            valid_acc,loss_mean,loss_std = evaluate(model, val_loader, dev, loss_func=loss_func)
+            loss_vals_validation[epoch] =loss_mean
+            loss_std_validation[epoch] = loss_std
+            acc_vals_validation[epoch] = valid_acc
             if valid_acc > best_valid_acc:
                 best_valid_acc = valid_acc
                 if args.model_prefix:
                     shutil.copy2(args.model_prefix + '_epoch-%d_state.pt' % epoch, args.model_prefix + '_best_acc_state.pt')
                     torch.save(model, args.model_prefix + '_best_acc_full.pt')
             _logger.info('Epoch #%d: Current validation acc: %.5f (best: %.5f)' % (epoch, valid_acc, best_valid_acc))
+
+        np.save('acc/acc_vals_validation_%s.npy'%(args.model_prefix),acc_vals_validation)
+        np.save('loss/loss_vals_training_%s.npy'%(args.model_prefix),loss_vals_training)
+        np.save('loss/loss_vals_validation_%s.npy'%(args.model_prefix),loss_vals_validation)
+        np.save('loss/loss_std_validation_%s.npy'%(args.model_prefix),loss_std_validation)
+        np.save('loss/loss_std_training_%s.npy'%(args.model_prefix),loss_std_training)
     else:
         # run prediction
         if args.model_prefix.endswith('.onnx'):

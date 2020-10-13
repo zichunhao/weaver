@@ -41,6 +41,8 @@ def train(model, loss_func, opt, scheduler, train_loader, dev, grad_scaler=None)
     total_correct = 0
     count = 0
     start_time = time.time()
+
+    loss_array = []
     with tqdm.tqdm(train_loader) as tq:
         for X, y, _ in tq:
             inputs = [X[k].to(dev) for k in data_config.input_names]
@@ -68,6 +70,8 @@ def train(model, loss_func, opt, scheduler, train_loader, dev, grad_scaler=None)
             _, preds = logits.max(1)
             loss = loss.item()
 
+            loss_array.append(loss)
+
             num_batches += 1
             count += num_examples
             correct = (preds == label).sum().item()
@@ -83,8 +87,10 @@ def train(model, loss_func, opt, scheduler, train_loader, dev, grad_scaler=None)
     time_diff = time.time() - start_time
     _logger.info('Processed %d entries in total (avg. speed %.1f entries/s)' % (count, count / time_diff))
     _logger.info('Train class distribution: \n    %s', str(sorted(label_counter.items())))
+    l_training = np.mean(np.array(loss_array))
+    print('Training Loss: ', l_training)
     scheduler.step()
-
+    return l_training,np.std(np.array(loss_array))
 
 def evaluate(model, test_loader, dev, for_training=True, loss_func=None, eval_metrics=['roc_auc_score', 'roc_auc_score_matrix', 'confusion_matrix']):
     model.eval()
@@ -100,6 +106,8 @@ def evaluate(model, test_loader, dev, for_training=True, loss_func=None, eval_me
     labels = defaultdict(list)
     labels_counts = []
     observers = defaultdict(list)
+
+    loss_array = []
     with torch.no_grad():
         with tqdm.tqdm(test_loader) as tq:
             for X, y, Z in tq:
@@ -129,6 +137,8 @@ def evaluate(model, test_loader, dev, for_training=True, loss_func=None, eval_me
                 _, preds = logits.max(1)
                 loss = 0 if loss_func is None else loss_func(logits, label).item()
 
+                loss_array.append(loss)
+
                 count += num_examples
                 correct = (preds == label).sum().item()
                 total_loss += loss * num_examples
@@ -147,8 +157,10 @@ def evaluate(model, test_loader, dev, for_training=True, loss_func=None, eval_me
     metric_results = evaluate_metrics(labels[data_config.label_names[0]], scores, eval_metrics=eval_metrics)
     _logger.info('Evaluation metrics: \n%s', '\n'.join(['    - %s: \n%s' % (k, str(v)) for k, v in metric_results.items()]))
 
+    l_validation = np.mean(np.array(loss_array))
+    print('Validation Loss: ', l_validation)
     if for_training:
-        return total_correct / count
+        return (total_correct / count),l_validation,np.std(np.array(loss_array))
     else:
         # convert 2D labels/scores
         if len(scores) != entry_count:
