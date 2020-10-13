@@ -264,12 +264,16 @@ def main():
                     shutil.copy2(args.model_prefix + '_epoch-%d_state.pt' % epoch, args.model_prefix + '_best_acc_state.pt')
                     torch.save(model, args.model_prefix + '_best_acc_full.pt')
             _logger.info('Epoch #%d: Current validation acc: %.5f (best: %.5f)' % (epoch, valid_acc, best_valid_acc))
+            
+        dirname = os.path.dirname('%s_history/'%args.model_prefix)
+        if dirname and not os.path.exists(dirname):
+            os.makedirs(dirname)
 
-        np.save('acc/acc_vals_validation_%s.npy'%(args.model_prefix),acc_vals_validation)
-        np.save('loss/loss_vals_training_%s.npy'%(args.model_prefix),loss_vals_training)
-        np.save('loss/loss_vals_validation_%s.npy'%(args.model_prefix),loss_vals_validation)
-        np.save('loss/loss_std_validation_%s.npy'%(args.model_prefix),loss_std_validation)
-        np.save('loss/loss_std_training_%s.npy'%(args.model_prefix),loss_std_training)
+        np.save('%s_history/acc_vals_validation.npy'%(args.model_prefix),acc_vals_validation)
+        np.save('%s_history/loss_vals_training.npy'%(args.model_prefix),loss_vals_training)
+        np.save('%s_history/loss_vals_validation.npy'%(args.model_prefix),loss_vals_validation)
+        np.save('%s_history/loss_std_validation.npy'%(args.model_prefix),loss_std_validation)
+        np.save('%s_history/loss_std_training.npy'%(args.model_prefix),loss_std_training)
     else:
         # run prediction
         if args.model_prefix.endswith('.onnx'):
