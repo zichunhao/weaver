@@ -40,7 +40,7 @@ def _plot_oldweights(table, data_config):
     fig = plt.figure(figsize=(8,6))
     for label in data_config.reweight_classes:
         if 'label_' in label:
-            plt.hist(table[y][table[label]==1], bins=y_bins, histtype='step', label=label, , density=True)
+            plt.hist(table[y][table[label]==1], bins=y_bins, histtype='step', label=label, density=True)
     plt.xlabel(r'$m_{SD}$ (GeV)')
     plt.ylabel(r'Events')
     plt.legend()
