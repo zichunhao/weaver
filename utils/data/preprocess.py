@@ -32,6 +32,107 @@ def _clean_up(table, drop_branches):
     for k in drop_branches:
         del table[k]
 
+def _plot_oldweights(table, data_config):
+    x,y = data_config.reweight_branches
+    x_bins, y_bins = data_config.reweight_bins
+
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(8,6))
+    for label in data_config.reweight_classes:
+        if 'label_' in label:
+            plt.hist(table[y][table[label]==1], bins=y_bins, histtype='step', label=label, , density=True)
+    plt.xlabel(r'$m_{SD}$ (GeV)')
+    plt.ylabel(r'Events')
+    plt.legend()
+    plt.savefig("msd_unweight_signal_norm.pdf")
+
+    fig = plt.figure(figsize=(8,6))
+    for label in data_config.reweight_classes:
+        plt.hist(table[y][table[label]==1], bins=y_bins, histtype='step', label=label,density=True)
+    plt.xlabel(r'$m_{SD}$ (GeV)')
+    plt.ylabel(r'Events')
+    plt.legend()
+    plt.savefig("msd_unweight_norm.pdf")
+
+    fig = plt.figure(figsize=(8,6))
+    for label in data_config.reweight_classes:
+        plt.hist(table[x][table[label]==1], bins=x_bins, histtype='step', label=label, density=True)
+    plt.xlabel(r'$p_{T}$ (GeV)')
+    plt.ylabel(r'Events')
+    plt.legend()
+    plt.savefig("pt_unweight_norm.pdf")
+
+    plot_old = False
+    if plot_old:
+        fig = plt.figure(figsize=(8,6)) 
+        for label in data_config.reweight_classes: 
+            plt.hist(table[x][table[label]==1], bins=40, range=(200,2500), histtype='step', label=label, density=True,  weights=table['weight'][table[label]==1]) 
+        plt.xlabel(r'$p_{T}$ (GeV)') 
+        plt.ylabel(r'Weighted Events')                                                                                                                                           
+        plt.legend()                                                                                                                                                            
+        plt.savefig("pt_oldweight.pdf") 
+
+        fig = plt.figure(figsize=(8,6))                                                                                                                                         
+        for label in data_config.reweight_classes:
+            plt.hist(table[y][table[label]==1], bins=40, range=(200,2500), histtype='step', label=label, density=True,  weights=table['weight'][table[label]==1])
+            plt.xlabel(r'$m_{SD}$ (GeV)')
+        plt.ylabel(r'Weighted Events')
+        plt.legend()
+        plt.savefig("msd_oldweight.pdf")
+
+def _build_weights(table, data_config):
+    x_var, y_var = data_config.reweight_branches
+    x_bins, y_bins = data_config.reweight_bins
+    wgt = np.zeros(len(table[x_var]), dtype='float32')
+    for label, hist in data_config.reweight_hists.items():
+        pos = (table[label] == 1)
+        rwgt_x_vals = table[x_var][pos]
+        rwgt_y_vals = table[y_var][pos]
+        x_indices = np.clip(np.digitize(
+            rwgt_x_vals, x_bins) - 1, a_min=0, a_max=len(x_bins) - 2)
+        y_indices = np.clip(np.digitize(
+            rwgt_y_vals, y_bins) - 1, a_min=0, a_max=len(y_bins) - 2)
+        wgt[pos] = hist[x_indices, y_indices]
+    print('building ',data_config.weight_name+'new')
+    table[data_config.weight_name+'new'] = wgt
+
+def _plot_newweights(table, data_config):
+    _build_weights(table, data_config)
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(8,6))
+    x, y = data_config.reweight_branches
+    x_bins, y_bins = data_config.reweight_bins
+    fig = plt.figure(figsize=(8,6))
+    for label, hist in data_config.reweight_hists.items():
+        plt.hist(table[x][table[label]==1], bins=x_bins, histtype='step', density=True, label=label)
+    plt.xlabel(r'$p_{T}$')
+    plt.ylabel(r'Events')
+    plt.legend()
+    plt.savefig("pt.pdf")
+
+    fig = plt.figure(figsize=(8,6))
+    for label, hist in data_config.reweight_hists.items():
+        plt.hist(table[x][table[label]==1], bins=x_bins, histtype='step', density=True, label=label, weights=table['weight_new'][table[label]==1])
+    plt.xlabel(r'$p_{T}$')
+    plt.ylabel(r'Weighted Events')
+    plt.legend()
+    plt.savefig("pt_weight_new.pdf")
+
+    fig = plt.figure(figsize=(8,6))
+    for label, hist in data_config.reweight_hists.items():
+        plt.hist(table[y][table[label]==1], bins=y_bins, histtype='step', density=True, label=label)
+    plt.xlabel(r'$m_{SD}$')
+    plt.ylabel(r'Events')
+    plt.legend()
+    plt.savefig("msd.pdf")
+
+    fig = plt.figure(figsize=(8,6))
+    for label, hist in data_config.reweight_hists.items():
+        plt.hist(table[y][table[label]==1], bins=y_bins, histtype='step', density=True, label=label, weights=table['weight_new'][table[label]==1])
+    plt.xlabel(r'$m_{SD}$')
+    plt.ylabel(r'Weighted Events')
+    plt.legend()
+    plt.savefig("msd_weight_new.pdf")
 
 class AutoStandardizer(object):
     r"""AutoStandardizer.
@@ -121,6 +222,10 @@ class WeightMaker(object):
 
     def read_file(self, filelist):
         self.keep_branches = set(self._data_config.reweight_branches + self._data_config.reweight_classes)
+        if self._data_config.reweight_values is None:
+            self.keep_branches = set(self._data_config.reweight_branches + self._data_config.reweight_classes)
+        else:
+            self.keep_branches = set(self._data_config.reweight_branches + tuple(['label','new_label','weight']))
         self.load_branches = set()
         for k in self.keep_branches:
             if k in self._data_config.var_funcs:
@@ -136,6 +241,7 @@ class WeightMaker(object):
         _apply_selection(table, self._data_config.selection)
         _build_new_variables(table, {k: v for k, v in self._data_config.var_funcs.items() if k in self.keep_branches})
         _clean_up(table, self.load_branches - self.keep_branches)
+        #_plot_oldweights(table, self._data_config)
         return table
 
     def make_weights(self, table):
@@ -213,6 +319,7 @@ class WeightMaker(object):
         self._data_config.reweight_hists = wgts
         # must also propogate the changes to `data_config.options` so it can be persisted
         self._data_config.options['weights']['reweight_hists'] = {k: v.tolist() for k, v in wgts.items()}
+        _plot_newweights(table, self._data_config)
         if output:
             _logger.info('Writing YAML file w/ reweighting info to %s' % output)
             self._data_config.dump(output)
