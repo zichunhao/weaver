@@ -1,15 +1,13 @@
+selection:
+  label[:, [0,6]].sum(axis=1) == 1
+
 preprocess:
-  method: manual
-  data_fraction: 
+   method: manual
+   data_fraction: 
 
 new_variables:
-   #label_H_WW_qqqq: label[:, 0]
-   #label_H_WW_lnuqq: label[:, 1]
-   #label_H_ZZ_qqqq: label[:, 2]
-   #fj_isTop: label[:, 3]
-   #fj_isW: label[:, 4]
-   #fj_isZ: label[:, 5]
-   #fj_isQCD: label[:, 6]
+   label_H_WW_qqqq: label[:, 0]
+   fj_isQCD: label[:, 6]
 
 inputs:
    pf_points:
@@ -74,17 +72,10 @@ inputs:
          - sv_mask
 
 labels:
-   #type: simple
-   #value: [label_H_WW_qqqq,fj_isQCD]
    type: custom
    value:
-       label_H_WW_qqqq: label[:, 0]
-       fj_isQCD: label[:, 6]
+       new_label: label[:, [0,6]].argmax(1)
    label_list: [label_H_WW_qqqq,fj_isQCD]
-   #type: custom
-   #value:
-   #   new_label: label.argmax(1)
-   #label_list: [label_H_WW_qqqq,label_H_WW_lnuqq,label_H_ZZ_qqqq,fj_isTop,fj_isW,fj_isZ,fj_isQCD]
 
 observers:
    - label
@@ -108,23 +99,10 @@ observers:
    - orig_pfMassDecorrelatedDeepBoostedJetTags_probQCDothers
 
 weights:
-   #use_precomputed_weights: true
-   #weight_branches: [weight, class_weight]
    use_precomputed_weights: false
    reweight_method: flat
    reweight_vars:
       orig_fj_pt: [200, 251, 316, 398, 501, 630, 793, 997, 1255, 1479, 1689, 2500]
-      #orig_fj_sdmass: [-10000, 10000]
       orig_fj_sdmass: [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260]
    reweight_classes: [label_H_WW_qqqq,fj_isQCD]
-   #reweight_classes: [label_H_WW_qqqq,label_H_WW_lnuqq,label_H_ZZ_qqqq,fj_isQCD,fj_isTop,fj_isW,fj_isZ]
-   # reweight_values: 
-   #    label_H_WW_qqqq: 0
-   #    label_H_WW_lnuqq: 1
-   #    label_H_ZZ_qqqq: 2
-   #    fj_isQCD: 3
-   #    fj_isTop: 4
-   #    fj_isW: 5
-   #    fj_isZ: 6
-   #    #[0, 1, 2, 3, 4, 5, 6]
    reweight_hists:
