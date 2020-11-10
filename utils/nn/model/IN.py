@@ -19,8 +19,8 @@ class INTagger(nn.Module):
         self.N = pf_dims
         self.S = sv_features_dims
         self.Nv = sv_dims
-        print(self.N,self.Nv)
-        print(self.P,self.S)
+        print('n ',np.any(np.isnan(self.N)),np.any(np.isnan(self.Nv)))
+        print('p ',np.any(np.isnan(self.P)),np.any(np.isnan(self.S)))
         self.Nr = self.N * (self.N - 1)
         self.Nt = self.N * self.Nv
         self.Dr = 0
@@ -33,18 +33,18 @@ class INTagger(nn.Module):
         self.assign_matrices_SV()
 
         self.Ra = torch.ones(self.Dr, self.Nr)
-        self.fr1 = nn.Linear(2 * self.P + self.Dr, self.hidden).cuda()
-        self.fr2 = nn.Linear(self.hidden, int(self.hidden)).cuda()
-        self.fr3 = nn.Linear(int(self.hidden), self.De).cuda()
-        self.fr1_pv = nn.Linear(self.S + self.P + self.Dr, self.hidden).cuda()
-        self.fr2_pv = nn.Linear(self.hidden, int(self.hidden)).cuda()
-        self.fr3_pv = nn.Linear(int(self.hidden), self.De).cuda()
+        self.fr1 = nn.Linear(2 * self.P + self.Dr, self.hidden)
+        self.fr2 = nn.Linear(self.hidden, int(self.hidden))
+        self.fr3 = nn.Linear(int(self.hidden), self.De)
+        self.fr1_pv = nn.Linear(self.S + self.P + self.Dr, self.hidden)
+        self.fr2_pv = nn.Linear(self.hidden, int(self.hidden))
+        self.fr3_pv = nn.Linear(int(self.hidden), self.De)
 
-        self.fo1 = nn.Linear(self.P + self.Dx + (2 * self.De), self.hidden).cuda()
-        self.fo2 = nn.Linear(self.hidden, int(self.hidden)).cuda()
-        self.fo3 = nn.Linear(int(self.hidden), self.Do).cuda()
+        self.fo1 = nn.Linear(self.P + self.Dx + (2 * self.De), self.hidden)
+        self.fo2 = nn.Linear(self.hidden, int(self.hidden))
+        self.fo3 = nn.Linear(int(self.hidden), self.Do)
 
-        self.fc_fixed = nn.Linear(self.Do, self.n_targets).cuda()
+        self.fc_fixed = nn.Linear(self.Do, self.n_targets)
 
     def assign_matrices(self):
         self.Rr = torch.zeros(self.N, self.Nr)
@@ -53,8 +53,9 @@ class INTagger(nn.Module):
         for i, (r, s) in enumerate(receiver_sender_list):
             self.Rr[r, i] = 1
             self.Rs[s, i] = 1
-        self.Rr = (self.Rr).cuda()
-        self.Rs = (self.Rs).cuda()
+        self.Rr = (self.Rr)
+        self.Rs = (self.Rs)
+        print('rr ', torch.where(torch.isnan(self.Rr),torch.zeros_like(self.Rr),self.Rr), torch.where(torch.isnan(self.Rs),torch.zeros_like(self.Rs),self.Rs))
 
     def assign_matrices_SV(self):
         self.Rk = torch.zeros(self.N, self.Nt)
@@ -63,8 +64,10 @@ class INTagger(nn.Module):
         for i, (k, v) in enumerate(receiver_sender_list):
             self.Rk[k, i] = 1
             self.Rv[v, i] = 1
-        self.Rk = (self.Rk).cuda()
-        self.Rv = (self.Rv).cuda()
+        self.Rk = (self.Rk)
+        self.Rv = (self.Rv)
+        print('rk ', torch.where(torch.isnan(self.Rk),torch.zeros_like(self.Rk),self.Rk), torch.where(torch.isnan(self.Rv),torch.zeros_like(self.Rv),self.Rv))
+        #print('rk ', torch.where(torch.isnan(self.Rk), torch.where(torch.isnan(self.Rv))))
 
     def tmul(self, x, y):  #Takes (I * J * K)(K * L) -> I * J * L 
         x_shape = x.size()
@@ -72,9 +75,10 @@ class INTagger(nn.Module):
         return torch.mm(x.view(-1, x_shape[2]), y).view(-1, x_shape[1], y_shape[1])
 
     def forward(self, x, y):
+        #print(x,y)
         # pf - pf
-        Orr = self.tmul(x, self.Rr)
-        Ors = self.tmul(x, self.Rs)
+        Orr = self.tmul(x, self.Rr.to(device=x.device))
+        Ors = self.tmul(x, self.Rs.to(device=x.device))
         B = torch.cat([Orr, Ors], dim=1)
         B = torch.transpose(B, 1, 2).contiguous()
         B = nn.functional.relu(self.fr1(B.view(-1, 2 * self.P + self.Dr)))
@@ -82,12 +86,14 @@ class INTagger(nn.Module):
         E = nn.functional.relu(self.fr3(B).view(-1, self.Nr, self.De))
         del B
         E = torch.transpose(E, 1, 2).contiguous()
-        Ebar_pp = self.tmul(E, torch.transpose(self.Rr, 0, 1).contiguous())
+        print('E',torch.where(torch.isnan(E), torch.zeros_like(E), E))
+        print('E one',torch.where(torch.isnan(E), torch.ones_like(E), E))
+        Ebar_pp = self.tmul(E, torch.transpose(self.Rr, 0, 1).contiguous().to(device=x.device))
         del E
 
         # sv - pf
-        Ork = self.tmul(x, self.Rk)
-        Orv = self.tmul(y, self.Rv)
+        Ork = self.tmul(x, self.Rk.to(device=x.device))
+        Orv = self.tmul(y, self.Rv.to(device=x.device))
         B = torch.cat([Ork, Orv], 1)
         B = torch.transpose(B, 1, 2).contiguous()
         B = nn.functional.relu(self.fr1_pv(B.view(-1, self.S + self.P + self.Dr)))
@@ -95,8 +101,9 @@ class INTagger(nn.Module):
         E = nn.functional.relu(self.fr3_pv(B).view(-1, self.Nt, self.De))
         del B
         E = torch.transpose(E, 1, 2).contiguous()
-        Ebar_pv = self.tmul(E, torch.transpose(self.Rk, 0, 1).contiguous())
-        Ebar_vp = self.tmul(E, torch.transpose(self.Rv, 0, 1).contiguous())
+        Ebar_pv = self.tmul(E, torch.transpose(self.Rk, 0, 1).contiguous().to(device=x.device))
+        Ebar_vp = self.tmul(E, torch.transpose(self.Rv, 0, 1).contiguous().to(device=x.device))
+        #print('Ebar_pv',torch.where(torch.isnan(Ebar_pv), torch.ones_like(Ebar_pv), Ebar_pv))
         del E
 
         # Final output matrix 
