@@ -70,14 +70,10 @@ def plot_features(table, scores, label_sig, label_bkg, name, features=['fj_sdmas
                  }
 
     def computePercentiles(data,percentiles):
-        #stepsize = 0.05
         mincut = 0.
-        #maxcut = 1.
-        #percentiles = np.arange(stepsize, 1., stepsize)
         tmp = np.quantile(data,np.array(percentiles))
         tmpl = [mincut]
         for x in tmp: tmpl.append(x)
-        #tmpl.append(maxcut)
         perc = [0.]
         for x in percentiles: perc.append(x)
         return perc,tmpl
@@ -85,15 +81,16 @@ def plot_features(table, scores, label_sig, label_bkg, name, features=['fj_sdmas
     for score_name,score_label in scores.items():
         bkg = (table[label_bkg['label']] == 1)
         var = table[score_name][bkg]
-        percentiles = [0.05,0.1,0.2,0.3]
+        percentiles = [0.1,0.2,0.8,0.9,0.95,0.97]
         per,cuts = computePercentiles(table[score_name][bkg],percentiles)
-        print(cuts)
         for k in features:
             fig, ax = plt.subplots(figsize=(10,10))
-            bins = 25
+            bins = 40
             for i,cut in enumerate(cuts):
+                c = (1-per[i])*100
+                lab = '%i%% mistag-rate'%c
                 ax.hist(table[k][bkg][var>cut], bins=bins, lw=2, density=True, range=feature_range[k],
-                        histtype='step',label='{0}% mistag-rate'.format(per[i]*100))
+                        histtype='step',label=lab)
             ax.legend(loc='best')
             ax.set_xlabel(labels[k]+' (GeV)')
             ax.set_ylabel('Number of events (normalized)')
@@ -117,104 +114,152 @@ def plot_response(table, scores, label_sig, label_bkg, name):
         plt.ylabel('Number of events (normalized)')
         plt.title('NeuralNet applied to test samples')
         plt.savefig("%s_%s_disc.pdf"%(score_label,label_sig['label']))
-        #plt.yscale('log')
-        #plt.savefig("%s_%s_disc_log.pdf"%(score_label,label_sig['label']))
-        #plt.yscale('linear')
 
-def plot_roc(table, scores, label_sig, label_bkg, name):
-    plt.clf()
+# get roc for  given table w consistent scores and label shapes
+def get_roc(table, scores, label_sig, label_bkg):
+    fprs = {}
+    tprs = {}
     for score_name,score_label in scores.items():
         truth, predict =  roc_input(table,score_name,label_sig['label'],label_bkg['label'])
-        fpr, tpr, threshold = roc_curve(truth, predict)
-        plt.plot(fpr, tpr, lw=2.5, label=r"{}, AUC = {:.1f}%".format(score_label,auc(fpr,tpr)*100))
-    plt.legend(loc='lower right')
+        fprs[score_label], tprs[score_label], threshold = roc_curve(truth, predict)
+    return fprs, tprs
+
+def plot_roc(label_sig, label_bkg, fprs, tprs):
+    plt.clf()
+    for k,it in fprs.items():
+        plt.plot(fprs[k], tprs[k], lw=2.5, label=r"{}, AUC = {:.1f}%".format(k,auc(fprs[k],tprs[k])*100))
+    plt.legend(loc='upper left')
     plt.ylabel(r'Tagging efficiency %s'%label_sig['legend']) 
     plt.xlabel(r'Mistagging rate %s'%label_bkg['legend'])
-    #plt.xscale('log')
     plt.savefig("roc_%s.pdf"%label_sig['label'])
-    #plt.xscale('linear')    
+    plt.xscale('log')
+    plt.savefig("roc_%s_xlog.pdf"%label_sig['label'])
+    plt.xscale('linear')    
 
 def main(args):
-    label_bkg = [{'legend': 'QCD',
-                  'label':  'fj_isQCD'}]
-    label_sig = [{'legend': 'H(WW)4q',
-                  'label':  'label_H_WW_qqqq',
-                  'scores': 'H4q'
-                  },
-                 {'legend': 'H(WW)lnuqq',
-                  'label':  'label_H_WW_lnuqq',
-                  'scores': 'Hlnuqq'
-                  },
-             ]
-    scores = {'score_label_H_WW_qqqq': 'ParticleNet_H4q',
-              'score_label_H_WW_lnuqq': 'ParticleNet_Hlnuqq',
-              'score_deepBoosted_Hqqqq': 'DeepBoosted_H4q',
-              #'pfDeepBoostedDiscriminatorsJetTags_H4qvsQCD': 'DeepBoosted_H4qvsQCD',
-              #'pfMassDecorrelatedDeepBoostedDiscriminatorsJetTags_H4qvsQCD': 'DeepBoosted_H4qvsQCD_MD',
-              #'orig_pfDeepBoostedDiscriminatorsJetTags_H4qvsQCD': 'DeepBoosted_H4qvsQCD',
-              #'orig_pfMassDecorrelatedDeepBoostedDiscriminatorsJetTags_H4qvsQCD': 'DeepBoosted_H4qvsQCD_MD',
-    }
-    funcs = {'score_deepBoosted_Hqqqq': 'pfDeepBoostedJetTags_probHqqqq/(pfDeepBoostedJetTags_probHqqqq+pfDeepBoostedJetTags_probQCDb+pfDeepBoostedJetTags_probQCDbb+pfDeepBoostedJetTags_probQCDc+pfDeepBoostedJetTags_probQCDcc+pfDeepBoostedJetTags_probQCDothers)',
-             'score_deepBoosted_Hqqqq': 'orig_pfDeepBoostedJetTags_probHqqqq/(orig_pfDeepBoostedJetTags_probHqqqq+orig_pfDeepBoostedJetTags_probQCDb+orig_pfDeepBoostedJetTags_probQCDbb+orig_pfDeepBoostedJetTags_probQCDc+orig_pfDeepBoostedJetTags_probQCDcc+orig_pfDeepBoostedJetTags_probQCDothers)',
-         }
 
-    # inputfiles should have same shape
+    label_bkg = {'qcd':{'legend': 'QCD',
+                        'label':  'fj_isQCD'},
+                 'top':{'legend': 'Top',
+                        'label':  'fj_isTop'}
+             }
+    label_sig = {'4q':{'legend': 'H(WW)4q',
+                       'label':  'label_H_WW_qqqq',
+                       'scores': 'H4q'
+                   },
+                 'lnuqq':{'legend': 'H(WW)lnuqq',
+                          'label':  'label_H_WW_lnuqq',
+                          'scores': 'Hlnuqq'
+                      },
+             }
+    
+    #declare which labels to use
+    if args.channel == 'h4q':
+        label_bkg = label_bkg['qcd']
+        label_sig = label_sig['4q']
+        #scores = {'score_label_H_WW_qqqq': '%s_H4q'%args.,
+    elif args.channel == 'hlnuqq':
+        label_bkg = label_bkg['qcd'] # not including top bkg yet
+        label_sig = label_sig['lnuqq']
+    else:
+        print('no channel')
+        return
+
+    funcs = {
+        #'score_deepBoosted_Hqqqq': 'pfDeepBoostedJetTags_probHqqqq/(pfDeepBoostedJetTags_probHqqqq+pfDeepBoostedJetTags_probQCDb+pfDeepBoostedJetTags_probQCDbb+pfDeepBoostedJetTags_probQCDc+pfDeepBoostedJetTags_probQCDcc+pfDeepBoostedJetTags_probQCDothers)',
+        'score_deepBoosted_Hqqqq': 'orig_pfDeepBoostedJetTags_probHqqqq/(orig_pfDeepBoostedJetTags_probHqqqq+orig_pfDeepBoostedJetTags_probQCDb+orig_pfDeepBoostedJetTags_probQCDbb+orig_pfDeepBoostedJetTags_probQCDc+orig_pfDeepBoostedJetTags_probQCDcc+orig_pfDeepBoostedJetTags_probQCDothers)',
+        #'score_label_H_WW_lnuqq_top': 'score_label_H_WW_lnuqq/(score_label_H_WW_lnuqq+score_fj_isTop)',
+        #'score_label_H_WW_lnuqq_QCD': 'score_label_H_WW_lnuqq/(score_label_H_WW_lnuqq+score_fj_isQCD)',
+    }
+
+    # inputfiles and names should have same shape
     inputfiles = args.input.split(',')
     names = args.name.split(',')
     
-    loadbranches = {}
+    # make dict of branches to load
     #lfeatures = ['fj_sdmass','fj_pt']
     lfeatures = ['orig_fj_sdmass','orig_fj_pt']
-    for n,i in enumerate(names):
-        loadbranches[i] = set()
-        for k,kk in scores.items():
-            if n>0 and 'DeepBoosted' in kk: continue
-            if k in funcs.keys(): loadbranches[i].update(_get_variable_names(funcs[k]))
-            else: loadbranches[i].add(k)
-        if n==0:
-            for k in label_bkg: loadbranches[i].add(k['label'])
-            for k in label_sig: loadbranches[i].add(k['label'])
-            for k in lfeatures: loadbranches[i].add(k)
+    sameshape = True
+    sh = []
+    # check if the input files have the same shape
+    for n,name in enumerate(names):
+        table = _read_root(inputfiles[n], lfeatures)
+        for k in table.keys():
+            sh.append(table[k].shape)
+            if n>0 and table[k].shape != sh[0]:
+                sameshape = False
 
-    for n,i in enumerate(names):
-        table = _read_root(inputfiles[n], loadbranches[i])
-        if n==0 and 'DeepBoosted' in kk:
-            _build_new_variables(table, {k: v for k,v in funcs.items() if k in scores.keys()})
-        if n==0: 
-            newtable = table
-            #for k in table:
-            #    if 'score_label' in table:
-            #        newtable[k+'_'+i] = table[k]
-        else:
-            for k in table: 
-                newtable[k+'_'+i] = table[k]
-                score = scores[k]
-                scores[k+'_'+i] = score+'_'+i
-
+    # go to plot directory
     cwd=os.getcwd()
     odir = 'plots/%s/'%(args.tag)
     os.system('mkdir -p %s'%odir)
     os.chdir(odir)
-    
-    for sig in label_sig:
-        newscores = {}
-        for k,kk in scores.items():
-            if sig['scores'] in kk:
-                newscores[k] = kk
-        plot_roc(newtable, newscores, sig, label_bkg[0], args.name+sig['label'])
-        plot_response(newtable, newscores, sig, label_bkg[0], args.name+sig['label'])
-        plot_features(newtable, newscores, sig, label_bkg[0], args.name+sig['label'], lfeatures)
 
+    # now build tables
+    for n,name in enumerate(names):
+        scores = {'score_%s'%label_sig['label']: '%s %s'%(name,label_sig['scores'])}
+        if args.channel == 'h4q':
+            scores['score_deepBoosted_Hqqqq'] = 'DeepAK8%s_H4q'%name # should probably add mass decorrelated v too
+
+        loadbranches = set()
+        for k,kk in scores.items():
+            #if n>0 and 'DeepBoosted' in kk: continue # we only want to load deepAK8 once (hopefully it is the same for both outputs?)
+
+            # load scores
+            if k in funcs.keys(): loadbranches.update(_get_variable_names(funcs[k]))
+            else: loadbranches.add(k)
+
+            # load features
+            loadbranches.add(label_bkg['label'])
+            loadbranches.add(label_sig['label'])
+            for k in lfeatures: loadbranches.add(k)
+
+        table = _read_root(inputfiles[n], loadbranches)
+        if(n==0 or (not sameshape)):
+            _build_new_variables(table, {k: v for k,v in funcs.items() if k in scores.keys()})
+            newtable = table
+            newscores = scores
+        else:
+            for k in table: 
+                newtable[k] = table[k]
+            for k in scores:
+                newscores[k] = scores[k]
+
+        if not sameshape:
+            fprs, tprs = get_roc(table, scores, label_sig, label_bkg)
+            if n==0: 
+                newfprs = fprs
+                newtprs = tprs
+            else:
+                for k in fprs:
+                    newfprs[k] = fprs[k]
+                    newtprs[k] = tprs[k]
+            plot_response(table, scores, label_sig, label_bkg, name+args.channel)
+            plot_features(table, scores, label_sig, label_bkg, name+args.channel, lfeatures)
+
+    if sameshape:
+        newfprs, newtprs = get_roc(newtable, newscores, label_sig, label_bkg)
+        plot_response(newtable,  newscores, label_sig, label_bkg, args.channel)
+        plot_features(newtable, newscores, label_sig, label_bkg, args.channel, lfeatures)
+
+    plot_roc(label_sig, label_bkg, newfprs, newtprs)
     os.chdir(cwd)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', help='input file')
-    parser.add_argument('--name', help='name ROC')
+    parser.add_argument('-i', '--input', help='input file(s)')
+    parser.add_argument('--name', help='name ROC(s)')
     parser.add_argument('--tag', help='folder tag')
     parser.add_argument('--idir', help='idir')
     parser.add_argument('--odir', help='odir')
+    parser.add_argument('--channel', help='channel')
+    parser.add_argument('--loss', action='store_true', default=False, help='plot loss and acc')
+    parser.add_argument('--roc', action='store_true', default=False, help='plot roc and nn output')
     args = parser.parse_args()
-    main(args)
-    plot_loss(args.idir,args.odir,args.name)
-    plot_accuracy(args.idir,args.odir,args.name)
+
+    if args.roc:
+        main(args)
+    if args.loss:
+        plot_loss(args.idir,args.odir,args.name)
+        plot_accuracy(args.idir,args.odir,args.name)
+    

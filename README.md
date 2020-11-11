@@ -206,3 +206,9 @@ tree->Branch("x", &var, "x/F", /*bufsize=32000*/1024000);
    - Note that the memory usage also increases with the number of workers. So if you are getting any memory-related errors, try reducing `--num-workers`.
    - Note that the workload splitting is file-based, so make sure the number of input files is not too small (i.e., make sure each worker is able to load several files to get samples **from all classes**).
 
+## Evaluating metrics
+
+e.g.
+```
+python run_metrics.py -i '/storage/user/cmantill/tmp/weaver/output/hwwh5v04q_ep59_gpus1234_4workers_morefiles.root,/data/shared/abao/IN/output/in_h5v0h4q_epoch-19_5gpus_4worker.root' --tag h5v04q_new  --name PNh5v0,INh5v0-abao --roc --channel h4q 
+```
