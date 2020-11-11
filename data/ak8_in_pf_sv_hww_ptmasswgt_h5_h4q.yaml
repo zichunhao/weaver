@@ -1,13 +1,13 @@
 selection:
-   label[:, [0,6]].sum(axis=1) == 1
+   label[:, [1,3]].sum(axis=1) == 1
 
 preprocess:
    method: manual
    data_fraction: 
 
 new_variables:
-   label_H_WW_qqqq: label[:, 0]
-   fj_isQCD: label[:, 6]
+   label_H_WW_qqqq: label[:, 1]
+   fj_isQCD: label[:, 3]
 
 inputs:
    pf_features:
@@ -39,7 +39,7 @@ inputs:
          - pfcand_btagSip3dSig
          - pfcand_btagJetDistVal
    sv_features:
-      length: 7
+      length: 10
       vars:
          - sv_pt_log
          - sv_mass
@@ -56,7 +56,7 @@ inputs:
 labels:
    type: custom
    value:
-       new_label: label[:, [0,6]].argmax(1)
+       new_label: label[:, [1,3]].argmax(1)
    label_list: [label_H_WW_qqqq,fj_isQCD]
 
 observers:
