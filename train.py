@@ -85,7 +85,7 @@ def main():
     # device
     if args.gpus:
         gpus = [int(i) for i in args.gpus.split(',')]
-        print(gpus,gpus[0])
+        #print(gpus,gpus[0])
         dev = torch.device(gpus[0])
     else:
         gpus = None
@@ -117,8 +117,8 @@ def main():
                                       fetch_by_files=True, fetch_step=1)
         test_loader = DataLoader(test_data, num_workers=num_workers, batch_size=args.batch_size, drop_last=False, pin_memory=True)
         data_config = test_data.config
-        print('test loader done ')
-        print(data_config)
+        #print('test loader done ')
+        #print(data_config)
 
     if args.io_test:
         from tqdm.auto import tqdm
@@ -200,6 +200,13 @@ def main():
                 lr_decay_rate = 0.01 ** (1. / lr_decay_epochs)
                 scheduler = torch.optim.lr_scheduler.MultiStepLR(opt, milestones=list(range(args.num_epochs - lr_decay_epochs, args.num_epochs)), gamma=lr_decay_rate)
 
+        # metrics
+        acc_vals_validation = np.zeros(args.num_epochs)
+        loss_vals_training = np.zeros(args.num_epochs)
+        loss_std_training = np.zeros(args.num_epochs)
+        loss_vals_validation = np.zeros(args.num_epochs)
+        loss_std_validation = np.zeros(args.num_epochs)
+
         # load previous training and resume if `--load-epoch` is set
         if args.load_epoch is not None:
             _logger.info('Resume training from epoch %d' % args.load_epoch)
@@ -207,6 +214,18 @@ def main():
             model.load_state_dict(model_state)
             opt_state = torch.load(args.model_prefix + '_epoch-%d_optimizer.pt' % args.load_epoch, map_location=dev)
             opt.load_state_dict(opt_state)
+
+            t_acc_vals_validation = np.load('%s_history/acc_vals_validation.npy'%(args.model_prefix))
+            t_loss_vals_training = np.load('%s_history/loss_vals_training.npy'%(args.model_prefix))
+            t_loss_std_training = np.load('%s_history/loss_std_training.npy'%(args.model_prefix))
+            t_loss_vals_validation = np.load('%s_history/loss_vals_validation.npy'%(args.model_prefix))
+            t_loss_std_validation = np.load('%s_history/loss_std_validation.npy'%(args.model_prefix))
+
+            for i,k in enumerate(t_acc_vals_validation): acc_vals_validation[i] = k
+            for i,k in enumerate(t_loss_vals_training): loss_vals_training[i] = k
+            for i,k in enumerate(t_loss_std_training): loss_std_training[i] = k
+            for i,k in enumerate(t_loss_vals_validation): loss_vals_validation[i] = k
+            for i,k in enumerate(t_loss_std_validation): loss_std_validation[i] = k
 
         # mutli-gpu
         if gpus is not None and len(gpus) > 1:
@@ -230,11 +249,6 @@ def main():
 
         # training loop
         best_valid_acc = 0
-        acc_vals_validation = np.zeros(args.num_epochs)
-        loss_vals_training = np.zeros(args.num_epochs)
-        loss_std_training = np.zeros(args.num_epochs)
-        loss_vals_validation = np.zeros(args.num_epochs)
-        loss_std_validation = np.zeros(args.num_epochs)
         for epoch in range(args.num_epochs):
             if args.load_epoch is not None:
                 if epoch <= args.load_epoch:
@@ -265,15 +279,17 @@ def main():
                     torch.save(model, args.model_prefix + '_best_acc_full.pt')
             _logger.info('Epoch #%d: Current validation acc: %.5f (best: %.5f)' % (epoch, valid_acc, best_valid_acc))
             
+            # save again in each epoch?
+            np.save('%s_history/acc_vals_validation.npy'%(args.model_prefix),acc_vals_validation)
+            np.save('%s_history/loss_vals_training.npy'%(args.model_prefix),loss_vals_training)
+            np.save('%s_history/loss_vals_validation.npy'%(args.model_prefix),loss_vals_validation)
+            np.save('%s_history/loss_std_validation.npy'%(args.model_prefix),loss_std_validation)
+            np.save('%s_history/loss_std_training.npy'%(args.model_prefix),loss_std_training)
+
         dirname = os.path.dirname('%s_history/'%args.model_prefix)
         if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)
 
-        np.save('%s_history/acc_vals_validation.npy'%(args.model_prefix),acc_vals_validation)
-        np.save('%s_history/loss_vals_training.npy'%(args.model_prefix),loss_vals_training)
-        np.save('%s_history/loss_vals_validation.npy'%(args.model_prefix),loss_vals_validation)
-        np.save('%s_history/loss_std_validation.npy'%(args.model_prefix),loss_std_validation)
-        np.save('%s_history/loss_std_training.npy'%(args.model_prefix),loss_std_training)
     else:
         # run prediction
         if args.model_prefix.endswith('.onnx'):
