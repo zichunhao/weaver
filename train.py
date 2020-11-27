@@ -57,7 +57,7 @@ parser.add_argument('--batch-size', type=int, default=128,
                     help='batch size')
 parser.add_argument('--use-amp', action='store_true', default=False,
                     help='use mixed precision training (fp16); NOT WORKING YET')
-parser.add_argument('--gpus', type=str, default='0',
+parser.add_argument('--gpus', type=str, default='1',
                     help='device for the training/testing; to use CPU, set to empty string (''); to use multiple gpu, set it as a comma separated list, e.g., `1,2,3,4`')
 parser.add_argument('--num-workers', type=int, default=2,
                     help='number of threads to load the dataset; memory consumption and disk access load increases (~linearly) with this numbers')
@@ -79,6 +79,7 @@ def train_load(args):
     :return: train_loader, val_loader, data_config, train_inputs
     """
     filelist = sorted(sum([glob.glob(f) for f in args.data_train], []))
+    print('filelist ',filelist)
     # np.random.seed(1)
     np.random.shuffle(filelist)
     if args.demo:
@@ -168,7 +169,7 @@ def optim(args, model):
         from utils.nn.optimizer.ranger import Ranger
         opt = Ranger(model.parameters(), lr=args.start_lr)
         if args.lr_finder is None:
-            lr_decay_epochs = max(0, int(args.num_epochs * 0.3))
+            lr_decay_epochs = max(1, int(args.num_epochs * 0.3))
             lr_decay_rate = 0.01 ** (1. / lr_decay_epochs)
             scheduler = torch.optim.lr_scheduler.MultiStepLR(opt, milestones=list(
                 range(args.num_epochs - lr_decay_epochs, args.num_epochs)), gamma=lr_decay_rate)
@@ -317,7 +318,7 @@ def main(args):
     # device
     if args.gpus:
         gpus = [int(i) for i in args.gpus.split(',')]
-        #print(gpus,gpus[0])
+        print(gpus,gpus[0])
         dev = torch.device(gpus[0])
     else:
         gpus = None
@@ -348,6 +349,7 @@ def main(args):
     if training_mode:
         # loss function
         try:
+            network_options = {k: ast.literal_eval(v) for k, v in args.network_option}
             loss_func = network_module.get_loss(data_config, **network_options)
             _logger.info(loss_func)
         except AttributeError:
@@ -442,6 +444,7 @@ def main(args):
             _logger.info('Epoch #%d: Current validation acc: %.5f (best: %.5f)' % (epoch, valid_acc, best_valid_acc))
             
             # save again in each epoch?
+            os.system('mkdir -p %s_history/'%args.model_prefix)
             np.save('%s_history/acc_vals_validation.npy'%(args.model_prefix),acc_vals_validation)
             np.save('%s_history/loss_vals_training.npy'%(args.model_prefix),loss_vals_training)
             np.save('%s_history/loss_vals_validation.npy'%(args.model_prefix),loss_vals_validation)
@@ -455,7 +458,6 @@ def main(args):
     else:
         # run prediction
         predict_model(args, test_loader, model, dev, data_config, gpus)
-
 
 
 if __name__ == '__main__':
