@@ -5,7 +5,7 @@ selection:
    ### use `&`, `|`, `~` for logical operations on numpy arrays
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
    ###(jet_tightId==1) & (fj_sdmass>30) & (jet_no<2) & (fj_pt>200) & (fj_pt<2500) & (((label_H_WW_qqqq==1)) | ((event_no%2==0) & (fj_isQCD==1)))
-   (jet_tightId==1) & (fj_sdmass>30) & (jet_no<2) & (fj_pt>200) & (fj_pt<2500) & (((label_H_WW_qqqq==1)) | ((fj_isQCD==1)))
+   (jet_tightId==1) & (fj_sdmass>30) & (jet_no<2) & (fj_pt>200) & (fj_pt<2500) 
 
 test_time_selection:
    ### selection to apply at test time (i.e., when running w/ --predict)
@@ -26,12 +26,12 @@ preprocess:
 
 inputs:
    pf_points:
-      length: 50
+      length: 100
       vars: 
          - pfcand_etarel
          - pfcand_phirel
    pf_features:
-      length: 50
+      length: 100
       vars: 
       ### [format 1]: var_name (no transformation)
       ### [format 2]: [var_name, 
@@ -66,16 +66,16 @@ inputs:
          - [pfcand_btagSip3dSig, 0, 0.5]
          - [pfcand_btagJetDistVal, 0, 40]
    pf_mask:
-      length: 50
+      length: 100
       vars: 
          - pfcand_mask
    sv_points:
-      length: 7
+      length: 10
       vars:
          - sv_etarel 
          - sv_phirel
    sv_features:
-      length: 7
+      length: 10
       vars:
          - [sv_pt_log, 4, 0.6]
          - [sv_mass, 1.2, 0.3]
@@ -89,7 +89,7 @@ inputs:
          - [sv_d3d, 0.5, 0.2]
          - [sv_d3dsig, 7, 0.02]
    sv_mask: 
-      length: 7
+      length: 10
       vars:
          - sv_mask
 
