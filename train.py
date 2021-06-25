@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+#import setGPU
 import os
 import shutil
 import glob
@@ -12,6 +13,68 @@ from importlib import import_module
 import ast
 from utils.logger import _logger, _configLogger
 from utils.dataset import SimpleIterDataset
+from utils.nn.tools import train, evaluate
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--data-config', type=str, default='data/ak15_points_pf_sv_v0.yaml',
+                        help='data config YAML file')
+    parser.add_argument('-i', '--data-train', nargs='*', default=[],
+                        help='training files')
+    parser.add_argument('-t', '--data-test', nargs='*', default=[],
+                        help='testing files')
+    parser.add_argument('--data-fraction', type=float, default=1,
+                        help='fraction of events to load from each file; for training, the events are randomly selected for each epoch')
+    parser.add_argument('--data-dilation', type=int, default=1,
+                        help='reduce number of file by a factor of `d` for training. NOT recommended in general - use `--data-fraction` instead.')
+    parser.add_argument('--fetch-by-files', action='store_true', default=False,
+                        help='When enabled, will load all events from a small number (set by ``--fetch-step``) of files for each data fetching. '
+                        'Otherwise (default), load a small fraction of events from all files each time, which helps reduce variations in the sample composition.')
+    parser.add_argument('--fetch-step', type=float, default=0.01,
+                        help='fraction of events to load each time from every file (when ``--fetch-by-files`` is disabled); '
+                        'Or: number of files to load each time (when ``--fetch-by-files`` is enabled). Shuffling & sampling is done within these events, so set a large enough value.')
+    parser.add_argument('--train-val-split', type=float, default=0.8,
+                        help='training/validation split fraction')
+    parser.add_argument('--demo', action='store_true', default=False,
+                        help='quickly test the setup by running over only a small number of events')
+    parser.add_argument('--lr-finder', type=str, default=None,
+                        help='run learning rate finder instead of the actual training; format: ``start_lr, end_lr, num_iters``')
+    parser.add_argument('-n', '--network-config', type=str, default='networks/particle_net_pfcand_sv.py',
+                        help='network architecture configuration file; the path must be relative to the current dir')
+    parser.add_argument('--network-option', nargs=2, action='append', default=[],
+                        help='options to pass to the model class constructor, e.g., `--network-option use_counts False`')
+    parser.add_argument('-m', '--model-prefix', type=str, default='test_output/model_name',
+                        help='path to save or load the model; for training, this will be used as a prefix; for testing, this should be the full path including extension')
+    parser.add_argument('--num-epochs', type=int, default=20,
+                        help='number of epochs')
+    parser.add_argument('--optimizer', type=str, default='ranger', choices=['adam', 'ranger'],  # TODO: add more
+                        help='optimizer for the training')
+    parser.add_argument('--load-epoch', type=int, default=None,
+                        help='used to resume interrupted training, load model and optimizer state saved in the `epoch-%d_state.pt` and `epoch-%d_optimizer.pt` files')
+    parser.add_argument('--start-lr', type=float, default=5e-3,
+                        help='start learning rate')
+    parser.add_argument('--lr-steps', type=str, default='10,20',
+                        help='steps to reduce the lr; currently only used when setting `--optimizer` to adam')
+    parser.add_argument('--batch-size', type=int, default=128,
+                        help='batch size')
+    parser.add_argument('--use-amp', action='store_true', default=False,
+                        help='use mixed precision training (fp16); NOT WORKING YET')
+    parser.add_argument('--gpus', type=str, default='0',
+                        help='device for the training/testing; to use CPU, set to empty string (''); to use multiple gpu, set it as a comma separated list, e.g., `1,2,3,4`')
+    parser.add_argument('--num-workers', type=int, default=2,
+                        help='number of threads to load the dataset; memory consuption and disk access load increases (~linearly) with this numbers')
+    parser.add_argument('--predict', action='store_true', default=False,
+                        help='run prediction instead of training')
+    parser.add_argument('--predict-output', type=str,
+                        help='path to save the prediction output, support `.root` and `.awkd` format')
+    parser.add_argument('--export-onnx', type=str, default=None,
+                        help='export the PyTorch model to ONNX model and save it at the given path (path must ends w/ .onnx); '
+                        'needs to set `--data-config`, `--network-config`, and `--model-prefix` (requires the full model path)')
+    parser.add_argument('--io-test', action='store_true', default=False,
+                        help='test throughput of the dataloader')
+    parser.add_argument('--pin', action='store_true', default=False,
+                        help='pin memory')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--regression-mode', action='store_true', default=False,
@@ -479,6 +542,7 @@ def main(args):
             _logger.info('Loading model %s for eval' % model_path)
             model.load_state_dict(torch.load(model_path, map_location=dev))
             if gpus is not None and len(gpus) > 1:
+                #print('multi-gpu predict ',gpus)
                 model = torch.nn.DataParallel(model, device_ids=gpus)
             model = model.to(dev)
             test_metric, scores, labels, observers = evaluate(model, test_loader, dev, for_training=False)
