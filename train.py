@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+#import setGPU
 import os
 import shutil
 import glob
@@ -12,6 +13,7 @@ from importlib import import_module
 import ast
 from utils.logger import _logger, _configLogger
 from utils.dataset import SimpleIterDataset
+from utils.nn.tools import train, evaluate
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--regression-mode', action='store_true', default=False,
@@ -479,6 +481,7 @@ def main(args):
             _logger.info('Loading model %s for eval' % model_path)
             model.load_state_dict(torch.load(model_path, map_location=dev))
             if gpus is not None and len(gpus) > 1:
+                #print('multi-gpu predict ',gpus)
                 model = torch.nn.DataParallel(model, device_ids=gpus)
             model = model.to(dev)
             test_metric, scores, labels, observers = evaluate(model, test_loader, dev, for_training=False)

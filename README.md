@@ -80,6 +80,9 @@ pip install tables
 # install onnxruntime if needs to run inference w/ ONNX models
 pip install onnxruntime-gpu
 
+# to choose 1 free GPU to use
+pip install setGPU
+
 # install pytorch, follow instructions for your OS/CUDA version at:
 # https://pytorch.org/get-started
 # pip install torch
@@ -179,6 +182,32 @@ Note:
 - for inference, one can specify the full path of the model parameters in `--model-prefix`.
 - `--predict-output` sets the path for the output file. It can either be the full path (if `/` is contained in the path), or just the file name part (e.g., `output.root`) so that the output will be written under the directory of the `--model-prefix`, i.e., `{model_prefix_dir}/predict_output/{predict_output}`. Currently support saving to ROOT files (use `.root` extension) or awkward arrays (use `.awkd` extension).
 
+### In Caltech GPU
+
+The data is available in:
+```bash
+/mnt/hadoop/store/user/cmantill/DNNTuples/train/*/*.root
+```
+and
+```bash
+/mnt/hadoop/store/user/cmantill/DNNTuples/test/*/*.root
+```
+for training and testing respectively.
+
+Check which gpus are available with `nvidia-smi`.
+
+An example training command is:
+```bash
+python train.py --data-train '/mnt/hadoop/store/user/cmantill/DNNTuples/train/*/*.root' --data-config data/ak8_points_pf_sf_hww.yaml --network-config networks/particle_net_pf_sv.py --model-prefix models/test --start-lr 1e-3 --num-epochs 4 --optimizer ranger --num-workers 4 --gpus 1,2,3,4 --fetch-step 0.015 --batch-size 512
+```
+here, you want to choose the number of gpus as they are available, and the batch size. The fetch step and num of workers should be related to the loading of data instead and the local memory.
+
+An example command for obtaining the prediction is:
+```bash
+python train.py --predict --data-test '/mnt/hadoop/store/user/cmantill/DNNTuples/test/*/*.root'  --data-config data/ak8_points_pf_sf_hww.yaml --network-config networks/particle_net_pf_sv.py --model-prefix models/testall_best_acc_state.pt --num-workers 3 --gpus 0,1,2,3 --batch-size 512  --predict-output output/testall_epoch3.root 
+```
+this should save all the variables you need into .root files which then you can use to plot the score of the classifier or a ROC curve (see `run_metrics.py`).
+
 ### Model exportation
 
 When you are satisfied with the trained model, you could export it from PyTorch to ONNX format for inference (e.g., using [ONNXRuntime](https://github.com/microsoft/onnxruntime)):
@@ -224,6 +253,13 @@ f.SetCompressionAlgorithm(ROOT::kLZ4);
 f.SetCompressionLevel(4);
 ```
 
+- Copy files to a faster disk (e.g., SSD) if possible.
+- Enable multiprocessing for data loading. Setting `--num-workers` to 2 or 3 generally gives a good performance. Setting this value too high could overload the disk and degrade the performance.
+  - Note that the memory usage also increases with the number of workers. So if you are getting any memory-related errors, try reducing `--num-workers`.
+  - Note that the workload splitting is file-based, so make sure the number of input files is not too small (i.e., make sure each worker is able to load several files to get samples _from all classes_).
+    - **e.g., if each (signal/background) class is present in only one input file, please use `--num-workers 1` so that they are properly mixed for the training.**
+
+
 ## WW training
 
 For training:
@@ -250,9 +286,3 @@ python run_metrics.py --channel elenuqq -i /storage/user/cmantill/training/weave
 python run_metrics.py --channel munuqq -i /storage/user/cmantill/training/weaver/output/v0_Mar10.root --tag v0 --roc --name PN
 python run_metrics.py --channel 4q -i /storage/user/cmantill/training/weaver/output/v0_Mar10.root --tag v0 --roc --name PN
 ```
-=======
-- Copy files to a faster disk (e.g., SSD) if possible.
-- Enable multiprocessing for data loading. Setting `--num-workers` to 2 or 3 generally gives a good performance. Setting this value too high could overload the disk and degrade the performance.
-  - Note that the memory usage also increases with the number of workers. So if you are getting any memory-related errors, try reducing `--num-workers`.
-  - Note that the workload splitting is file-based, so make sure the number of input files is not too small (i.e., make sure each worker is able to load several files to get samples _from all classes_).
-    - **e.g., if each (signal/background) class is present in only one input file, please use `--num-workers 1` so that they are properly mixed for the training.**
