@@ -40,6 +40,7 @@ class DataConfig(object):
             'inputs': {},
             'labels': {},
             'observers': [],
+            'monitor_variables': [],
             'weights': None,
         }
         for k, v in kwargs.items():
@@ -91,15 +92,15 @@ class DataConfig(object):
         self.label_value = opts['labels']['value']
         if self.label_type == 'simple':
             assert(isinstance(self.label_value, list))
-            self.label_names = ('label',)
-            self.var_funcs['label'] = 'np.stack([%s], axis=1).argmax(1)' % (','.join(self.label_value))
+            self.label_names = ('_label_',)
+            self.var_funcs['_label_'] = 'np.stack([%s], axis=1).argmax(1)' % (','.join(self.label_value))
         else:
             self.label_names = tuple(self.label_value.keys())
             self.var_funcs.update(self.label_value)
         # weights: TODO
         self.weight_name = None
         if opts['weights'] is not None:
-            self.weight_name = 'weight'
+            self.weight_name = 'weight_'
             self.use_precomputed_weights = opts['weights']['use_precomputed_weights']
             if self.use_precomputed_weights:
                 self.var_funcs[self.weight_name] = '*'.join(opts['weights']['weight_branches'])
@@ -112,12 +113,17 @@ class DataConfig(object):
                 if self.class_weights is None:
                     self.class_weights = np.ones(len(self.reweight_classes))
                 self.reweight_threshold = opts['weights'].get('reweight_threshold', 10)
+                self.reweight_discard_under_overflow = opts['weights'].get('reweight_discard_under_overflow', True)
                 self.reweight_hists = opts['weights'].get('reweight_hists', None)
                 if self.reweight_hists is not None:
                     for k, v in self.reweight_hists.items():
                         self.reweight_hists[k] = np.array(v, dtype='float32')
         # observers
         self.observer_names = tuple(opts['observers'])
+        # monitor variables
+        self.monitor_variables = tuple(opts['monitor_variables'])
+        # Z variables: returned as `Z` in the dataloader (use monitor_variables for training, observers for eval)
+        self.z_variables = self.observer_names if len(self.observer_names) > 0 else self.monitor_variables
 
         # remove self mapping from var_funcs
         for k, v in self.var_funcs.items():
@@ -135,6 +141,13 @@ class DataConfig(object):
             _logger.info('preprocess_params:\n - %s', '\n - '.join(str(it) for it in self.preprocess_params.items()))
             _logger.info('label_names: %s', str(self.label_names))
             _logger.info('observer_names: %s', str(self.observer_names))
+            _logger.info('monitor_variables: %s', str(self.monitor_variables))
+            if opts['weights'] is not None:
+                if self.use_precomputed_weights:
+                    _logger.info('weight: %s' % self.var_funcs[self.weight_name])
+                else:
+                    for k in ['reweight_method', 'reweight_branches', 'reweight_bins', 'reweight_classes', 'class_weights', 'reweight_threshold', 'reweight_discard_under_overflow']:
+                        _logger.info('%s: %s' % (k, getattr(self, k)))
 
         # parse config
         self.keep_branches = set()
@@ -162,6 +175,8 @@ class DataConfig(object):
                 aux_branches.update(self.reweight_classes)
         # observers
         self.keep_branches.update(self.observer_names)
+        # monitor variables
+        self.keep_branches.update(self.monitor_variables)
         # keep and drop
         self.drop_branches = (aux_branches - self.keep_branches)
         self.load_branches = (aux_branches | self.keep_branches) - set(self.var_funcs.keys()) - {self.weight_name, }
