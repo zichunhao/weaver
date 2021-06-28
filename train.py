@@ -13,7 +13,6 @@ from importlib import import_module
 import ast
 from utils.logger import _logger, _configLogger
 from utils.dataset import SimpleIterDataset
-from utils.nn.tools import train, evaluate
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--regression-mode', action='store_true', default=False,
