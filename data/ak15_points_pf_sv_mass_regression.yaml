@@ -88,12 +88,12 @@ inputs:
       vars: 
          - pfcand_mask
    sv_points:
-      length: 10
+      length: 7
       vars:
          - sv_etarel 
          - sv_phirel
    sv_features:
-      length: 10
+      length: 7
       vars:
          - [sv_pt_log, 4, 0.6]
          - [sv_mass, 1.2, 0.3]
@@ -107,7 +107,7 @@ inputs:
          - [sv_d3d, 0.5, 0.2]
          - [sv_d3dsig, 7, 0.02]
    sv_mask:
-      length: 10
+      length: 7
       vars:
          - sv_mask
 
