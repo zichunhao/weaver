@@ -281,7 +281,7 @@ def main(args):
                     newtprs[k] = tprs[k]
             plot_response(table, scores, label_sig, label_bkg, name+args.channel)
             plot_features_qcd(table, scores, label_sig, label_bkg, name+args.channel, lfeatures)
-            plot_features_signal(able, scores, label_sig, label_bkg, name+args.channel, lfeatures_signal)
+            # plot_features_signal(table, scores, label_sig, label_bkg, name+args.channel, lfeatures_signal)
 
     if sameshape:
         newfprs, newtprs = get_roc(newtable, newscores, label_sig, label_bkg)
