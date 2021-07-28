@@ -222,9 +222,9 @@ def main(args):
                 sameshape = False
 
     # go to plot directory
-    cwd=os.getcwd()
-    odir = '%s/'%(args.tag)
-    os.system('mkdir -p %s'%odir)
+    cwd = os.getcwd()
+    odir = os.path.join(args.odir, args.tag)
+    os.system('mkdir -p %s' % odir)
     os.chdir(odir)
 
     # now build tables
