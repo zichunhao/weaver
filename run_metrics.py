@@ -296,11 +296,9 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--input', help='input file(s)')
     parser.add_argument('--name', help='name ROC(s)')
     parser.add_argument('--tag', help='folder tag')
-    parser.add_argument('--idir', help='idir')
     parser.add_argument('--odir', help='odir')
     parser.add_argument('--channel', help='channel')
     parser.add_argument('--jet', default="AK8", help='jet type')
-    parser.add_argument('--selection', default=None, type=str, help='selection')
     args = parser.parse_args()
 
     main(args)
