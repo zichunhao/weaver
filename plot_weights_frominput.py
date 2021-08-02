@@ -2,6 +2,7 @@ import numpy as np
 import uproot
 import argparse
 import matplotlib.pyplot as plt
+from matplotlib import colors
 import awkward
 
 import mplhep as hep
@@ -152,32 +153,99 @@ def make_plots(table,cats,reweight_bins,args):
         }
 
     for catlabel,cat in cats.items():
-        iax = 0
-        fig, axs = plt.subplots(len(var_dict.keys()), 2)
-        print(axs)
-        for var,varprop in var_dict.items():
-            plotlabel = varprop[0]
-            bins = varprop[1]
-            xlabel = varprop[2]
+        for density in [True,False]:
+            iax = 0
+            fig, axs = plt.subplots(len(var_dict.keys()), 2)
+            for var,varprop in var_dict.items():
+                plotlabel = varprop[0]
+                bins = varprop[1]
+                xlabel = varprop[2]
+
+                for label, hist in reweight_hists.items():
+                    if label in cat:
+                        try:
+                            x = table[var][table[label]==1].to_numpy()
+                        except:
+                            x = table[var][table[label]==1]
+                        axs[iax,0].hist(x, bins=varprop[1], histtype='step', density=density, label=label)
+                axs[iax,0].set_xlabel(xlabel)
+                axs[iax,0].set_ylabel(r'Events')
+                axs[iax,0].legend(prop={'size': 6})
+                
+                for label, hist in reweight_hists.items():
+                    if label in cat:
+                        try:
+                            x = table[var][table[label]==1].to_numpy()
+                        except:
+                            x = table[var][table[label]==1]
+                        axs[iax,1].hist(x, bins=varprop[1], histtype='step', density=density, label=label, weights=table['weight'][table[label]==1])
+                axs[iax,1].set_xlabel(xlabel)
+                axs[iax,1].set_ylabel(r'Weighted Events')
+                axs[iax,1].legend(prop={'size': 6})
+
+                iax+=1
+            fig.tight_layout()
+            if density:
+                fig.savefig("plots/%s/weights_%s.png"%(args.odir,catlabel))
+            else:
+                fig.savefig("plots/%s/weights_%s_all.png"%(args.odir,catlabel))
+
+def make_2d_plots(table,reweight_bins,args):
+    if args.regression:
+        var_dict = [
+            ["fj_pt","pt",reweight_bins[0],r"$p_{T}$ [GeV]"],
+            ["fj_genjetmsd","genjetmsd",reweight_bins[1],r"GEN $m_{SD}$ [GeV]"],
+        ]
+    else:
+        var_dict = [
+            ["fj_pt","pt",reweight_bins[0],r"$p_{T}$ [GeV]"],
+            ["fj_msoftdrop","msoftdrop",reweight_bins[1],r"$m_{SD}$ [GeV]"],
+        ]
+
+    for catlabel,cat in cats.items():
+        for density in [True,False]:
+            iax = 0
+            fig, axs = plt.subplots(2, len(cat), figsize=(len(cat)*8,16))
+
+            var1 = var_dict[0][0]
+            var2 = var_dict[1][0]
             
-            for label, hist in reweight_hists.items():
+            for label, hist in reweight_hists.items():        
                 if label in cat:
-                    axs[iax,0].hist(table[var][table[label]==1], bins=varprop[1], histtype='step', density=True, label=label)
-            axs[iax,0].set_xlabel(xlabel)
-            axs[iax,0].set_ylabel(r'Events')
-            axs[iax,0].legend(prop={'size': 6})
+                    try:
+                        x = table[var1][table[label]==1].to_numpy()
+                        y = table[var2][table[label]==1].to_numpy()
+                    except:
+                        x = table[var1][table[label]==1]
+                        y = table[var2][table[label]==1]
 
-            for label, hist in reweight_hists.items():
-                if label in cat:
-                    axs[iax,1].hist(table[var][table[label]==1], bins=varprop[1], histtype='step', density=True, label=label, weights=table['weight'][table[label]==1])
-            axs[iax,1].set_xlabel(xlabel)
-            axs[iax,1].set_ylabel(r'Weighted Events')
-            axs[iax,1].legend(prop={'size': 6})
+                    try:
+                        axs_0 = axs[0,iax]
+                        axs_1 = axs[1,iax]
+                    except:
+                        axs_0 = axs[0]
+                        axs_1 = axs[1]
+                    mp = axs_0.hist2d(x,y, bins=[reweight_bins[0],reweight_bins[1]], density=density, label=label, norm=colors.LogNorm())
+                    axs_0.set_xlabel(var_dict[0][3])
+                    axs_0.set_ylabel(var_dict[1][3])
+                    cbar_0=fig.colorbar(mp[3],ax=axs_0) # hist2d returns counts, xedges, yedges, im - we want im
+                    cbar_0.set_label('Jets')
+                    axs_0.set_title(label)
 
-            iax+=1
-        fig.tight_layout()
-        fig.savefig("weights_%s.png"%catlabel)
-
+                    mp = axs_1.hist2d(x,y, bins=[reweight_bins[0],reweight_bins[1]], density=density, label=label, weights=table['weight'][table[label]==1], norm=colors.LogNorm())
+                    axs_1.set_xlabel(var_dict[0][3])
+                    axs_1.set_ylabel(var_dict[1][3])
+                    cbar_1=fig.colorbar(mp[3],ax=axs_1)
+                    cbar_1.set_label('Weighted Jets')
+                    axs_1.set_title(label)
+                    iax+=1
+                    
+            fig.tight_layout()
+            if density:
+                fig.savefig("plots/%s/2dweights_%s_density.png"%(args.odir,catlabel))
+            else:
+                fig.savefig("plots/%s/2dweights_%s_all.png"%(args.odir,catlabel))
+                
 def create_table(events,branches):
     from collections import defaultdict
     table = defaultdict(list)
@@ -193,9 +261,13 @@ if __name__ == "__main__":
     parser.add_argument('--regression', action='store_true', default=False, help='regression mode')
     parser.add_argument('--weights', action='store_true', default=False, help='make weights')
     parser.add_argument('--test', action='store_true', default=False, help='plot from the test directory')
+    parser.add_argument('--odir', required=True, help="output dir")
     parser.add_argument('--config', default=None, help="data config")
     args = parser.parse_args()
 
+    import os
+    os.system('mkdir -p plots/%s'%args.odir)
+    
     # load config if needed
     if args.config:
         data_config_file = args.config
@@ -262,10 +334,10 @@ if __name__ == "__main__":
                                   '/data/shared/cmantill/training/ak15_Jul27/train/Grav*/*.root:Events',
                                   '/data/shared/cmantill/training/ak15_Jul27/train/TT*/*.root:Events'],branches,mask)
         # uncomment this if for testing with one file
-        # events =  uproot.iterate(['/data/shared/cmantill/training/ak15_Jul27/train/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/nano_mc2017_1-179_Skim.root:Events',
+        #events =  uproot.iterate(['/data/shared/cmantill/training/ak15_Jul27/train/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/nano_mc2017_1-179_Skim.root:Events',
         #                           '/data/shared/cmantill/training/ak15_Jul27/train/GravitonToHHToWWWW/nano_mc2017_4_Skim.root:Events',
         #                           '/data/shared/cmantill/training/ak15_Jul27/train/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/nano_mc2017_84_Skim.root:Events',   
-        #                           '/data/shared/cmantill/training/ak15_Jul27/train/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/nano_mc2017_93_Skim.root:Events'],branches,mask)
+        #                          '/data/shared/cmantill/training/ak15_Jul27/train/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/nano_mc2017_93_Skim.root:Events'],branches,mask)
         
     # create table
     table = create_table(events,branches)
@@ -278,13 +350,16 @@ if __name__ == "__main__":
         table["fj_isTop_semimerged"] = (table["fj_isTop"]==1) & (table["fj_nProngs"]==2)
         table["fj_isToplep_merged"] = (table["fj_isToplep"]==1) & (table["fj_nProngs"]>=2)
         table["fj_isHWW_elenuqq_merged"] = (table["fj_H_WW_elenuqq"]==1) & (table["fj_nProngs"]==4)
-        table["fj_isHWW_elenuqq_semimerged"] = (table["fj_H_WW_elenuqq"]==1) & (table["fj_nProngs"]==3)
+        table["fj_isHWW_elenuqq_semimerged"] = (table["fj_H_WW_elenuqq"]==1) & ((table["fj_nProngs"]==3) | (table["fj_nProngs"]==2))
         table["fj_isHWW_munuqq_merged"] = (table["fj_H_WW_munuqq"]==1) & (table["fj_nProngs"]==4)
-        table["fj_isHWW_munuqq_semimerged"] = (table["fj_H_WW_munuqq"]==1) & (table["fj_nProngs"]==3)
+        table["fj_isHWW_munuqq_semimerged"] = (table["fj_H_WW_munuqq"]==1) & ((table["fj_nProngs"]==3) | (table["fj_nProngs"]==2))
         table["fj_isHWW_taunuqq_merged"] = (table["fj_H_WW_taunuqq"] ==1) & (table["fj_nProngs"]==4)
-        table["fj_isHWW_taunuqq_semimerged"] = (table["fj_H_WW_taunuqq"] ==1) & (table["fj_nProngs"]==3)
+        table["fj_isHWW_taunuqq_semimerged"] = (table["fj_H_WW_taunuqq"] ==1) & ((table["fj_nProngs"]==3) | (table["fj_nProngs"]==2))
         table["fj_H_WW_4q_3q"] = (table["fj_H_WW_4q"]==1) & (table["fj_nProngs"]==3)
         table["fj_H_WW_4q_4q"] = (table["fj_H_WW_4q"]==1) & (table["fj_nProngs"]==4)
+
+        table["fj_QCD_label"] = (table["fj_isQCDb"]==1) | (table["fj_isQCDbb"]==1) | (table["fj_isQCDc"]==1) | (table["fj_isQCDcc"]==1) | (table["fj_isQCDlep"]==1) | (table["fj_isQCDothers"]==1)
+        table["fj_Top_label"] = (table["fj_isTop"]==1) | (table["fj_isToplep"]==1)
         
     if not args.config:
         print('define reweighting')
@@ -302,14 +377,14 @@ if __name__ == "__main__":
             reweight_branches = ["fj_pt","fj_msoftdrop"]
             reweight_bins = ([200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500],
                              [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260])
-            reweight_classes = ["fj_isQCDb", "fj_isQCDbb", "fj_isQCDc", "fj_isQCDcc", "fj_isQCDlep", "fj_isQCDothers",
-                                "fj_isTop_merged", "fj_isTop_semimerged", "fj_isToplep_merged",
+            reweight_classes = ["fj_QCD_label",
+                                "fj_Top_label",
                                 "fj_H_WW_4q_3q", "fj_H_WW_4q_4q", "fj_isHWW_elenuqq_merged", "fj_isHWW_elenuqq_semimerged",
                                 "fj_isHWW_munuqq_merged", "fj_isHWW_munuqq_semimerged", "fj_isHWW_taunuqq_merged", "fj_isHWW_taunuqq_semimerged"]
-            class_weights = [0.166, 0.166, 0.166, 0.166, 0.166, 0.166,
-                             0.333, 0.333, 0.333,
-                             1, 1, 1, 1,
-                             1, 1, 1, 1]
+            class_weights = [1,
+                             1,
+                             0.125, 0.125, 0.125, 0.125,
+                             0.125, 0.125, 0.125, 0.125]
             reweight_threshold = 10
             reweight_method = "flat"
 
@@ -324,10 +399,15 @@ if __name__ == "__main__":
     # define categories to plot
     cats = {
         'sig': sig_cats,
-        'qcd': qcd_cats,
+        #'qcd': qcd_cats,
+        'qcd': ["fj_QCD_label"],
     }
     if not args.regression:
-        cats['top'] = top_cats
+        #cats['top'] = top_cats
+        cats['top'] = ["fj_Top_label"]
     
     # make plots
     make_plots(table,cats,reweight_bins,args)
+
+    # 2d plots of weights
+    make_2d_plots(table,reweight_bins,args)

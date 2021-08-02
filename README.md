@@ -284,9 +284,35 @@ models/v0/v0_hwwvsQCD_nworkers3_bsize256_fstep0p02_gpu123_lr1e3_best_epoch_state
  --export-onnx onnx/v0_Mar10.onnx  
 ```
 
-Running metrics:
+## Running plots
+
+For these scripts we need uproot4:
+```bash
+# create a new conda environment
+conda create -n weaver-up4 python=3.7
+
+# activate the environment
+conda activate weaver-up4
+
+# install the necessary python packages
+pip install numpy pandas scikit-learn scipy matplotlib tqdm PyYAML
+
+# install uproot/coffea for reading/writing ROOT files
+pip install uproot coffea
 ```
-python run_metrics.py --channel elenuqq -i /storage/user/cmantill/training/weaver/output/v0_Mar10.root --tag v0 --roc --name PN
-python run_metrics.py --channel munuqq -i /storage/user/cmantill/training/weaver/output/v0_Mar10.root --tag v0 --roc --name PN
-python run_metrics.py --channel 4q -i /storage/user/cmantill/training/weaver/output/v0_Mar10.root --tag v0 --roc --name PN
-```
+
+- `plot_classification_fromoutput.py`: Runs ROC curves for classification task
+
+- `plot_regression_fromoutput.py`: Runs regression validation plots: target mass, and ratio of output mass vs truth mass
+
+- `plot_features_frominput.py`: Runs validation plots of features from input files (builds coffea histograms): for signal and background if needed
+
+```python plot_features_frominput.py --samples grav --hist fj_prop --mh``` (mh will run plots as function of resonance mass, you can chose different samples or histograms)
+
+- `plot_weights_frominput.py`: Runs validationplots of weights from input files (can take config if needed - builds matplotlib histograms)
+
+```python plot_weights_frominput.py --weights````
+
+or
+
+```python plot_weights_frominput.py --config data/NAMEOFCONFIG```
