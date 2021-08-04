@@ -186,9 +186,9 @@ def make_plots(table,cats,reweight_bins,args):
                 iax+=1
             fig.tight_layout()
             if density:
-                fig.savefig("plots/%s/weights_%s.png"%(args.odir,catlabel))
+                fig.savefig("%s/weights_%s.pdf"%(args.odir,catlabel))
             else:
-                fig.savefig("plots/%s/weights_%s_all.png"%(args.odir,catlabel))
+                fig.savefig("%s/weights_%s_all.pdf"%(args.odir,catlabel))
 
 def make_2d_plots(table,reweight_bins,args):
     if args.regression:
@@ -242,9 +242,9 @@ def make_2d_plots(table,reweight_bins,args):
                     
             fig.tight_layout()
             if density:
-                fig.savefig("plots/%s/2dweights_%s_density.png"%(args.odir,catlabel))
+                fig.savefig("%s/2dweights_%s_density.pdf"%(args.odir,catlabel))
             else:
-                fig.savefig("plots/%s/2dweights_%s_all.png"%(args.odir,catlabel))
+                fig.savefig("%s/2dweights_%s_all.pdf"%(args.odir,catlabel))
                 
 def create_table(events,branches):
     from collections import defaultdict
@@ -261,12 +261,13 @@ if __name__ == "__main__":
     parser.add_argument('--regression', action='store_true', default=False, help='regression mode')
     parser.add_argument('--weights', action='store_true', default=False, help='make weights')
     parser.add_argument('--test', action='store_true', default=False, help='plot from the test directory')
+    parser.add_argument('--data-dir', required=True, help='directory for train and test data files')
     parser.add_argument('--odir', required=True, help="output dir")
     parser.add_argument('--config', default=None, help="data config")
     args = parser.parse_args()
 
     import os
-    os.system('mkdir -p plots/%s'%args.odir)
+    os.system('mkdir -p %s'%args.odir)
     
     # load config if needed
     if args.config:
@@ -327,17 +328,17 @@ if __name__ == "__main__":
         
     # define events
     if args.regression:
-        events =  uproot.iterate(['/data/shared/cmantill/training/ak15_Jul27/train/QCD*/*.root:Events',
-                                  '/data/shared/cmantill/training/ak15_Jul27/train/Grav*/*.root:Events'],branches,mask)
+        events = uproot.iterate([os.path.join(args.data_dir, 'train/QCD*/*.root:Events'),
+                                 os.path.join(args.data_dir, 'train/Grav*/*.root:Events')], branches, mask)
     else:
-        events =  uproot.iterate(['/data/shared/cmantill/training/ak15_Jul27/train/QCD*/*.root:Events',
-                                  '/data/shared/cmantill/training/ak15_Jul27/train/Grav*/*.root:Events',
-                                  '/data/shared/cmantill/training/ak15_Jul27/train/TT*/*.root:Events'],branches,mask)
+        events = uproot.iterate([os.path.join(args.data_dir, 'train/QCD*/*.root:Events'),
+                                 os.path.join(args.data_dir, 'train/Grav*/*.root:Events'),
+                                 os.path.join(args.data_dir, 'train/TT*/*.root:Events')], branches, mask)
         # uncomment this if for testing with one file
-        #events =  uproot.iterate(['/data/shared/cmantill/training/ak15_Jul27/train/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/nano_mc2017_1-179_Skim.root:Events',
-        #                           '/data/shared/cmantill/training/ak15_Jul27/train/GravitonToHHToWWWW/nano_mc2017_4_Skim.root:Events',
-        #                           '/data/shared/cmantill/training/ak15_Jul27/train/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/nano_mc2017_84_Skim.root:Events',   
-        #                          '/data/shared/cmantill/training/ak15_Jul27/train/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/nano_mc2017_93_Skim.root:Events'],branches,mask)
+        # events =  uproot.iterate([os.path.join(args.data_dir, '/train/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/nano_mc2017_1-179_Skim.root:Events'),
+        #                           os.path.join(args.data_dir, '/train/GravitonToHHToWWWW/nano_mc2017_4_Skim.root:Events'),
+        #                           os.path.join(args.data_dir, '/train/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/nano_mc2017_84_Skim.root:Events'),   
+        #                          os.path.join(args.data_dir, '/train/TTToHadronic_TuneCP5_13TeV-powheg-pythia8/nano_mc2017_93_Skim.root:Events')],branches,mask)
         
     # create table
     table = create_table(events,branches)

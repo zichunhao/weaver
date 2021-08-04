@@ -32,7 +32,6 @@ def plot_loss(outdir,name,indir=None):
     ax.set_ylabel('Loss')
     ax.set_xlabel('Epoch') 
     ax.set_xlim(0,np.max(epochs))
-    f.savefig('%s/Loss_%s.png'%(outdir,indir.replace('/','')))
     f.savefig('%s/Loss_%s.pdf'%(outdir,indir.replace('/','')))
     plt.clf()
 
@@ -50,7 +49,7 @@ def plot_accuracy(outdir,name,indir=None):
     ax.set_xlabel('Epoch')
     ax.set_xlim(0,np.max(epochs))
     ax.set_ylim(0.8,0.95)
-    f.savefig('%s/Acc_%s.png'%(outdir,indir.replace('/','')))
+    f.savefig('%s/Acc_%s.pdf'%(outdir,indir.replace('/','')))
     plt.clf()
 
 # return input by classes (signal and background)
