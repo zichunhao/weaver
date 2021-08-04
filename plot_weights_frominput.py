@@ -328,12 +328,12 @@ if __name__ == "__main__":
         
     # define events
     if args.regression:
-        events = uproot.iterate([os.path.join(args.data_dir, '/train/QCD*/*.root:Events'),
-                                 os.path.join(args.data_dir, '/train/Grav*/*.root:Events')], branches,mask)
+        events = uproot.iterate([os.path.join(args.data_dir, 'train/QCD*/*.root:Events'),
+                                 os.path.join(args.data_dir, 'train/Grav*/*.root:Events')], branches, mask)
     else:
-        events = uproot.iterate([os.path.join(args.data_dir, '/train/QCD*/*.root:Events'),
-                                 os.path.join(args.data_dir, '/train/Grav*/*.root:Events'),
-                                 os.path.join(args.data_dir, '/train/TT*/*.root:Events')], branches,mask)
+        events = uproot.iterate([os.path.join(args.data_dir, 'train/QCD*/*.root:Events'),
+                                 os.path.join(args.data_dir, 'train/Grav*/*.root:Events'),
+                                 os.path.join(args.data_dir, 'train/TT*/*.root:Events')], branches, mask)
         # uncomment this if for testing with one file
         # events =  uproot.iterate([os.path.join(args.data_dir, '/train/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/nano_mc2017_1-179_Skim.root:Events'),
         #                           os.path.join(args.data_dir, '/train/GravitonToHHToWWWW/nano_mc2017_4_Skim.root:Events'),
