@@ -165,18 +165,18 @@ if __name__ == "__main__":
     os.system('mkdir -p %s' % args.odir)
 
     ifiles = {
-        "grav": os.path.join(args.data_dir, "/train/GravitonToHHToWWWW*/*.root:Events"),
-        "hh": os.path.join(args.data_dir, "/test/*HH*cHHH1*/*.root:Events"),
-        "qcd": os.path.join(args.data_dir, "/train/QCD*/*.root:Events"),
-        "bulk": os.path.join(args.data_dir, "/train/Bulk*/*.root:Events"),
+        "grav": os.path.join(args.data_dir, "train/GravitonToHHToWWWW*/*.root:Events"),
+        "hh": os.path.join(args.data_dir, "test/*HH*cHHH1*/*.root:Events"),
+        "qcd": os.path.join(args.data_dir, "train/QCD*/*.root:Events"),
+        "bulk": os.path.join(args.data_dir, "train/Bulk*/*.root:Events"),
     }
     # use few files if testing script
     if args.test:
         ifiles = {
-            "grav": os.path.join(args.data_dir, "/train/GravitonToHHToWWWW/nano_mc2017_87_Skim.root:Events"),
-            "hh": os.path.join(args.data_dir, "/test/GluGluToHHTo4V_node_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8/nano_mc2017_10_Skim.root:Events"),
-            "qcd": os.path.join(args.data_dir, "/train/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/nano_mc2017_1-101_Skim.root:Events"),
-            "bulk": os.path.join(args.data_dir, "/train/BulkGravitonToHHTo4Q_MX-600to6000_MH-15to250_part1_TuneCP5_13TeV-madgraph_pythia8/nano_mc2017_81_Skim.root:Events"),
+            "grav": os.path.join(args.data_dir, "train/GravitonToHHToWWWW/nano_mc2017_87_Skim.root:Events"),
+            "hh": os.path.join(args.data_dir, "test/GluGluToHHTo4V_node_cHHH1_TuneCP5_PSWeights_13TeV-powheg-pythia8/nano_mc2017_10_Skim.root:Events"),
+            "qcd": os.path.join(args.data_dir, "train/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/nano_mc2017_1-101_Skim.root:Events"),
+            "bulk": os.path.join(args.data_dir, "train/BulkGravitonToHHTo4Q_MX-600to6000_MH-15to250_part1_TuneCP5_13TeV-madgraph_pythia8/nano_mc2017_81_Skim.root:Events"),
         }
 
     # define branches to load
