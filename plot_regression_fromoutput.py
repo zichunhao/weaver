@@ -91,7 +91,7 @@ if __name__ == "__main__":
             hist.plot1d(hist_mass.sum(*[ax for ax in hist_mass.axes() if ax.name not in {'process',m}]),ax=axs[i],overlay="process")
         axs[i].set_ylabel('Jets')
         fig.tight_layout()
-        fig.savefig("mass_%s.png"%p)
+        fig.savefig("mass_%s.pdf"%p)
 
         ratio_to_plot = ["outputratio"]
         fig, axs = plt.subplots(len(ratio_to_plot),1)
@@ -99,4 +99,4 @@ if __name__ == "__main__":
             hist.plot1d(hist_ratio.sum(*[ax for ax in hist_mass.axes() if ax.name not in {'process',m}]),ax=axs[i],overlay="process")
         axs[i].set_ylabel('Jets')
         fig.tight_layout()
-        fig.savefig("ratio_%s.png"%p)
+        fig.savefig("ratio_%s.pdf"%p)

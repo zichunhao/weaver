@@ -129,9 +129,9 @@ def plot_by_mass(h, vars_to_plot, plabel, args, by_proc=[]):
                 ax_var.set_ylabel('Jets')
                 ax_var.set_title(proc)
         if density:
-            fig.savefig("%s/%s_by_mh_density.png" % (args.odir, plotlabel))
+            fig.savefig("%s/%s_by_mh_density.pdf" % (args.odir, plotlabel))
         else:
-            fig.savefig("%s/%s_by_mh.png" % (args.odir, plotlabel))
+            fig.savefig("%s/%s_by_mh.pdf" % (args.odir, plotlabel))
 
 
 def plot_by_process(h, vars_to_plot, label, args):
@@ -144,9 +144,9 @@ def plot_by_process(h, vars_to_plot, label, args):
             axs[i].set_ylabel('Jets')
         fig.tight_layout()
         if density:
-            fig.savefig("%s/%s_density.png" % (args.odir, label))
+            fig.savefig("%s/%s_density.pdf" % (args.odir, label))
         else:
-            fig.savefig("%s/%s.png" % (args.odir, label))
+            fig.savefig("%s/%s.pdf" % (args.odir, label))
 
 
 if __name__ == "__main__":

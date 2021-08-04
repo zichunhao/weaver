@@ -186,9 +186,9 @@ def make_plots(table,cats,reweight_bins,args):
                 iax+=1
             fig.tight_layout()
             if density:
-                fig.savefig("%s/weights_%s.png"%(args.odir,catlabel))
+                fig.savefig("%s/weights_%s.pdf"%(args.odir,catlabel))
             else:
-                fig.savefig("%s/weights_%s_all.png"%(args.odir,catlabel))
+                fig.savefig("%s/weights_%s_all.pdf"%(args.odir,catlabel))
 
 def make_2d_plots(table,reweight_bins,args):
     if args.regression:
@@ -242,9 +242,9 @@ def make_2d_plots(table,reweight_bins,args):
                     
             fig.tight_layout()
             if density:
-                fig.savefig("%s/2dweights_%s_density.png"%(args.odir,catlabel))
+                fig.savefig("%s/2dweights_%s_density.pdf"%(args.odir,catlabel))
             else:
-                fig.savefig("%s/2dweights_%s_all.png"%(args.odir,catlabel))
+                fig.savefig("%s/2dweights_%s_all.pdf"%(args.odir,catlabel))
                 
 def create_table(events,branches):
     from collections import defaultdict
