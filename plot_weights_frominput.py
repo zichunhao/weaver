@@ -381,17 +381,13 @@ if __name__ == "__main__":
             # reweight_threshold = 15
 
         else:
-            reweight_branches = ["fj_pt","fj_msoftdrop"]
+            reweight_branches = ["fj_pt", "fj_msoftdrop"]
             reweight_bins = ([200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500],
-                             [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260])
-            reweight_classes = ["fj_QCD_label",
-                                "fj_Top_label",
-                                "fj_H_WW_4q_3q", "fj_H_WW_4q_4q", "fj_isHWW_elenuqq_merged", "fj_isHWW_elenuqq_semimerged",
-                                "fj_isHWW_munuqq_merged", "fj_isHWW_munuqq_semimerged", "fj_isHWW_taunuqq_merged", "fj_isHWW_taunuqq_semimerged"]
-            class_weights = [1,
-                             1,
-                             0.125, 0.125, 0.125, 0.125,
-                             0.125, 0.125, 0.125, 0.125]
+                             [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 300, 320])
+            reweight_classes = ["fj_isQCDb", "fj_isQCDbb", "fj_isQCDc", "fj_isQCDcc", "fj_isQCDlep", "fj_isQCDothers",
+                                "fj_isHWW_elenuqq_merged", "fj_isHWW_munuqq_merged"]
+            class_weights = [0.166, 0.166, 0.166, 0.166, 0.166, 0.166,
+                             1, 1]
             reweight_threshold = 10
             reweight_method = "flat"
 
