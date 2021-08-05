@@ -266,6 +266,7 @@ if __name__ == "__main__":
     parser.add_argument('--data-dir', required=True, help='directory for train and test data files')
     parser.add_argument('--odir', required=True, help="output dir")
     parser.add_argument('--config', default=None, help="data config")
+    parser.add_argument('--reweight-threshold', type=float, default=0.1, help="reweight threshold")
     args = parser.parse_args()
 
     import os
@@ -373,7 +374,7 @@ if __name__ == "__main__":
                              [-10000, 10000])
             reweight_classes = ["fj_isQCDb", "fj_isQCDbb", "fj_isQCDc", "fj_isQCDcc", "fj_isQCDlep", "fj_isQCDothers", "fj_H_WW_4q", "fj_H_WW_elenuqq", "fj_H_WW_munuqq", "fj_H_WW_taunuqq"]
             class_weights = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            reweight_threshold = 0.1
+            reweight_threshold = args.reweight_threshold
             reweight_method = "flat"
             
             # reweight_bins = ([200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500],
@@ -388,7 +389,7 @@ if __name__ == "__main__":
                                 "fj_isHWW_elenuqq_merged", "fj_isHWW_munuqq_merged"]
             class_weights = [0.166, 0.166, 0.166, 0.166, 0.166, 0.166,
                              1, 1]
-            reweight_threshold = 10
+            reweight_threshold = args.reweight_threshold
             reweight_method = "flat"
 
         reweight_hists = make_weights(table,reweight_branches,reweight_bins,reweight_classes,reweight_method,class_weights,reweight_threshold)
