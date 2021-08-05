@@ -162,6 +162,8 @@ def make_plots(table,cats,reweight_bins,args):
                 xlabel = varprop[2]
 
                 for label, hist in reweight_hists.items():
+                    # print the labels to plot?
+                    #print(label,cat)
                     if label in cat:
                         try:
                             x = table[var][table[label]==1].to_numpy()
@@ -368,11 +370,15 @@ if __name__ == "__main__":
         if args.regression:
             reweight_branches = ["fj_pt","fj_genjetmsd"]
             reweight_bins = ([200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500],
-                             [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88, 90, 92, 94, 96, 98, 100, 102, 104, 106, 108, 110, 112, 114, 116, 118, 120, 122, 124, 126, 128, 130, 132, 134, 136, 138, 140, 142, 144, 146, 148, 150, 152, 154, 156, 158, 160, 162, 164, 166, 168, 170, 172, 174, 176, 178, 180, 182, 184, 186, 188, 190, 192, 194, 196, 198, 200, 202, 204, 206, 208, 210, 212, 214, 216, 218, 220, 222, 224, 226, 228, 230, 232, 234, 236, 238, 240, 242, 244, 246, 248, 250, 252, 254, 256, 258, 260])
+                             [-10000, 10000])
             reweight_classes = ["fj_isQCDb", "fj_isQCDbb", "fj_isQCDc", "fj_isQCDcc", "fj_isQCDlep", "fj_isQCDothers", "fj_H_WW_4q", "fj_H_WW_elenuqq", "fj_H_WW_munuqq", "fj_H_WW_taunuqq"]
             class_weights = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            reweight_threshold = 15
+            reweight_threshold = 0.1
             reweight_method = "flat"
+            
+            # reweight_bins = ([200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500],
+            #                  [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88, 90, 92, 94, 96, 98, 100, 102, 104, 106, 108, 110, 112, 114, 116, 118, 120, 122, 124, 126, 128, 130, 132, 134, 136, 138, 140, 142, 144, 146, 148, 150, 152, 154, 156, 158, 160, 162, 164, 166, 168, 170, 172, 174, 176, 178, 180, 182, 184, 186, 188, 190, 192, 194, 196, 198, 200, 202, 204, 206, 208, 210, 212, 214, 216, 218, 220, 222, 224, 226, 228, 230, 232, 234, 236, 238, 240, 242, 244, 246, 248, 250, 252, 254, 256, 258, 260])
+            # reweight_threshold = 15
 
         else:
             reweight_branches = ["fj_pt","fj_msoftdrop"]
@@ -400,12 +406,13 @@ if __name__ == "__main__":
     # define categories to plot
     cats = {
         'sig': sig_cats,
-        #'qcd': qcd_cats,
-        'qcd': ["fj_QCD_label"],
-    }
+        }
+    cats['qcd'] =  qcd_cats
+    #cats['qcd'] = ["fj_QCD_label"] # uncomment for when using one single label
+    
     if not args.regression:
-        #cats['top'] = top_cats
-        cats['top'] = ["fj_Top_label"]
+        cats['top'] = top_cats
+        #cats['top'] = ["fj_Top_label"]  # uncomment for when using one single label  
     
     # make plots
     make_plots(table,cats,reweight_bins,args)
