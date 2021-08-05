@@ -15,10 +15,11 @@ selection:
      (fj_isQCDcc==1) |
      (fj_isQCDlep == 1) |
      (fj_isQCDothers == 1) ) & (fj_genRes_mass<0) ) |
-     ((fj_H_WW_4q==1) & (fj_maxdR_HWW_daus<2.0)) |
-     ((fj_H_WW_elenuqq==1) & (fj_maxdR_HWW_daus<2.0)) |
-     ((fj_H_WW_munuqq==1) & (fj_maxdR_HWW_daus<2.0)) |
-     ((fj_H_WW_taunuqq==1) & (fj_maxdR_HWW_daus<2.0)) )
+     (fj_isTop == 1) |
+     (fj_isToplep==1) |
+     (((fj_H_WW_elenuqq==1) | (fj_H_WW_munuqq==1) ) &
+     (fj_maxdR_HWW_daus<2.0) & (fj_nProngs>1) & (fj_genRes_mass>0)))
+
 test_time_selection:
     ### selection to apply at test time (i.e., when running w/ --predict)
     >
@@ -32,16 +33,20 @@ test_time_selection:
      (fj_isQCDcc==1) |
      (fj_isQCDlep == 1) |
      (fj_isQCDothers == 1) ) & (fj_genRes_mass<0) ) |
-     ( ((fj_H_WW_4q==1) & (fj_maxdR_HWW_daus<2.0)) |
-       ((fj_H_WW_elenuqq==1) & (fj_maxdR_HWW_daus<2.0)) |
-       ((fj_H_WW_munuqq==1) & (fj_maxdR_HWW_daus<2.0)) |
-       ((fj_H_WW_taunuqq==1) & (fj_maxdR_HWW_daus<2.0)) ) )
+     (fj_isTop == 1) |
+     (fj_isToplep==1) |
+     (((fj_H_WW_elenuqq==1) | (fj_H_WW_munuqq==1) ) &
+     (fj_maxdR_HWW_daus<2.0) & (fj_nProngs>1) & (fj_genRes_mass>0)))
 
 new_variables:
     ### [format] name: formula
     ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
     pfcand_mask: (pfcand_pt_log_nopuppi!=0)
     sv_mask: (sv_pt_log!=0)
+    # Background (Top)
+    fj_isTop_merged: (fj_isTop==1) & (fj_nProngs==3)
+    fj_isTop_semimerged: (fj_isTop==1) & (fj_nProngs==2)
+    fj_isToplep_merged: (fj_isToplep==1) & (fj_nProngs>=2)  # so that you have at least the lepton and the b merged in the leptonic case
     # Signal (HWW)
     fj_isHWW_elenuqq_merged: (fj_H_WW_elenuqq==1) & (fj_nProngs==4)
     fj_isHWW_elenuqq_semimerged: (fj_H_WW_elenuqq==1) & (fj_nProngs==3)
@@ -130,7 +135,8 @@ labels:
     type: simple
     value: [
         fj_isQCDb, fj_isQCDbb, fj_isQCDc, fj_isQCDcc, fj_isQCDlep, fj_isQCDothers,
-        fj_H_WW_4q_3q, fj_H_WW_4q_4q,
+        fj_isHWW_elenuqq_merged, 
+        fj_isHWW_munuqq_merged, 
     ]
 
 observers:
@@ -166,11 +172,11 @@ weights:
    reweight_classes:
        [
        fj_isQCDb, fj_isQCDbb, fj_isQCDc, fj_isQCDcc, fj_isQCDlep, fj_isQCDothers,
-       fj_H_WW_4q_3q, fj_H_WW_4q_4q
+       fj_isHWW_elenuqq_merged, fj_isHWW_munuqq_merged
        ]
-   class_weights:
+   class_weights: 
        [
-       1, 1, 1, 1, 1, 1,
-       1, 1,
+       0.166, 0.166, 0.166, 0.166, 0.166, 0.166,
+       1, 1
        ]
    reweight_hists:
