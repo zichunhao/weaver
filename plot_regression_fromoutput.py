@@ -1,12 +1,12 @@
 # Import Statements
 import numpy as np
 import uproot
+import argparse
 import matplotlib.pyplot as plt
 
 import mplhep as hep
 hep.style.use("CMS")
 
-# branches to load
 branches = ["fj_pt","fj_genjetmsd",
             "fj_genRes_mass",
             "output",
@@ -19,8 +19,6 @@ sig_cats = ["fj_H_WW_4q","fj_H_WW_elenuqq","fj_H_WW_munuqq","fj_H_WW_taunuqq"]
 branches += qcd_cats
 branches += sig_cats
 
-
-output = uproot.open('/storage/af/user/cmantill/training/weaver/output/3_v04_ak15_regression_hwwQCD_Jul21_ep19.root:Events').arrays(branches)
 # process dictionary
 proc_dict = {
     "qcd":{"QCDb": "fj_isQCDb",
@@ -29,7 +27,7 @@ proc_dict = {
            "QCDcc": "fj_isQCDcc",
            "QCDlep": "fj_isQCDlep",
            "QCDothers": "fj_isQCDothers",
-    }
+    },
     "sig":{"HWW4q": "fj_H_WW_4q",
            "HWWelenuqq": "fj_H_WW_elenuqq",
            "HWWmunuqq": "fj_H_WW_munuqq",
@@ -42,9 +40,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--process', default='qcd,sig', help='processes to plot (need to be separated by commas and need to be in proc_dict')
     parser.add_argument('--ifile', help="file from inference", required=True)
+    parser.add_argument('--odir', required=True, help="output dir")
     args = parser.parse_args()
 
-    output = uproot.open(args.ifile)
+    import os
+    os.system('mkdir -p %s'%args.odir)
+    
+    output = uproot.open(args.ifile)["Events"].arrays(branches)
 
     to_process = args.process.split(',')
 
@@ -69,7 +71,7 @@ if __name__ == "__main__":
         
         for proc,label in proc_dict[p].items():
             # fill histogram
-            mask_proc = output[label]==1
+            mask_proc = (output[label]==1)
             # add mass H 125 for signal
             if "HWW" in label:
                 mask_proc = mask_proc & (output["fj_genRes_mass"]==125)
@@ -86,17 +88,20 @@ if __name__ == "__main__":
             
         # make mass plots
         mass_to_plot = ["genmsd","targetmass","genresmass","outputmass"]
-        fig, axs = plt.subplots(len(mass_to_plot),1)
+        fig, axs = plt.subplots(1,len(mass_to_plot), figsize=(len(mass_to_plot)*8,8))
         for i,m in enumerate(mass_to_plot):
             hist.plot1d(hist_mass.sum(*[ax for ax in hist_mass.axes() if ax.name not in {'process',m}]),ax=axs[i],overlay="process")
-        axs[i].set_ylabel('Jets')
+            axs[i].set_ylabel('Jets')
         fig.tight_layout()
-        fig.savefig("mass_%s.pdf"%p)
+        fig.savefig("%s/mass_%s.pdf"%(args.odir,p))
 
         ratio_to_plot = ["outputratio"]
-        fig, axs = plt.subplots(len(ratio_to_plot),1)
+        fig, axs = plt.subplots(1,len(ratio_to_plot), figsize=(len(ratio_to_plot)*8,8))
         for i,m in enumerate(ratio_to_plot):
-            hist.plot1d(hist_ratio.sum(*[ax for ax in hist_mass.axes() if ax.name not in {'process',m}]),ax=axs[i],overlay="process")
-        axs[i].set_ylabel('Jets')
+            axs_1 = axs
+            if len(ratio_to_plot)>1:
+                axs_1 = axs[i]
+            hist.plot1d(hist_ratio.sum(*[ax for ax in hist_ratio.axes() if ax.name not in {'process',m}]),ax=axs_1,overlay="process")
+            axs_1.set_ylabel('Jets')
         fig.tight_layout()
-        fig.savefig("ratio_%s.pdf"%p)
+        fig.savefig("%s/ratio_%s.pdf"%(args.odir,p))
