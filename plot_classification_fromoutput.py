@@ -3,17 +3,15 @@
 import os
 import argparse
 import numpy as np
+import uproot
+from coffea import hist
 
-from utils.data.fileio import _read_root
-from utils.data.tools import  _get_variable_names
-from utils.data.preprocess import _build_new_variables,_apply_selection
 from sklearn.metrics import roc_curve, auc
-
 import matplotlib.pyplot as plt
 import mplhep as hep
 plt.style.use(hep.style.ROOT)
 
-def plot_loss(outdir,name,indir=None):
+def plot_loss(args,name,indir=None):
     if indir:
         # save the loss in a numpy file
         loss_vals_training = np.load('%s/loss_vals_training.npy'%indir)
@@ -32,15 +30,16 @@ def plot_loss(outdir,name,indir=None):
     ax.set_ylabel('Loss')
     ax.set_xlabel('Epoch') 
     ax.set_xlim(0,np.max(epochs))
-    f.savefig('%s/Loss_%s.pdf'%(outdir,indir.replace('/','')))
+    f.savefig('%s/Loss_%s.pdf'%(args.odir,indir.replace('/','')))
     plt.clf()
 
-def plot_accuracy(outdir,name,indir=None):
+def plot_accuracy(args,name,indir=None):
     if indir:
         acc_vals_validation = np.load('%s/acc_vals_validation.npy'%indir)
     else:
         acc_vals_validation =  np.array([0.001,0.0002])
     epochs = np.array(range(len(acc_vals_validation)))
+    
     f, ax = plt.subplots(figsize=(10, 10))
     ax.plot(epochs, acc_vals_validation, label='Validation', color = 'green')
     leg = ax.legend(loc='upper right', title=name, borderpad=1, frameon=False, fontsize=16)
@@ -49,15 +48,13 @@ def plot_accuracy(outdir,name,indir=None):
     ax.set_xlabel('Epoch')
     ax.set_xlim(0,np.max(epochs))
     ax.set_ylim(0.8,0.95)
-    f.savefig('%s/Acc_%s.pdf'%(outdir,indir.replace('/','')))
+    f.savefig('%s/Acc_%s.pdf'%(args.odir,indir.replace('/','')))
     plt.clf()
 
 # return input by classes (signal and background)
-def roc_input(table,var,label_sig,label_bkg):
-    scores_sig = np.zeros(table[var].shape[0])
-    scores_bkg = np.zeros(table[var].shape[0])
-    scores_sig = table[var][(table[label_sig] == 1)]
-    scores_bkg = table[var][(table[label_bkg] == 1)]
+def roc_input(events,var,label_sig,label_bkg):
+    scores_sig = events[var][(events[label_sig] == 1)].to_numpy()
+    scores_bkg = events[var][(events[label_bkg] == 1)].to_numpy()
     predict = np.concatenate((scores_sig,scores_bkg),axis=None)
     siglabels = np.ones(scores_sig.shape)
     bkglabels = np.zeros(scores_bkg.shape)
@@ -65,263 +62,299 @@ def roc_input(table,var,label_sig,label_bkg):
     return truth, predict
 
 # get roc for a table with given scores, a label for signal, and one for background
-def get_roc(table, scores, label_sig, label_bkg):
+def get_roc(events, scores, label_sig, label_bkg):
     fprs = {}
     tprs = {}
-    for score_name,score_label in scores.items():
-        truth, predict =  roc_input(table,score_name,label_sig['label'],label_bkg['label'])
+    for score_label,score_name in scores.items():
+        truth, predict =  roc_input(events,score_name,label_sig,label_bkg)
         fprs[score_label], tprs[score_label], threshold = roc_curve(truth, predict)
     return fprs, tprs
 
 # plot roc
-def plot_roc(label_sig, label_bkg, fprs, tprs):
-    plt.clf()
+def plot_roc(args, label_sig, label_bkg, fprs, tprs):
+    fig, axs = plt.subplots(1,1,figsize=(16,16))
+    
     def get_round(x_effs,y_effs,to_get=[0.01,0.02,0.03]):
         effs = []
         for eff in to_get:
             for i,f in enumerate(x_effs):
                 if round(f,2) == eff:
                     effs.append(y_effs[i])
-                    print(round(f,2),y_effs[i])
+                    # print signal efficiencies
+                    # print(round(f,2),y_effs[i])
                     break
         return effs
-
-    markers = ['v','^','o','s']
-    ik = 0
-    for k,it in fprs.items():
-        plt.plot(fprs[k], tprs[k], lw=2.5, label=r"{}, AUC = {:.1f}%".format(k,auc(fprs[k],tprs[k])*100))
-        x_effs = [0.01,0.02,0.03]
-        y_effs = get_round(fprs[k],tprs[k])
-        print(x_effs,y_effs)
-        plt.scatter(x_effs,y_effs,marker=markers[ik],label=k)
-	ik+=1
-
-    # if we want to compare to given efficiencies add those here
-    x_eff_tag = None
-    y_eff_tag = None
-    # x_eff_tag = [0.01,0.02,0.03] # background efficiency
-    # y_eff_tag = [0.7,0.75,0.8] # signal efficiency
-    if x_eff_tag is not None and y_eff_tag is not None:
-        plt.scatter(x_eff_tag,y_eff_tag,marker='d',label=r'h$\rightarrow e\tau$')
-        
-    plt.legend(loc='upper left')
-    plt.grid(which='minor', alpha=0.2)
-    plt.grid(which='major', alpha=0.5)
-    plt.ylabel(r'Tagging efficiency %s'%label_sig['legend'])
-    plt.xlabel(r'Mistagging rate %s'%label_bkg['legend'])
-    plt.savefig("roc_%s.pdf"%label_sig['label'])
-    plt.xscale('log')
-    plt.savefig("roc_%s_xlog.pdf"%label_sig['label'])
-    plt.xscale('linear')
-
-# plot jet variables after a selection on the tagger
-def plot_features_qcd(table, scores, label_sig, label_bkg, name, features=['fj_sdmass','fj_pt']):
-    labels = {'fj_msoftdrop': r'$m_{SD}$',
-              'fj_pt': r'$p_{T}$',
-          }
-    feature_range = {'fj_msoftdrop': [[30,260],[30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260]],
-                     'fj_pt': [[200,2500],[200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]],
-                 }
-
-    def computePercentiles(data,percentiles):
-        mincut = 0.
-        tmp = np.quantile(data,np.array(percentiles))
-        tmpl = [mincut]
-        for x in tmp: tmpl.append(x)
-        perc = [0.]
-        for x in percentiles: perc.append(x)
-        return perc,tmpl
-
-    for score_name,score_label in scores.items():
-        bkg = (table[label_bkg['label']] == 1)
-        var = table[score_name][bkg]
-        percentiles = [0.97,0.98,0.99,0.995,0.9995]
-        per,cuts = computePercentiles(table[score_name][bkg],percentiles)
-        for k in features:
-            fig, ax = plt.subplots(figsize=(10,10))
-            bins = feature_range[k][1]
-            for i,cut in enumerate(cuts):
-                c = (1-per[i])*100
-                lab = '%.3f%% mistag-rate'%c
-                ax.hist(table[k][bkg][var>cut], bins=bins, lw=2, density=True, range=feature_range[k][0],
-                        histtype='step',label=lab)
-            ax.legend(loc='best')
-            ax.set_xlabel(labels[k]+' (GeV)')
-            ax.set_ylabel('Number of events (normalized)')
-            ax.set_title('%s dependence'%labels[k])
-            plt.savefig("%s_%s.pdf"%(k,score_label))
-
-# plot tagger response
-def plot_response(table, scores, label_sig, label_bkg, name):
-    for score_name,score_label in scores.items():
-        plt.clf()
-        bins=100
-        var = table[score_name]
-        data = [var[(table[label_sig['label']] == 1)], 
-                var[(table[label_bkg['label']] == 1)]]
-        labels = [label_sig['legend'],
-                  label_bkg['legend']]
-        for j in range(0,len(data)):
-            plt.hist(data[j],bins,log=False,histtype='step',density=True,label=labels[j],fill=False,range=(-1.,1.))
-        plt.legend(loc='best')
-        plt.xlim(0,1)
-        plt.xlabel('%s Response'%score_label)
-        plt.ylabel('Number of events (normalized)')
-        plt.title('NeuralNet applied to test samples')
-        plt.savefig("%s_%s_disc.pdf"%(score_label,label_sig['label']))
-
-def main(args):
-
-    # include background labels here
-    label_bkg = {
-        'qcd':{'legend': 'QCD',
-               'label':  'QCD_label'},
-        'top':{'legend': 'Top',
-               'label':  'fj_isTop'},
-    }
-    # include signal labels here
-    label_sig = {
-        '4q':{'legend': 'H(WW) 4q',
-              'label': 'fj_H_WW_4q_4q',
-              'scores': 'H4q'},
-        '3q':{'legend': 'H(WW) 3q',
-	      'label': 'fj_H_WW_4q_3q',
-	      'scores': 'H3q'},
-        'bb':{'legend': 'H(bb)',
-              'label': 'fj_H_bb',
-              'scores': 'Hbb'},
-        'elenuqq':{'legend': 'H(WW) ele',
-                   'label':  'fj_H_WW_elenuqq',
-                   'scores': 'Helenuqq'},
-        'munuqq':{'legend': 'H(WW) mu',
-                  'label':  'fj_H_WW_munuqq',
-                  'scores': 'Hmunuqq'},
-    }
-
-    # choose one channel for which to make the roc curve
-    # channel = key of label_sig or label_bkg dict
-    label_sig = label_sig[args.channel]
-    label_bkg = label_bkg[args.bkg]
-
-    # compute all new variables that are not included in the inference file
-    #
-    # for scores:
-    #  we expect all scores to sum up to 1, e.g. given two signals in the event (signal 1 and 2) and one background process (background 1):
-    #  score_signal_1 + score_signal_2 + score_background_1 = 1
-    #  then nn_signal_1 = score_signal_1 / (score_signal_1 + score_background_1) = score_signal_1 / (1 - score_signal_2)
-
-    funcs = {
-        'score_Hbb': 'score_fj_H_bb/(1-score_fj_H_cc-score_fj_H_qq)',
-        'PN_H4qvsQCD': 'fj_PN_H4qvsQCD',
-        #'score_H4q': 'score_fj_H_WW_4q/(1-score_fj_H_WW_elenuqq-score_fj_H_WW_munuqq)',
-        'score_H4q': 'score_label_4q/(score_label_4q+score_fj_isQCD)',
-        #'score_Helenuqq': 'score_fj_H_WW_elenuqq/(1-score_fj_H_WW_4q-score_fj_H_WW_munuqq)',
-        #'score_Hmunuqq': 'score_fj_H_WW_munuqq/(1-score_fj_H_WW_4q-score_fj_H_WW_elenuqq)',
-        'PN_HbbvsQCD': 'fj_PN_XbbvsQCD',
-    }
-
-    # include old PN version for comparison (only available for AK8)
-    if args.jet == "AK8":
-        funcs['deepAK8MD_H4q'] = 'fj_deepTagMD_H4qvsQCD'
-        funcs['deepAK8_H'] = 'fj_deepTag_HvsQCD'
-        funcs['PN_Xbb'] = 'fj_PN_XbbvsQCD'
-
-    # inputfiles and names should have same shape
-    inputfiles = args.input.split(',')
-    names = args.name.split(',')
     
-    # make dict of branches to load
-    lfeatures = ['fj_msoftdrop','fj_pt']
-    sameshape = True
-    sh = []
-    # check if the input files have the same shape
-    for n,name in enumerate(names):
-        table = _read_root(inputfiles[n], lfeatures)
-        for k in table.keys():
-            sh.append(table[k].shape)
-            if n>0 and table[k].shape != sh[0]:
-                sameshape = False
+    markers = ['v','^','o','s']
+    for k,it in fprs.items():
+        axs.plot(tprs[k], fprs[k], lw=2.5, label=r"{}, AUC = {:.1f}%".format(k,auc(fprs[k],tprs[k])*100))
+        y_effs = [0.01,0.02,0.03]
+        x_effs = get_round(fprs[k],tprs[k],y_effs)
+        #print(tprs[k])
+        #print(y_effs)
+        axs.scatter(x_effs,y_effs,marker=markers[0],label=k)
 
-    # go to plot directory
-    cwd=os.getcwd()
-    odir = '%s/'%(args.tag)
-    os.system('mkdir -p %s'%odir)
-    os.chdir(odir)
+    axs.legend(loc='upper left')
+    axs.grid(which='minor', alpha=0.2)
+    axs.grid(which='major', alpha=0.5)
+    axs.set_xlabel(r'Tagging efficiency %s'%label_sig['legend'])
+    axs.set_ylabel(r'Mistagging rate %s'%label_bkg['legend'])
+    #fig.savefig("%s/roc_%s.pdf"%(args.odir,label_sig['label']))
+    axs.set_yscale('log')
+    fig.savefig("%s/roc_%s_ylog.pdf"%(args.odir,label_sig['label']))
+    axs.set_yscale('linear')
 
-    # now build tables
-    for n,name in enumerate(names):
-        scores = {'score_%s'%label_sig['scores']: '%s %s'%(name,label_sig['scores'])}
-        if args.channel=='4q':
-            scores['PN_H4qvsQCD'] = 'PN H4qvsQCD'
-            if args.jet == "AK8":
-                scores['deepAK8MD_H4q'] = 'DeepAK8 MD H4q' 
-                scores['deepAK8_H'] = 'DeepAK8 H'  
-        elif args.channel=='bb':
-            scores['PN_HbbvsQCD'] = 'PN HbbvsQCD'
-        else:
-            if args.jet == "AK8":
-                scores['fj_lsf3'] = 'LSF'
-
-        loadbranches = set()
-        for k,kk in scores.items():
-            # load scores
-            if k in funcs.keys(): loadbranches.update(_get_variable_names(funcs[k]))
-            else: loadbranches.add(k)
-
-            # load features
-            loadbranches.add(label_bkg['label'])
-            loadbranches.add(label_sig['label'])
-            for k in lfeatures: loadbranches.add(k)
-            loadbranches.add('fj_genH_mass')
-        print(loadbranches)
-
-        table = _read_root(inputfiles[n], loadbranches)
-        config_selection = None
-        config_selection = '((fj_isQCD==1) | ((label_4q==1) & (fj_genH_mass!=125)))'
-        if config_selection:
-            _apply_selection(table, config_selection)
-        print(table)
-        if(n==0 or (not sameshape)):
-            _build_new_variables(table, {k: v for k,v in funcs.items() if k in scores.keys()})
-            newtable = table
-            newscores = scores
-        else:
-            for k in table: 
-                newtable[k] = table[k]
-            for k in scores:
-                newscores[k] = scores[k]
-
-        if not sameshape:
-            fprs, tprs = get_roc(table, scores, label_sig, label_bkg)
-            if n==0: 
-                newfprs = fprs
-                newtprs = tprs
+# plot validation 
+def plot_validation(args,hist_val,vars_to_plot,label):
+    for density in [True,False]:
+        fig, axs = plt.subplots(1,len(vars_to_plot), figsize=(len(vars_to_plot)*8,8))
+        for i,m in enumerate(vars_to_plot):
+            if(len(vars_to_plot)==1):
+                axs_1 = axs
             else:
-                for k in fprs:
-                    newfprs[k] = fprs[k]
-                    newtprs[k] = tprs[k]
-            plot_response(table, scores, label_sig, label_bkg, name+args.channel)
-            plot_features_qcd(table, scores, label_sig, label_bkg, name+args.channel, lfeatures)
-            plot_features_signal(able, scores, label_sig, label_bkg, name+args.channel, lfeatures_signal)
+                axs_1 = axs[i]
+            x = hist_val.sum(*[ax for ax in hist_val.axes() if ax.name not in {'process',m}])
+            # print for debugging
+            # print(x.values())
+            hist.plot1d(x,ax=axs_1,overlay="process",density=density)
+            axs_1.set_ylabel('Jets')
+        fig.tight_layout()
+        if density:
+            fig.savefig("%s/%s_density.pdf"%(args.odir,label))
+        else:
+            fig.savefig("%s/%s.pdf"%(args.odir,label))
 
-    if sameshape:
-        newfprs, newtprs = get_roc(newtable, newscores, label_sig, label_bkg)
-        plot_response(newtable,  newscores, label_sig, label_bkg, args.channel)
-        plot_features_qcd(newtable, newscores, label_sig, label_bkg, args.channel, lfeatures)
+# plot score after selection on variables 
+# i.e. how does the score look when cutting on e.g. pt, gmass
+def plot_score_aftercut(args,hist_val,vars_to_corr,bins,processes,label):
+    print('plot_score_aftercut')
+    density = True
+    for proc in processes:
+        fig, axs = plt.subplots(1,len(vars_to_corr), figsize=(len(vars_to_corr)*8,8))
+        for i,m in enumerate(vars_to_corr):
+            if(len(vars_to_corr)==1):
+                axs_1 = axs
+            else:
+                axs_1 = axs[i]
+            x = hist_val.sum(*[ax for ax in hist_val.axes() if ax.name not in {'process','score',m}]).integrate("process",proc)
+            print(x,m)
+            for j,b in enumerate(bins):
+                y = x.integrate(m, slice(60+100))
+                print(y)
+                print(y.values())
+                if j==0:
+                    hist.plot1d(y,ax=axs_1,density=True)
+                else:
+                    hist.plot1d(y,ax=axs_1,density=True,clear=False)
+        fig.tight_layout()
+        fig.savefig("%s/%s_scores_%s_density.pdf"%(args.odir,proc,label))
 
-    plot_roc(label_sig, label_bkg, newfprs, newtprs)
-    os.chdir(cwd)
+# plot how variables look after a cut on the scores
+def plot_var_aftercut(args,hist_val,vars_to_corr,bins,processes,label):
+    density = True
+    for proc in processes:
+        fig, axs = plt.subplots(1,len(vars_to_corr), figsize=(len(vars_to_corr)*8,8))
+        fig.tight_layout()
+        fig.savefig("%s/%s_scores_%s_density.pdf"%(args.odir,proc,label))
+
+    
+def main(args):
+    # labels here
+    label_dict = {
+        'qcd':{'legend': 'QCD',
+               'label':  'fj_QCD_label'},
+               # 'label':  'fj_isQCD'}, # for old training datasets
+        'qcd_b': {'legend': 'QCDb',
+                  'label':  'fj_isQCDb'},
+        'qcd_bb': {'legend': 'QCDbb',
+                   'label':  'fj_isQCDbb'},
+        'qcd_c': {'legend': 'QCDc',
+                  'label':  'fj_isQCDc'},
+        'qcd_cc': {'legend': 'QCDcc',
+                   'label':  'fj_isQCDcc'},
+        'qcd_lep': {'legend': 'QCDlep',
+                    'label':  'fj_isQCDlep'},
+        'qcd_lep': {'legend': 'QCDlep',
+                    'label':  'fj_isQCDlep'},
+        
+        'top':{'legend': 'Top',
+                   'label':  'fj_isTop_label'},
+        'top_lep':{'legend': 'Top lep',
+                   'label':  'fj_isToplep'},
+        'top_merged': {'legend': 'Top merged',
+                       'label': 'fj_isTop_merged'},
+        'top_semimerged': {'legend': 'Top semi-merged',
+                           'label': 'fj_isTop_semimerged'},
+        'top_lepmerged':{'legend': 'Top merged lepton',
+                         'label': 'fj_isToplep_merged'},
+        
+        'hww_4q': {'legend': 'H(WW) all-had',
+                   'label': 'fj_H_WW_4q'},
+        'hww_4q_merged':{'legend': 'H(WW) 4q',
+                         'label': 'fj_H_WW_4q_4q'},
+        'hww_3q_merged':{'legend': 'H(WW) 3q',
+	                 'label': 'fj_H_WW_4q_3q'},
+        'hbb':{'legend': 'H(bb)',
+               'label': 'fj_H_bb'},
+        
+        'hww_elenuqq':{'legend': 'H(WW) ele',
+                       'label':  'fj_H_WW_elenuqq'},
+        'hww_munuqq':{'legend': 'H(WW) mu',
+                      'label':  'fj_H_WW_munuqq'},
+        'hww_taunuqq':{'legend': 'H(WW) tau merged',
+                       'label':  'fj_isHWW_taunuqq_merged'},
+        
+        'hww_munuqq_merged':{'legend': 'H(WW) mu merged',
+                             'label': 'fj_isHWW_munuqq_merged'},
+        'hww_munuqq_semimerged': {'legend': 'H(WW) mu semi-merged',
+                                  'label': 'fj_isHWW_munuqq_semimerged'},
+        'hww_elenuqq_merged':{'legend': 'H(WW) ele merged',
+                              'label': 'fj_isHWW_elenuqq_merged'},
+        'hww_elenuqq_semimerged': {'legend': 'H(WW) ele semi-merged',
+                                   'label': 'fj_isHWW_elenuqq_semimerged'},
+        'hww_taunuqq_merged':{'legend': 'H(WW) tau merged',
+                              'label': 'fj_isHWW_taunuqq_merged'},
+        'hww_taunuqq_semimerged': {'legend': 'H(WW) tau semi-merged',
+                                   'label': 'fj_isHWW_taunuqq_semimerged'},
+    }
+
+    signals = args.signals.split(',')
+    backgrounds = args.bkgs.split(',')
+
+    if len(signals)!=len(backgrounds):
+        print('Number of signals should be the same as backgrounds!')
+        exit
+
+    for i,signal in enumerate(signals):
+        bkg = backgrounds[i]
+        bkglabel = label_dict[bkg]['label']
+        siglabel = label_dict[signal]['label']
+
+        # default branches
+        branches = ['fj_pt','fj_msoftdrop','fj_genRes_mass']
+        #branches = ['fj_pt','fj_msoftdrop','fj_genH_mass'] # for old training datasets
+        branches += [siglabel]
+        branches += ['score_%s'%siglabel,'score_%s'%bkglabel]
+        # possibly can add older taggers
+        # TODO: add labels for these old taggers
+        # branches += ["fj_deepTagMD_H4qvsQCD","fj_deepTag_HvsQCD","fj_PN_XbbvsQCD"]
+
+        # add selection
+        mask = "(fj_pt<1200)"
+        
+        ifile = uproot.open(args.ifile)["Events"]
+        isqcd_separate = False
+        if 'qcd' in bkg:
+            try:
+                #ibranches = branches + ["fj_QCD_label"]
+                ibranches = branches + ["fj_isQCD"]
+                print('List of branches to read ',ibranches)
+                events = ifile.arrays(ibranches,mask)
+            except:
+                ibranches = branches + ["fj_isQCDb","fj_isQCDbb","fj_isQCDc","fj_isQCDcc","fj_isQCDlep","fj_isQCDothers"]
+                ibranches.remove('score_%s'%bkglabel)
+                ibranches.extend(['score_fj_isQCDb','score_fj_isQCDbb','score_fj_isQCDc','score_fj_isQCDcc','score_fj_isQCDlep','score_fj_isQCDothers'])
+                print('List of branches to read ',ibranches)
+                events = ifile.arrays(ibranches,mask)
+                events["fj_QCD_label"] = (events["fj_isQCDb"]==1) | (events["fj_isQCDbb"]==1) | (events["fj_isQCDc"]==1) | (events["fj_isQCDcc"]==1) | (events["fj_isQCDcc"]==1)
+                isqcd_separate = True
+                print('Added fj_QCD_label to ttree')
+        elif 'top' in bkg:
+            ibranches = branches + ["fj_Top_label"]
+            events = ifile.arrays(ibranches)
+        else:
+            print('not known background')
+            
+        # compute scores:
+        #  we expect all scores to sum up to 1, e.g. given two signals in the event (signal 1 and 2) and one background process (background 1):
+        #  score_signal_1 + score_signal_2 + score_background_1 = 1
+        #  then nn_signal_1 = score_signal_1 / (score_signal_1 + score_background_1) = score_signal_1 / (1 - score_signal_2)
+        score_name = "%s_score"%args.name
+        if isqcd_separate:
+            events[score_name] = events['score_%s'%siglabel] / (events['score_%s'%siglabel] + events['score_fj_isQCDb'] + events['score_fj_isQCDbb'] + events['score_fj_isQCDc'] + events['score_fj_isQCDcc'] + events['score_fj_isQCDlep'] + events['score_fj_isQCDothers'])
+        else:
+            events[score_name] = events['score_%s'%siglabel] / (events['score_%s'%siglabel] + events['score_%s'%bkglabel])
+
+        # define scores_dict for which to compute rocs
+        scores_dict = {
+            args.name: score_name,
+        }
+        
+        # get roc
+        # TODO: for now only get roc curve for the main score
+        fprs, tprs = get_roc(events, scores_dict, siglabel, bkglabel)
+
+        # define and fill coffea histograms
+        # TODO: add other scores here if needed
+        hist_features = hist.Hist("features",
+                                  hist.Cat("process", "Process"),
+                                  hist.Bin("msd", r"fj msoftdrop [GeV]", 60, 0, 260),
+                                  hist.Bin("pt", r"fj $p_T$ [GeV]", 70, 200, 1200),
+                                  hist.Bin("score", r"Tagger score", 70, 0, 1),
+                                  hist.Bin("gmass", r"gen Res mass [GeV]", 42, 50, 260),
+        )
+
+        # define processes
+        # add mh125 and mh!=125 as different processes so that we can see dependence
+        processes = [bkg]
+        if 'hww' in signal or 'hbb' in signal:
+            processes.append('%s-mh125'%signal)
+            processes.append('%s-mhflat'%signal)
+
+        # loop over processes
+        legends = {}
+        for proc in processes:
+            p = proc.split('-')[0]
+            legend = label_dict[p]['legend']
+            if 'mh125' in proc:
+                mask_proc = (events[label_dict[p]['label']]==1) & (events["fj_genRes_mass"]==125)
+                legend += ' mH125'
+            elif 'mhflat' in proc:
+                mask_proc = (events[label_dict[p]['label']]==1) & (events["fj_genRes_mass"]!=125)
+                legend += ' mHflat'
+            else:
+                mask_proc = (events[label_dict[p]['label']]==1)
+            legends[proc] = legend
+            # check if events with that mask are not zero
+            if len(events["fj_msoftdrop"][mask_proc])==0:
+                processes.remove(proc)
+                continue
+            # print legends
+            print('legend ',legend)
+            hist_features.fill(process=proc,
+                               msd = events["fj_msoftdrop"][mask_proc],
+                               pt = events["fj_pt"][mask_proc],
+                               score = events[score_name][mask_proc],
+                               gmass = events["fj_genRes_mass"][mask_proc],
+            )
+
+        # plot features for this signal and background combination (i.e. all the processes) 
+        vars_to_plot = ["pt","msd","score"]
+        plt_label = "validation_%svs%s"%(siglabel,bkglabel)
+        plot_validation(args,hist_features,vars_to_plot,plt_label)
+
+        # plot how the score looks after cuts on variables
+        vars_to_corr = ["gmass"]
+        bins_to_corr = [[50,55]]
+        #proc_to_corr = [legends['%s-mhflat'%signal]]
+        proc_to_corr = ['%s-mhflat'%signal]
+        plt_label = "%svs%s"%(siglabel,bkglabel)
+        print('plot score')
+        plot_score_aftercut(args,hist_features,vars_to_corr,bins_to_corr,proc_to_corr,plt_label)
+        
+        # plot roc
+        plot_roc(args, label_dict[signal], label_dict[bkg], fprs, tprs)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', help='input file(s)')
-    parser.add_argument('--name', help='name ROC(s)')
-    parser.add_argument('--tag', help='folder tag')
-    parser.add_argument('--idir', help='idir')
-    parser.add_argument('--odir', help='odir')
-    parser.add_argument('--channel', help='channel')
-    parser.add_argument('--jet', default="AK8", help='jet type')
-    parser.add_argument('--selection', default=None, type=str, help='selection')
+    parser.add_argument('--ifile', help='input file(s)')
+    parser.add_argument('--odir', required=True, help="output dir")
+    parser.add_argument('--name', help='name of the model(s)')
+    parser.add_argument('--signals', default='hww_4q_merged', help='signals')
+    parser.add_argument('--bkgs', default='qcd', help='backgrounds') 
     args = parser.parse_args()
 
+    import os
+    os.system('mkdir -p %s'%args.odir)
+    
     main(args)
