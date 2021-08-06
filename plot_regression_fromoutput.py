@@ -11,6 +11,7 @@ branches = ["fj_pt","fj_genjetmsd",
             "fj_genRes_mass",
             "output",
             "target_mass",
+            "fj_msoftdrop",
             ]
 
 qcd_cats = ["fj_isQCDb","fj_isQCDbb","fj_isQCDc","fj_isQCDcc","fj_isQCDlep","fj_isQCDothers"]
@@ -62,6 +63,7 @@ if __name__ == "__main__":
                               hist.Bin("targetmass", r"Target mass [GeV]", 70, 0, 260),
                               hist.Bin("genresmass", r"GEN mass [GeV]", genresmass_range),
                               hist.Bin("outputmass", r"Regressed mass", 60, 0, 260),
+                              hist.Bin("msd", r"fj msoftdrop [GeV]", 60, 0, 260),
         )
         
         hist_ratio = hist.Hist("ratio",
@@ -81,6 +83,7 @@ if __name__ == "__main__":
                            targetmass = output["target_mass"][mask_proc],
                            genresmass = output["fj_genRes_mass"][mask_proc],
                            outputmass = output["output"][mask_proc],
+                           msd = output["fj_msoftdrop"][mask_proc],
             )
             hist_ratio.fill(process=proc,
                         outputratio = output["output"][mask_proc]/output["target_mass"][mask_proc],
@@ -95,6 +98,18 @@ if __name__ == "__main__":
         fig.tight_layout()
         fig.savefig("%s/mass_%s.pdf"%(args.odir,p))
 
+        # plot both mass and msoftdrop
+        fig, axs = plt.subplots(1,1, figsize=(8,8))
+        omass = hist_mass.sum(*[ax for ax in hist_mass.axes() if ax.name not in {'outputmass'}])
+        smass = hist_mass.sum(*[ax for ax in hist_mass.axes() if ax.name not in {'msd'}])
+
+        hist.plot1d(omass,ax=axs)
+        hist.plot1d(smass,ax=axs,clear=False)
+        axs.legend(['Regressed','Softdrop'])
+        fig.tight_layout()
+        fig.savefig("%s/comparemass_%s.pdf"%(args.odir,p))
+
+        # plot ratio
         ratio_to_plot = ["outputratio"]
         fig, axs = plt.subplots(1,len(ratio_to_plot), figsize=(len(ratio_to_plot)*8,8))
         for i,m in enumerate(ratio_to_plot):
