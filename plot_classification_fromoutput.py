@@ -5,6 +5,7 @@ import argparse
 import numpy as np
 import uproot
 from coffea import hist
+import awkward as ak
 
 from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
@@ -240,7 +241,9 @@ def main(args):
         # branches += ["fj_deepTagMD_H4qvsQCD","fj_deepTag_HvsQCD","fj_PN_XbbvsQCD"]
 
         # add selection
-        mask = "(fj_pt<1200)"
+        mask = "(fj_pt<1200) &"\
+            "((((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)) & (fj_genRes_mass<0)) |"\
+            "((%s==1) & (fj_genRes_mass>0) ) )"%siglabel
         
         ifile = uproot.open(args.ifile)["Events"]
         isqcd_separate = False
@@ -256,7 +259,9 @@ def main(args):
                 ibranches.extend(['score_fj_isQCDb','score_fj_isQCDbb','score_fj_isQCDc','score_fj_isQCDcc','score_fj_isQCDlep','score_fj_isQCDothers'])
                 print('List of branches to read ',ibranches)
                 events = ifile.arrays(ibranches,mask)
-                events["fj_QCD_label"] = (events["fj_isQCDb"]==1) | (events["fj_isQCDbb"]==1) | (events["fj_isQCDc"]==1) | (events["fj_isQCDcc"]==1) | (events["fj_isQCDcc"]==1)
+                events_fj_QCD_label_TrueFalse = ((events["fj_isQCDb"]==1) | (events["fj_isQCDbb"]==1) | (events["fj_isQCDc"]==1) | (events["fj_isQCDcc"]==1) | (events["fj_isQCDlep"]==1) | (events["fj_isQCDothers"]==1))
+                events["fj_QCD_label"] = ak.values_astype(events_fj_QCD_label_TrueFalse, int)
+                print(events["fj_msoftdrop"][events["fj_QCD_label"]==1])
                 isqcd_separate = True
                 print('Added fj_QCD_label to ttree')
         elif 'top' in bkg:
@@ -291,7 +296,11 @@ def main(args):
                                   hist.Bin("msd", "fj msoftdrop [GeV]", 60, 0, 260),
                                   hist.Bin("pt", r"fj $p_T$ [GeV]", 70, 200, 1200),
                                   hist.Bin("score", "Tagger score", 70, 0, 1),
-                                  hist.Bin("gmass", "gen Res mass [GeV]", 42, 50, 260),
+                                  )
+        hist_gmass = hist.Hist("genmass",
+                               hist.Cat("process", "Process"),
+                               hist.Bin("score", "Tagger score", 70, 0, 1),
+                               hist.Bin("gmass", "gen Res mass [GeV]", 42, 50, 260),
         )
 
         # define processes
@@ -321,13 +330,21 @@ def main(args):
                 continue
             # print legends
             print('legend ',legend)
+
+            # fill the features histogram
             hist_features.fill(process=proc,
                                msd = events["fj_msoftdrop"][mask_proc],
                                pt = events["fj_pt"][mask_proc],
                                score = events[score_name][mask_proc],
-                               gmass = events["fj_genRes_mass"][mask_proc],
             )
 
+            # only fill the gen mass histogram for signal
+            if proc in signal:
+                hist_gmass.fill(process=proc,
+                                gmass = events["fj_genRes_mass"][mask_proc],
+                                score = events[score_name][mask_proc],
+                )
+            
         # plot features for this signal and background combination (i.e. all the processes) 
         vars_to_plot = ["pt","msd","score"]
         plt_label = "validation_%svs%s"%(siglabel,bkglabel)
@@ -340,7 +357,7 @@ def main(args):
         proc_to_corr = ['%s-mhflat'%signal]
         plt_label = "%svs%s"%(siglabel,bkglabel)
         print('plot score')
-        plot_score_aftercut(args,hist_features,vars_to_corr,bins_to_corr,proc_to_corr,plt_label)
+        #plot_score_aftercut(args,hist_gmass,vars_to_corr,bins_to_corr,proc_to_corr,plt_label)
         
         # plot roc
         plot_roc(args, label_dict[signal], label_dict[bkg], fprs, tprs)
