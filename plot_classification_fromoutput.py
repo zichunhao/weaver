@@ -295,12 +295,12 @@ def main(args):
                                   hist.Cat("process", "Process"),
                                   hist.Bin("msd", "fj msoftdrop [GeV]", 60, 0, 260),
                                   hist.Bin("pt", r"fj $p_T$ [GeV]", 70, 200, 1200),
-                                  hist.Bin("score", "Tagger score", 70, 0, 1),
+                                  hist.Bin("score", r"Tagger score", 70, 0, 1),
                                   )
         hist_gmass = hist.Hist("genmass",
                                hist.Cat("process", "Process"),
-                               hist.Bin("score", "Tagger score", 70, 0, 1),
-                               hist.Bin("gmass", "gen Res mass [GeV]", 42, 50, 260),
+                               hist.Bin("score", r"Tagger score", 70, 0, 1),
+                               hist.Bin("gmass", r"gen Res mass [GeV]", 42, 50, 260),
         )
 
         # define processes
