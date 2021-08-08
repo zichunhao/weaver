@@ -375,7 +375,7 @@ def main(args):
         
         # define and fill coffea histograms
         # TODO: add other scores here if needed
-        hist_features = hist.Hist("features",
+        hist_features = hist.Hist("Jets",
                                   hist.Cat("process", "Process"),
                                   hist.Bin("msd", r"fj msoftdrop [GeV]", 60, 0, 320), 
                                   hist.Bin("pt", r"fj $p_T$ [GeV]", 50, 200, 1200), # bins of 20
