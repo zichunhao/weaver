@@ -291,9 +291,9 @@ def main(args):
 
         # define and fill coffea histograms
         # TODO: add other scores here if needed
-        hist_features = hist.Hist("features",
+        hist_features = hist.Hist("Jets",
                                   hist.Cat("process", "Process"),
-                                  hist.Bin("msd", r"fj msoftdrop [GeV]", 60, 0, 260),
+                                  hist.Bin("msd", "fj msoftdrop [GeV]", 60, 0, 260),
                                   hist.Bin("pt", r"fj $p_T$ [GeV]", 70, 200, 1200),
                                   hist.Bin("score", r"Tagger score", 70, 0, 1),
                                   )
