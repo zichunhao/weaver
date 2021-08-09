@@ -10,7 +10,7 @@ def get_model(data_config, **kwargs):
         (16, (256, 256, 256, 256)),
     ]
     fc_params = [(256, 0.1)]
-    use_fusion = Trueconsole.log(JSON.stringify())
+    use_fusion = True
 
     pf_features_dims = len(data_config.input_dicts['pf_features'])
     sv_features_dims = len(data_config.input_dicts['sv_features'])
