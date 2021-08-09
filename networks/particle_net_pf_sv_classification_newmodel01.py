@@ -3,11 +3,12 @@ from utils.nn.model.ParticleNet import ParticleNetTagger
 
 
 def get_model(data_config, **kwargs):
+    # 4 layers
     conv_params = [
         (16, (64, 64, 64)),  # k, conv_params
         (16, (128, 128, 128)),
         (16, (256, 256, 256)),
-        (25, (256, 256, 256)),
+        (16, (256, 256, 256)),
     ]
     fc_params = [(256, 0.1)]
     use_fusion = True
