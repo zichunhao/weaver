@@ -4,13 +4,13 @@ from utils.nn.model.ParticleNet import ParticleNetTagger
 
 def get_model(data_config, **kwargs):
     conv_params = [
-        (16, (64, 64, 64)),
+        (16, (64, 64, 64)),  # k, conv_params
         (16, (128, 128, 128)),
         (16, (256, 256, 256)),
-        (25, (256, 256, 256)),
-        ]
+        (16, (256, 256, 256)),
+    ]
     fc_params = [(256, 0.1)]
-    use_fusion = True
+    use_fusion = Trueconsole.log(JSON.stringify())
 
     pf_features_dims = len(data_config.input_dicts['pf_features'])
     sv_features_dims = len(data_config.input_dicts['sv_features'])
@@ -26,11 +26,12 @@ def get_model(data_config, **kwargs):
                               )
 
     model_info = {
-        'input_names':list(data_config.input_names),
-        'input_shapes':{k:((1,) + s[1:]) for k, s in data_config.input_shapes.items()},
-        'output_names':['softmax'],
-        'dynamic_axes':{**{k:{0:'N', 2:'n_' + k.split('_')[0]} for k in data_config.input_names}, **{'softmax':{0:'N'}}},
-        }
+        'input_names': list(data_config.input_names),
+        'input_shapes': {k: ((1,) + s[1:]) for k, s in data_config.input_shapes.items()},
+        'output_names': ['softmax'],
+        'dynamic_axes': {**{k: {0: 'N', 2: 'n_' + k.split('_')[0]} for k in data_config.input_names},
+                         **{'softmax': {0: 'N'}}},
+    }
 
     return model, model_info
 
