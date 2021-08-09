@@ -63,12 +63,9 @@ def roc_input(events,var,label_sig,label_bkg):
     return truth, predict
 
 # get roc for a table with given scores, a label for signal, and one for background
-def get_roc(events, scores, label_sig, label_bkg):
-    fprs = {}
-    tprs = {}
-    for score_label,score_name in scores.items():
-        truth, predict =  roc_input(events,score_name,label_sig,label_bkg)
-        fprs[score_label], tprs[score_label], threshold = roc_curve(truth, predict)
+def get_roc(events, score_name, label_sig, label_bkg):
+    truth, predict =  roc_input(events,score_name,label_sig,label_bkg)
+    fprs, tprs, threshold = roc_curve(truth, predict)
     return fprs, tprs
 
 # plot roc
@@ -85,26 +82,73 @@ def plot_roc(args, label_sig, label_bkg, fprs, tprs):
                     # print(round(f,2),y_effs[i])
                     break
         return effs
-    
+
+    ik = 0
     markers = ['v','^','o','s']
     for k,it in fprs.items():
-        axs.plot(tprs[k], fprs[k], lw=2.5, label=r"{}, AUC = {:.1f}%".format(k,auc(fprs[k],tprs[k])*100))
+        leg = k.replace('_score','')
+        axs.plot(tprs[k], fprs[k], lw=2.5, label=r"{}, AUC = {:.1f}%".format(leg,auc(fprs[k],tprs[k])*100))
         y_effs = [0.01,0.02,0.03]
         x_effs = get_round(fprs[k],tprs[k],y_effs)
         #print(tprs[k])
         #print(y_effs)
-        axs.scatter(x_effs,y_effs,marker=markers[0],label=k)
-
+        axs.scatter(x_effs,y_effs,s=75,marker=markers[ik],label=leg)
+        ik+=1
+        
     axs.legend(loc='upper left')
     axs.grid(which='minor', alpha=0.2)
     axs.grid(which='major', alpha=0.5)
     axs.set_xlabel(r'Tagging efficiency %s'%label_sig['legend'])
     axs.set_ylabel(r'Mistagging rate %s'%label_bkg['legend'])
     #fig.savefig("%s/roc_%s.pdf"%(args.odir,label_sig['label']))
+    axs.set_ylim(0.0001,1)
     axs.set_yscale('log')
     fig.savefig("%s/roc_%s_ylog.pdf"%(args.odir,label_sig['label']))
     axs.set_yscale('linear')
 
+# plot rocs for different cuts on mH and pt
+def plot_roc_by_var(args,vars_to_corr,bin_ranges,bin_widths,events,score_name,sig,bkg,mh=False):
+    i = 0
+    fig, axs = plt.subplots(1,len(vars_to_corr.keys()),figsize=(8*len(vars_to_corr.keys()),8))
+    for var,varname in vars_to_corr.items():
+        fprs = {}; tprs = {}
+        legends = []
+        for j,b in enumerate(bin_ranges[i]):
+            bi = b
+            bf = b+bin_widths[i]
+            tag = "%i"%bi
+            if not mh:
+                output = events[(events[bkg['label']]==1) | ((events[varname]>=bi) & (events[varname]<=bf) & (events["fj_genRes_mass"]!=125))]
+            else:
+                output = events[(events[bkg['label']]==1) | ((events[varname]>=bi) & (events[varname]<=bf))]
+            fprs[tag], tprs[tag] = get_roc(output, score_name, sig['label'], bkg['label'])
+            legends.append('%s %i-%i GeV'%(var,bi,bf))
+
+        # now plot
+        if(len(vars_to_corr.keys())==1):
+            axs_1 = axs
+        else:
+            axs_1 = axs[i]
+            
+        ik=0
+        for k,it in fprs.items():
+            axs_1.plot(tprs[k], fprs[k], lw=2.5, label=r"{}, AUC = {:.1f}%".format(legends[ik],auc(fprs[k],tprs[k])*100))
+            ik+=1
+        axs_1.legend(loc='upper left')
+        axs_1.grid(which='minor', alpha=0.2)
+        axs_1.grid(which='major', alpha=0.5)
+        axs_1.set_xlabel(r'Tagging efficiency %s'%sig['legend'])
+        axs_1.set_ylabel(r'Mistagging rate %s'%bkg['legend'])
+        axs_1.set_ylim(0.0001,1)
+        axs_1.set_yscale('log')
+
+        i+=1
+
+    if not mh:
+        fig.savefig("%s/rocs_by_var_%s_ylog.pdf"%(args.odir,sig['label']))
+    else:
+        fig.savefig("%s/rocs_by_var_%s_mh125_ylog.pdf"%(args.odir,sig['label']))
+        
 # plot validation 
 def plot_validation(args,hist_val,vars_to_plot,label):
     for density in [True,False]:
@@ -115,7 +159,7 @@ def plot_validation(args,hist_val,vars_to_plot,label):
             else:
                 axs_1 = axs[i]
             x = hist_val.sum(*[ax for ax in hist_val.axes() if ax.name not in {'process',m}])
-            # print for debugging
+            # print hist values for debugging  (in case hist is empty)
             # print(x.values())
             hist.plot1d(x,ax=axs_1,overlay="process",density=density)
             axs_1.set_ylabel('Jets')
@@ -127,7 +171,7 @@ def plot_validation(args,hist_val,vars_to_plot,label):
 
 # plot score after selection on variables 
 # i.e. how does the score look when cutting on e.g. pt, gmass
-def plot_score_aftercut(args,hist_val,vars_to_corr,bins,processes,label):
+def plot_score_aftercut(args,hist_val,vars_to_corr,bin_ranges,bin_widths,processes,label):
     print('plot_score_aftercut')
     density = True
     for proc in processes:
@@ -138,26 +182,69 @@ def plot_score_aftercut(args,hist_val,vars_to_corr,bins,processes,label):
             else:
                 axs_1 = axs[i]
             x = hist_val.sum(*[ax for ax in hist_val.axes() if ax.name not in {'process','score',m}]).integrate("process",proc)
-            print(x,m)
-            for j,b in enumerate(bins):
-                y = x.integrate(m, slice(60+100))
-                print(y)
-                print(y.values())
+            legends = []
+            for j,b in enumerate(bin_ranges[i]):
+                # print histogram identifiers for debugging
+                # print(x.identifiers(m, overflow='all'))
+                y = x.integrate(m, slice(b,b+bin_widths[i]))
+                legends.append('%s %i-%i GeV'%(m,b,b+bin_widths[i]))
                 if j==0:
                     hist.plot1d(y,ax=axs_1,density=True)
                 else:
                     hist.plot1d(y,ax=axs_1,density=True,clear=False)
+            axs_1.set_ylabel('Jets')
+            axs_1.legend(legends,title=m)
         fig.tight_layout()
         fig.savefig("%s/%s_scores_%s_density.pdf"%(args.odir,proc,label))
 
-# plot how variables look after a cut on the scores
-def plot_var_aftercut(args,hist_val,vars_to_corr,bins,processes,label):
+# compute percentiles
+"""
+i.e. the cuts that we should make on the tagger score so that we obtain this efficiency in our process after the cut                                                                           
+uses np.quantile function                                                                                             
+"""
+def computePercentiles(data, percentiles):
+    mincut = 0.
+    tmp = np.quantile(data, np.array(percentiles))
+    tmpl = [mincut]
+    for x in tmp:
+        tmpl.append(x)
+    perc = [0.]
+    for x in percentiles:
+        perc.append(x)
+    return perc, tmpl
+
+# plot how variables look after a cut on the scores 
+def plot_var_aftercut(args,hist_val,vars_to_plot,processes,label,cuts,percentiles):
     density = True
     for proc in processes:
-        fig, axs = plt.subplots(1,len(vars_to_corr), figsize=(len(vars_to_corr)*8,8))
+        fig, axs = plt.subplots(1,len(vars_to_plot), figsize=(len(vars_to_plot)*8,8))
+        for var in vars_to_plot:
+            if(len(vars_to_plot)==1):
+                axs_1 = axs
+            else:
+                axs_1 = axs[i]
+            x = hist_val.sum(*[ax for ax in hist_val.axes() if ax.name not in {'process',var,'score'}])
+            x = x.integrate('process',proc)
+            legends = []
+            # now cut on the score
+            for i,cut in enumerate(cuts):
+                cut = round(cut,2)
+                if i==len(cuts)-1:
+                    y = x.integrate('score',slice(cut,1))
+                else:
+                    y = x.integrate('score',slice(cut,round(cuts[i+1],2)))
+                legends.append('%s '%(percentiles[i]))
+                if i==0:
+                    hist.plot1d(y,ax=axs_1,density=density)
+                else:
+                    hist.plot1d(y,ax=axs_1,density=density,clear=False)
+            axs_1.set_ylabel('Jets')
+            axs_1.legend(legends,title='Bkg quantile')
         fig.tight_layout()
-        fig.savefig("%s/%s_scores_%s_density.pdf"%(args.odir,proc,label))
-
+        if density:
+            fig.savefig("%s/%s_scoresculpting_density.pdf"%(args.odir,label))
+        else:
+            fig.savefig("%s/%s_scoresculpting.pdf"%(args.odir,label))
     
 def main(args):
     # labels here
@@ -241,6 +328,7 @@ def main(args):
         # branches += ["fj_deepTagMD_H4qvsQCD","fj_deepTag_HvsQCD","fj_PN_XbbvsQCD"]
 
         # add selection
+        # NOTE: add selection such that QCD only has genRes_mass < 0
         mask = "(fj_pt<1200) &"\
             "((((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)) & (fj_genRes_mass<0)) |"\
             "((%s==1) & (fj_genRes_mass>0) ) )"%siglabel
@@ -251,17 +339,14 @@ def main(args):
             try:
                 #ibranches = branches + ["fj_QCD_label"]
                 ibranches = branches + ["fj_isQCD"]
-                print('List of branches to read ',ibranches)
                 events = ifile.arrays(ibranches,mask)
             except:
                 ibranches = branches + ["fj_isQCDb","fj_isQCDbb","fj_isQCDc","fj_isQCDcc","fj_isQCDlep","fj_isQCDothers"]
                 ibranches.remove('score_%s'%bkglabel)
                 ibranches.extend(['score_fj_isQCDb','score_fj_isQCDbb','score_fj_isQCDc','score_fj_isQCDcc','score_fj_isQCDlep','score_fj_isQCDothers'])
-                print('List of branches to read ',ibranches)
                 events = ifile.arrays(ibranches,mask)
                 events_fj_QCD_label_TrueFalse = ((events["fj_isQCDb"]==1) | (events["fj_isQCDbb"]==1) | (events["fj_isQCDc"]==1) | (events["fj_isQCDcc"]==1) | (events["fj_isQCDlep"]==1) | (events["fj_isQCDothers"]==1))
                 events["fj_QCD_label"] = ak.values_astype(events_fj_QCD_label_TrueFalse, int)
-                print(events["fj_msoftdrop"][events["fj_QCD_label"]==1])
                 isqcd_separate = True
                 print('Added fj_QCD_label to ttree')
         elif 'top' in bkg:
@@ -269,38 +354,38 @@ def main(args):
             events = ifile.arrays(ibranches)
         else:
             print('not known background')
+        print('List of branches read ',ibranches)
             
         # compute scores:
-        #  we expect all scores to sum up to 1, e.g. given two signals in the event (signal 1 and 2) and one background process (background 1):
-        #  score_signal_1 + score_signal_2 + score_background_1 = 1
-        #  then nn_signal_1 = score_signal_1 / (score_signal_1 + score_background_1) = score_signal_1 / (1 - score_signal_2)
+        """
+          we expect all scores to sum up to 1, e.g. given two signals in the event (signal 1 and 2) and one background process (background 1):
+          score_signal_1 + score_signal_2 + score_background_1 = 1
+          then nn_signal_1 = score_signal_1 / (score_signal_1 + score_background_1) = score_signal_1 / (1 - score_signal_2)
+        """
         score_name = "%s_score"%args.name
         if isqcd_separate:
             events[score_name] = events['score_%s'%siglabel] / (events['score_%s'%siglabel] + events['score_fj_isQCDb'] + events['score_fj_isQCDbb'] + events['score_fj_isQCDc'] + events['score_fj_isQCDcc'] + events['score_fj_isQCDlep'] + events['score_fj_isQCDothers'])
         else:
             events[score_name] = events['score_%s'%siglabel] / (events['score_%s'%siglabel] + events['score_%s'%bkglabel])
 
-        # define scores_dict for which to compute rocs
-        scores_dict = {
-            args.name: score_name,
-        }
-        
         # get roc
-        # TODO: for now only get roc curve for the main score
-        fprs, tprs = get_roc(events, scores_dict, siglabel, bkglabel)
-
+        fprs = {}
+        tprs = {}
+        fprs[score_name], tprs[score_name] = get_roc(events, score_name, siglabel, bkglabel)
+        
         # define and fill coffea histograms
         # TODO: add other scores here if needed
         hist_features = hist.Hist("Jets",
                                   hist.Cat("process", "Process"),
-                                  hist.Bin("msd", "fj msoftdrop [GeV]", 60, 0, 260),
-                                  hist.Bin("pt", r"fj $p_T$ [GeV]", 70, 200, 1200),
-                                  hist.Bin("score", r"Tagger score", 70, 0, 1),
+                                  hist.Bin("msd", r"fj msoftdrop [GeV]", 60, 0, 320), 
+                                  hist.Bin("pt", r"fj $p_T$ [GeV]", 50, 200, 1200), # bins of 20
+                                  hist.Bin("score", r"Tagger score", 100, 0, 1),
                                   )
         hist_gmass = hist.Hist("genmass",
                                hist.Cat("process", "Process"),
                                hist.Bin("score", r"Tagger score", 70, 0, 1),
-                               hist.Bin("gmass", r"gen Res mass [GeV]", 42, 50, 260),
+                               hist.Bin("pt", r"fj $p_T$ [GeV]", 50, 200, 1200), # bins of 20
+                               hist.Bin("mH", r"gen Res mass [GeV]", 42, 50, 260), # bins of 5
         )
 
         # define processes
@@ -317,10 +402,11 @@ def main(args):
             legend = label_dict[p]['legend']
             if 'mh125' in proc:
                 mask_proc = (events[label_dict[p]['label']]==1) & (events["fj_genRes_mass"]==125)
-                legend += ' mH125'
+                legend += ' mh125'
             elif 'mhflat' in proc:
+                # beware of mRes = 175....
                 mask_proc = (events[label_dict[p]['label']]==1) & (events["fj_genRes_mass"]!=125)
-                legend += ' mHflat'
+                legend += ' mhflat'
             else:
                 mask_proc = (events[label_dict[p]['label']]==1)
             legends[proc] = legend
@@ -328,8 +414,9 @@ def main(args):
             if len(events["fj_msoftdrop"][mask_proc])==0:
                 processes.remove(proc)
                 continue
+            
             # print legends
-            print('legend ',legend)
+            # print('legend ',legend)
 
             # fill the features histogram
             hist_features.fill(process=proc,
@@ -339,34 +426,54 @@ def main(args):
             )
 
             # only fill the gen mass histogram for signal
-            if proc in signal:
+            if signal in proc:
                 hist_gmass.fill(process=proc,
-                                gmass = events["fj_genRes_mass"][mask_proc],
+                                mH = events["fj_genRes_mass"][mask_proc],
                                 score = events[score_name][mask_proc],
+                                pt = events["fj_pt"][mask_proc],
                 )
-            
+
+        # plot main ROC
+        plot_roc(args, label_dict[signal], label_dict[bkg], fprs, tprs)
+        
         # plot features for this signal and background combination (i.e. all the processes) 
         vars_to_plot = ["pt","msd","score"]
         plt_label = "validation_%svs%s"%(siglabel,bkglabel)
         plot_validation(args,hist_features,vars_to_plot,plt_label)
 
         # plot how the score looks after cuts on variables
-        vars_to_corr = ["gmass"]
-        bins_to_corr = [[50,55]]
-        #proc_to_corr = [legends['%s-mhflat'%signal]]
+        vars_to_corr = ["mH","pt"]
+        bin_ranges = [list(range(60,240,20)),list(range(200,1200,200))]
+        bin_widths = [10,200]
         proc_to_corr = ['%s-mhflat'%signal]
         plt_label = "%svs%s"%(siglabel,bkglabel)
-        print('plot score')
-        #plot_score_aftercut(args,hist_gmass,vars_to_corr,bins_to_corr,proc_to_corr,plt_label)
+        plot_score_aftercut(args,hist_gmass,vars_to_corr,bin_ranges,bin_widths,proc_to_corr,plt_label)
+
+        # plot roc for different cuts on mH and pt
+        vars_to_corr = {"mH":"fj_genRes_mass",
+                        "pt":"fj_pt"}
+        plot_roc_by_var(args,vars_to_corr,bin_ranges,bin_widths,events,score_name,label_dict[signal],label_dict[bkg])
         
-        # plot roc
-        plot_roc(args, label_dict[signal], label_dict[bkg], fprs, tprs)
+        # plot roc for mh=125
+        vars_to_corr = {"mH":"fj_genRes_mass"}
+        bin_ranges = [[125,125]]
+        bin_widths = [5]
+        plot_roc_by_var(args,vars_to_corr,bin_ranges,bin_widths,events,score_name,label_dict[signal],label_dict[bkg],True)
+
+        # plot how variables look after cut on classifier (tagger score)
+        vars_to_corr = ["msd"]
+        proc_to_corr = [bkg]
+        plt_label = "aftercuts_%svs%s"%(siglabel,bkglabel)
+        # first compute percentiles on bkg (or maybe other process?)
+        percentiles, cuts = computePercentiles(events[score_name][(events[bkglabel]==1)].to_numpy(), [0.97, 0.99, 0.995])
+        plot_var_aftercut(args,hist_features,vars_to_corr,proc_to_corr,plt_label,cuts,percentiles)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--ifile', help='input file(s)')
     parser.add_argument('--odir', required=True, help="output dir")
-    parser.add_argument('--name', help='name of the model(s)')
+    parser.add_argument('--name', required=True, help='name of the model(s)')
     parser.add_argument('--signals', default='hww_4q_merged', help='signals')
     parser.add_argument('--bkgs', default='qcd', help='backgrounds') 
     args = parser.parse_args()
