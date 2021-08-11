@@ -70,13 +70,13 @@ def make_weights(table,reweight_branches,reweight_bins,reweight_classes,reweight
             result[label] = wgt
             # divide by classwgt here will effective increase the weight later
             class_events[label] = np.sum(raw_hists[label] * wgt) / classwgt
-    elif self._data_config.reweight_method == 'ref':
+    elif reweight_method == 'ref':
         # use class 0 as the reference
-        hist_ref = raw_hists[self._data_config.reweight_classes[0]]
-        for label, classwgt in zip(self._data_config.reweight_classes, self._data_config.class_weights):
+        hist_ref = raw_hists[reweight_classes[0]]
+        for label, classwgt in zip(reweight_classes, class_weights):
             # wgt: bins w/ 0 elements will get a weight of 0; bins w/ content<ref_val will get 1
             ratio = np.nan_to_num(hist_ref / result[label], posinf=0)
-            upper = np.percentile(ratio[ratio > 0], 100 - self._data_config.reweight_threshold)
+            upper = np.percentile(ratio[ratio > 0], 100 - reweight_threshold)
             wgt = np.clip(ratio / upper, 0, 1)  # -> [0,1]
             result[label] = wgt
             # divide by classwgt here will effective increase the weight later
@@ -426,12 +426,12 @@ if __name__ == "__main__":
         #'sig': sig_cats,
         'sig': ["fj_isHWW_elenuqq_merged", "fj_isHWW_munuqq_merged"] # for the signals only config
         }
-    cats['qcd'] =  qcd_cats
-    #cats['qcd'] = ["fj_QCD_label"] # uncomment for when using one single label
+    #cats['qcd'] =  qcd_cats
+    cats['qcd'] = ["fj_QCD_label"] # uncomment for when using one single label
     
-    if not args.regression:
-        cats['top'] = top_cats
-        #cats['top'] = ["fj_Top_label"]  # uncomment for when using one single label  
+    #if not args.regression:
+    #    cats['top'] = top_cats
+    #cats['top'] = ["fj_Top_label"]  # uncomment for when using one single label  
     
     # make plots
     make_plots(table,cats,reweight_bins,args)
