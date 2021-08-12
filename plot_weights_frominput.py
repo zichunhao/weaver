@@ -70,6 +70,18 @@ def make_weights(table,reweight_branches,reweight_bins,reweight_classes,reweight
             result[label] = wgt
             # divide by classwgt here will effective increase the weight later
             class_events[label] = np.sum(raw_hists[label] * wgt) / classwgt
+    elif reweight_method == 'ref':
+        # use class 0 as the reference
+        hist_ref = raw_hists[reweight_classes[0]]
+        for label, classwgt in zip(reweight_classes, class_weights):
+            # wgt: bins w/ 0 elements will get a weight of 0; bins w/ content<ref_val will get 1
+            ratio = np.nan_to_num(hist_ref / result[label], posinf=0)
+            upper = np.percentile(ratio[ratio > 0], 100 - reweight_threshold)
+            wgt = np.clip(ratio / upper, 0, 1)  # -> [0,1]
+            result[label] = wgt
+            # divide by classwgt here will effective increase the weight later
+            class_events[label] = np.sum(raw_hists[label] * wgt) / classwgt
+            
     # ''equalize'' all classes
     # multiply by max_weight (<1) to add some randomness in the sampling
     min_nevt = min(class_events.values()) * max_weight
@@ -385,15 +397,21 @@ if __name__ == "__main__":
             reweight_bins = ([200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500],
                              [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260])
             reweight_classes = ["fj_QCD_label",
-                                "fj_Top_label",
-                                "fj_H_WW_4q_3q", "fj_H_WW_4q_4q", "fj_isHWW_elenuqq_merged", "fj_isHWW_elenuqq_semimerged",
-                                "fj_isHWW_munuqq_merged", "fj_isHWW_munuqq_semimerged", "fj_isHWW_taunuqq_merged", "fj_isHWW_taunuqq_semimerged"]
+                                #"fj_Top_label",
+                                "fj_isHWW_elenuqq_merged", "fj_isHWW_munuqq_merged",
+                                #"fj_H_WW_4q_3q", "fj_H_WW_4q_4q", "fj_isHWW_elenuqq_merged", "fj_isHWW_elenuqq_semimerged",
+                                #"fj_isHWW_munuqq_merged", "fj_isHWW_munuqq_semimerged", "fj_isHWW_taunuqq_merged", "fj_isHWW_taunuqq_semimerged"
+            ]
             class_weights = [1,
-                             1,
-                             0.125, 0.125, 0.125, 0.125,
-                             0.125, 0.125, 0.125, 0.125]
-            reweight_threshold = 10
-            reweight_method = "flat"
+                             1,1,
+                             #1,
+                             #0.125, 0.125, 0.125, 0.125,
+                             #0.125, 0.125, 0.125, 0.125
+            ]
+            #reweight_threshold = 10
+            reweight_threshold = 0.1
+            #reweight_method = "flat"
+            reweight_method = "ref"
 
         reweight_hists = make_weights(table,reweight_branches,reweight_bins,reweight_classes,reweight_method,class_weights,reweight_threshold)
 
@@ -405,14 +423,15 @@ if __name__ == "__main__":
 
     # define categories to plot
     cats = {
-        'sig': sig_cats,
+        #'sig': sig_cats,
+        'sig': ["fj_isHWW_elenuqq_merged", "fj_isHWW_munuqq_merged"] # for the signals only config
         }
-    cats['qcd'] =  qcd_cats
-    #cats['qcd'] = ["fj_QCD_label"] # uncomment for when using one single label
+    #cats['qcd'] =  qcd_cats
+    cats['qcd'] = ["fj_QCD_label"] # uncomment for when using one single label
     
-    if not args.regression:
-        cats['top'] = top_cats
-        #cats['top'] = ["fj_Top_label"]  # uncomment for when using one single label  
+    #if not args.regression:
+    #    cats['top'] = top_cats
+    #cats['top'] = ["fj_Top_label"]  # uncomment for when using one single label  
     
     # make plots
     make_plots(table,cats,reweight_bins,args)
