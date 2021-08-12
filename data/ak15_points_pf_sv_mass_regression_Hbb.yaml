@@ -26,8 +26,6 @@ test_time_selection:
      (fj_isQCDcc==1) |
      (fj_isQCDlep == 1) |
      (fj_isQCDothers == 1) ) & (fj_genRes_mass<0) ) |
-     (fj_isTop == 1) |
-     (fj_isToplep==1) |
      (( (fj_Hbb==1) & (fj_genRes_mass>0) )) )
 
 new_variables:
