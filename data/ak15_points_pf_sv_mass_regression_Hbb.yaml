@@ -14,7 +14,7 @@ selection:
      (fj_isQCDcc==1) |
      (fj_isQCDlep == 1) |
      (fj_isQCDothers == 1) ) & (fj_genRes_mass<0) ) |
-     (( (fj_Hbb==1) & (fj_genRes_mass>0) )) )
+     (( (fj_H_bb==1) & (fj_genRes_mass>0) )) )
 
 test_time_selection:
    >
@@ -26,7 +26,7 @@ test_time_selection:
      (fj_isQCDcc==1) |
      (fj_isQCDlep == 1) |
      (fj_isQCDothers == 1) ) & (fj_genRes_mass<0) ) |
-     (( (fj_Hbb==1) & (fj_genRes_mass>0) )) )
+     (( (fj_H_bb==1) & (fj_genRes_mass>0) )) )
 
 new_variables:
    ### [format] name: formula
@@ -34,7 +34,7 @@ new_variables:
    pfcand_mask: (pfcand_pt_log_nopuppi!=0)
    sv_mask: (sv_pt_log!=0)
    fj_QCD_label: ((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep == 1) | (fj_isQCDothers == 1) )
-   fj_hbb_label: ((fj_Hbb==1) & (fj_genRes_mass>0))
+   fj_hbb_label: ((fj_H_bb==1) & (fj_genRes_mass>0))
 
 preprocess:
   ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -144,6 +144,8 @@ observers:
    - fj_H_WW_taunuqq
    - fj_nProngs
    - fj_evt_met_pt
+   - fj_genWstar_mass
+   - fj_genW_mass
 
 weights:
    ### [option 1] use precomputed weights stored in the input files
