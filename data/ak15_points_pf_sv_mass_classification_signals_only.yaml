@@ -43,7 +43,7 @@ new_variables:
     fj_isTop_merged: (fj_isTop==1) & (fj_nProngs==3)
     fj_isTop_semimerged: (fj_isTop==1) & (fj_nProngs==2)
     fj_isToplep_merged: (fj_isToplep==1) & (fj_nProngs>=2)  # so that you have at least the lepton and the b merged in the leptonic case
-    fj_QCD_label: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCD_cc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)
+    fj_QCD_label: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)
     # Signal (HWW)
     fj_isHWW_elenuqq_merged: (fj_H_WW_elenuqq==1) & (fj_nProngs==4)
     fj_isHWW_elenuqq_semimerged: (fj_H_WW_elenuqq==1) & (fj_nProngs==3)
