@@ -21,7 +21,7 @@ selection:
         (fj_nProngs>1) & 
         (fj_genRes_mass>0) & 
         (fj_genWstar_mass < 45) &
-        (fj_genW_mass > 50) ) )
+        (fj_genW_mass > 50) )
 
 test_time_selection:
     ### selection to apply at test time (i.e., when running w/ --predict)
