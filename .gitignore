@@ -131,4 +131,6 @@ dmypy.json
 # auto files
 *.auto.yaml
 
+
+test.py
 *~
