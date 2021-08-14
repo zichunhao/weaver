@@ -262,13 +262,6 @@ class ParticleNetTagger(nn.Module):
                               for_inference=for_inference)
 
     def forward(self, pf_points, pf_features, pf_mask, sv_points, sv_features, sv_mask):
-        print(f"pf_points: {pf_points}")
-        print(f"pf_points shape: {pf_points.shape}")
-        print(f"pf_features: {pf_features}")
-        print(f"pf_features shape: {pf_features.shape}")
-        print(f"pf_mask: {pf_mask}")
-        print(f"pf_mask shape: {pf_mask.shape}")
-
         if self.pf_input_dropout:
             pf_mask = (self.pf_input_dropout(pf_mask) != 0).float()
             pf_points *= pf_mask
