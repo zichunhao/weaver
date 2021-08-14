@@ -176,8 +176,8 @@ class ParticleNet(nn.Module):
         self.for_inference = for_inference
 
     def forward(self, points, features, mask=None):
-#         print('points:\n', points)
-#         print('features:\n', features)
+        #         print('points:\n', points)
+        #         print('features:\n', features)
         if mask is None:
             mask = (features.abs().sum(dim=1, keepdim=True) != 0)  # (N, 1, P)
         points *= mask
@@ -201,7 +201,7 @@ class ParticleNet(nn.Module):
             fts = self.fusion_block(torch.cat(outputs, dim=1)) * mask
 
 #         assert(((fts.abs().sum(dim=1, keepdim=True) != 0).float() - mask.float()).abs().sum().item() == 0)
-        
+
         if self.for_segmentation:
             x = fts
         else:
@@ -226,7 +226,7 @@ class FeatureConv(nn.Module):
             nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False),
             nn.BatchNorm1d(out_chn),
             nn.ReLU()
-            )
+        )
 
     def forward(self, x):
         return self.conv(x)
@@ -262,6 +262,13 @@ class ParticleNetTagger(nn.Module):
                               for_inference=for_inference)
 
     def forward(self, pf_points, pf_features, pf_mask, sv_points, sv_features, sv_mask):
+        print(f"pf_points: {pf_points}")
+        print(f"pf_points shape: {pf_points.shape}")
+        print(f"pf_features: {pf_features}")
+        print(f"pf_features shape: {pf_features.shape}")
+        print(f"pf_mask: {pf_mask}")
+        print(f"pf_mask shape: {pf_mask.shape}")
+
         if self.pf_input_dropout:
             pf_mask = (self.pf_input_dropout(pf_mask) != 0).float()
             pf_points *= pf_mask
