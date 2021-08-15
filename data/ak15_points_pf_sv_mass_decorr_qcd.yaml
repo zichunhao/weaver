@@ -152,6 +152,7 @@ observers:
    - fj_genWstar_pt
    - fj_genW_decay
    - fj_genWstar_decay
+   - fj_genW_mass
 
 weights:
    ### [option 1] use precomputed weights stored in the input files
