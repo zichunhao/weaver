@@ -27,10 +27,10 @@ hists_dict = {
     'fj_dr': hist.Hist("dr",
                        hist.Cat("process", "Process"),
                        hist.Bin("gmass", r"gen Res mass [GeV]", 42, 50, 260),
-                       hist.Bin("dr_W", r"dR(fj,W)", 25, 0, 0.6),
-                       hist.Bin("dr_Wstar", r"dR(fj,W*)", 25, 0, 1),
-                       hist.Bin("min_dr_Wdau", r"min dR(fj,4qs)", 30, 0, 0.6),
-                       hist.Bin("max_dr_Wdau", r"max dR(fj,4qs)", 30, 0, 1.2)
+                       hist.Bin("dr_W", r"dR(fj,W)", 25, 0, 2.5),
+                       hist.Bin("dr_Wstar", r"dR(fj,W*)", 25, 0, 2.5),
+                       hist.Bin("min_dr_Wdau", r"min dR(fj,4qs)", 30, 0, 1.0),
+                       hist.Bin("max_dr_Wdau", r"max dR(fj,4qs)", 45, 0, 2.5)
                        ),
     'w_gen': hist.Hist("w",
                        hist.Cat("process", "Process"),
@@ -42,22 +42,22 @@ hists_dict = {
                        ),
     'labels_qcd': hist.Hist("labels",
                             hist.Cat("process", "Process"),
-                            hist.Bin("QCDb", "QCD b label", 2, 0, 1),
-                            hist.Bin("QCDbb", "QCD bb label", 2, 0, 1),
-                            hist.Bin("QCDc", "QCD c label", 2, 0, 1),
-                            hist.Bin("QCDcc", "QCD cc label", 2, 0, 1),
-                            hist.Bin("QCDlep", "QCD lep label", 2, 0, 1),
-                            hist.Bin("QCDothers", "QCD others label", 2, 0, 1),
+                            hist.Bin("QCDb", "QCD b label", 2, 0, 2),
+                            hist.Bin("QCDbb", "QCD bb label", 2, 0, 2),
+                            hist.Bin("QCDc", "QCD c label", 2, 0, 2),
+                            hist.Bin("QCDcc", "QCD cc label", 2, 0, 2),
+                            hist.Bin("QCDlep", "QCD lep label", 2, 0, 2),
+                            hist.Bin("QCDothers", "QCD others label", 2, 0, 2),
                             ),
     'labels_ww': hist.Hist("labels",
                            hist.Cat("process", "Process"),
                            hist.Bin("gmass", r"gen Res mass [GeV]", 42, 50, 260),
-                           hist.Bin("ww_4q", "WW 4q label", 2, 0, 1),
-                           hist.Bin("ww_3q", "WW 3q label", 2, 0, 1),
-                           hist.Bin("ww_elenuqq_merged", "WW ele merged label", 2, 0, 1),
-                           hist.Bin("ww_elenuqq_semimerged", "WW ele semi-merged label", 2, 0, 1),
-                           hist.Bin("ww_taunuqq_merged", "WW tau merged label", 2, 0, 1),
-                           hist.Bin("ww_taunuqq_semimerged", "WW tau semi-merged label", 2, 0, 1),
+                           hist.Bin("ww_4q", "WW 4q label", 2, 0, 2),
+                           hist.Bin("ww_3q", "WW 3q label", 2, 0, 2),
+                           hist.Bin("ww_elenuqq_merged", "WW ele merged label", 2, 0, 2),
+                           hist.Bin("ww_elenuqq_semimerged", "WW ele semi-merged label", 2, 0, 2),
+                           hist.Bin("ww_taunuqq_merged", "WW tau merged label", 2, 0, 2),
+                           hist.Bin("ww_taunuqq_semimerged", "WW tau semi-merged label", 2, 0, 2),
                            ),
     'target': hist.Hist("mass",
                         hist.Cat("process", "Process"),
@@ -152,11 +152,11 @@ def plot_by_process(h, vars_to_plot, label, args):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--samples',  required=True, help='samples to load (qcd,hh,grav,bulk)')
+    parser.add_argument('--samples',  required=True, help='samples to load (qcd,hh,grav,bulk,hww,hwwlnuqq,tthad,ttlep,wjets)')
     parser.add_argument('--test', action='store_true', default=False, help='test w few files')
     parser.add_argument('--mh', action='store_true', default=False, help='add plots by mh')
     parser.add_argument('--selection', type=str, default='train', help='selection')
-    parser.add_argument('--hists', choices=['fj_prop', 'h_gen', "fj_dr", "w_gen", "ww_labels", "qcd_labels", "target"], help='possible histograms to fill', required=True)
+    parser.add_argument('--hists', choices=['fj_prop', 'h_gen', "fj_dr", "w_gen", "labels_ww", "labels_qcd", "target"], help='possible histograms to fill', required=True)
     parser.add_argument('--odir',  required=True, help='plots directory')
     parser.add_argument('--data-dir', required=True, help='directory for train and test data files')
     args = parser.parse_args()
@@ -169,6 +169,11 @@ if __name__ == "__main__":
         "hh": os.path.join(args.data_dir, "test/*HH*cHHH1*/*.root:Events"),
         "qcd": os.path.join(args.data_dir, "train/QCD*/*.root:Events"),
         "bulk": os.path.join(args.data_dir, "train/Bulk*/*.root:Events"),
+        "hww": os.path.join(args.data_dir, "test/*HToWW_*/*.root:Events"),
+        "hwwlnuqq": os.path.join(args.data_dir, "test/*HToWWTo*/*.root:Events"),
+        "tthad": os.path.join(args.data_dir, "test/*TTToHad*/*.root:Events"),
+        "ttlep": os.path.join(args.data_dir, "test/*TTToSemi*/*.root:Events"),
+        "wjets": os.path.join(args.data_dir, "test/*WJets*/*.root:Events"),
     }
     # use few files if testing script
     if args.test:
@@ -195,25 +200,30 @@ if __name__ == "__main__":
     branches += sig_branches
     branches += qcd_branches
 
+    branches += ["fj_isW","fj_isWlep","fj_isTop","fj_isToplep"]
     branches += ["fj_dR_W", "fj_dR_Wstar", "fj_mindR_HWW_daus",
                  "fj_genW_pt", "fj_genWstar_pt", "fj_genW_mass", "fj_genWstar_mass"]
 
     # define selection
     if args.selection == "regression":
-        mask = "(fj_pt>200) & (fj_pt<2500) & (fj_genjetmsd<260) &"\
+        mask = "(fj_pt>200) & (fj_pt<2500) & "\
             "( ( ( (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1) ) & "\
             "(fj_genRes_mass<0) ) | "\
             "(fj_isTop == 1) | (fj_isToplep==1) | "\
             "( ( (fj_H_WW_4q==1) | (fj_H_WW_elenuqq==1) | (fj_H_WW_munuqq==1) | (fj_H_WW_taunuqq==1) ) & "\
             "(fj_maxdR_HWW_daus<2.0) & (fj_nProngs>1) & (fj_genRes_mass>0) ) )"
     else:
-        mask = "(fj_pt>200) & (fj_pt<2500) & (fj_msoftdrop>=30) & (fj_msoftdrop<260) & "\
+        mask = "(fj_pt>200) & (fj_pt<2500) & "\
             "( ( ( (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1) ) & "\
             "(fj_genRes_mass<0) ) | "\
-            "(fj_isTop == 1) | (fj_isToplep==1) | "\
             "( ( (fj_H_WW_4q==1) | (fj_H_WW_elenuqq==1) | (fj_H_WW_munuqq==1) | (fj_H_WW_taunuqq==1) ) & "\
             "(fj_maxdR_HWW_daus<2.0) & (fj_nProngs>1) & (fj_genRes_mass>0) ) )"
 
+    mask = "(fj_pt>200) & (fj_pt<2500) & (fj_msoftdrop>=30) & (fj_msoftdrop<260)" # relaxed mask
+    mask = "(fj_pt>200) & (fj_pt<2500)" # basic mask
+    #mask = "(fj_pt>200) & (fj_pt<2500) & ((fj_genRes_mass<0) | (fj_genRes_pt/fj_genRes_mass<=5))" #ptmass mask
+    mask = "(fj_pt>200) & (fj_pt<2500) & ((fj_genRes_mass<0) | ((fj_genW_mass>40) & (fj_genWstar_mass<50)))"
+    
     # define processes
     # sig_processes = ["fj_H_WW_4q","fj_H_WW_elenuqq","fj_H_WW_munuqq","fj_H_WW_taunuqq"]
     sig_processes = ["fj_isHWW_elenuqq_merged", "fj_isHWW_elenuqq_semimerged",
@@ -238,18 +248,40 @@ if __name__ == "__main__":
         "hww_all": {"HWW4q": "fj_H_WW_4q_4q",
                     "HWW3q": "fj_H_WW_4q_3q",
                     "HWWele-merged": "fj_isHWW_elenuqq_merged",
-                    "HWWele-semi": "fj_isHWW_elenuqq_semimerged",
-                    "HWWmu-merged": "fj_isHWW_munuqq_merged",
-                    "HWWmu-semi": "fj_isHWW_munuqq_semimerged",
+                    #"HWWele-semi": "fj_isHWW_elenuqq_semimerged",
+                    #"HWWmu-merged": "fj_isHWW_munuqq_merged",
+                    #"HWWmu-semi": "fj_isHWW_munuqq_semimerged",
                     "HWWtau-merged": "fj_isHWW_taunuqq_merged",
                     "HWWtau-semi": "fj_isHWW_taunuqq_semimerged",
                     },
+        "tthad":{
+            "had": "fj_isTop",
+            #"hadw": "fj_isW",
+        },
+        "ttlep":{
+            "lep": "fj_isToplep",
+            #"lepwl": "fj_isWlep",
+            #"lepw": "fj_isW",
+        },
+        "wjets":{
+            "wlep": "fj_isWlep",
+        }
     }
 
     #proc_dict["grav"]  = proc_dict["hww"]
     #proc_dict["hh"]  = proc_dict["hww"]
+    
     proc_dict["grav"] = proc_dict["hww_all"]
     proc_dict["hh"] = proc_dict["hww_all"]
+    proc_dict["hww"] = proc_dict["hww_all"]
+    proc_dict["hwwlnuqq"] = proc_dict["hww_all"]
+
+    # try all
+    #proc_dict["qcd"] = {"qcd": "fj_isQCDb"}
+    #proc_dict["grav"] = {"grav": "fj_H_WW_4q"}
+    #proc_dict["hww"] = {"ww": "fj_H_WW_4q"}
+    #proc_dict["hh"] =  {"hh": "fj_H_WW_4q"}
+    #proc_dict["hwwlnuqq"] =  {"wwlnu": "fj_H_WW_elenuqq"}
 
     # define which histograms to fill
     hist_to_fill = args.hists
@@ -274,7 +306,9 @@ if __name__ == "__main__":
             # fill histograms
             for proc, label in proc_dict[sample].items():
                 # apply label mask to all feature arrays
-                mask_proc = ev[label] == 1
+                mask_proc = (ev[label] == 1)
+                # no mask on labels
+                #mask_proc = (ev[label] == 1) | (ev[label] == 0)
                 for k, h in hists.items():
                     if k == "fj_prop":
                         hists[k].fill(process=proc,
@@ -339,6 +373,8 @@ if __name__ == "__main__":
         "fj_dr": ["dr_W", "dr_Wstar", "min_dr_Wdau", "max_dr_Wdau"],
         "w_gen": ["wmass", "wsmass", "wpt", "wspt"],
         "labels_ww": ["ww_4q", "ww_3q", "ww_elenuqq_merged", "ww_elenuqq_semimerged", "ww_taunuqq_merged", "ww_taunuqq_semimerged"],
+        "labels_qcd": ["QCDb","QCDbb","QCDc","QCDcc","QCDlep","QCDothers"],
+        "target": ["gmass","genmsd","targetmass"],
     }
 
     # plot feature by process (label)
