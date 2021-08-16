@@ -15,7 +15,7 @@ branches = ["fj_pt","fj_genjetmsd",
             ]
 
 qcd_cats = ["fj_isQCDb","fj_isQCDbb","fj_isQCDc","fj_isQCDcc","fj_isQCDlep","fj_isQCDothers"]
-sig_cats = ["fj_H_WW_4q","fj_H_WW_elenuqq","fj_H_WW_munuqq","fj_H_WW_taunuqq"]
+sig_cats = ["fj_H_bb", "fj_H_WW_4q","fj_H_WW_elenuqq","fj_H_WW_munuqq","fj_H_WW_taunuqq"]
 
 branches += qcd_cats
 branches += sig_cats
@@ -33,6 +33,7 @@ proc_dict = {
            "HWWelenuqq": "fj_H_WW_elenuqq",
            "HWWmunuqq": "fj_H_WW_munuqq",
            "HWWtaunuqq":  "fj_H_WW_taunuqq",
+           "Hbb": "fj_H_bb"
     }
 }
 
