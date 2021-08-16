@@ -227,8 +227,8 @@ def make_2d_plots(table,reweight_bins,args):
             for label, hist in reweight_hists.items():        
                 if label in cat:
                     try:
-                        x = table[var1][table[label]==1].to_numpy()
-                        y = table[var2][table[label]==1].to_numpy()
+                        x = awkward.to_numpy(table[var1][table[label]==1])
+                        y = awkward.to_numpy(table[var2][table[label]==1])
                     except:
                         x = table[var1][table[label]==1]
                         y = table[var2][table[label]==1]
