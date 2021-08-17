@@ -14,12 +14,12 @@ selection:
           (fj_isQCDc==1) |
           (fj_isQCDcc==1) |
           (fj_isQCDlep == 1) |
-          (fj_isQCDothers == 1) ) & 
+          (fj_isQCDothers == 1) ) &
         (fj_genRes_mass<0) ) |
       ( ( (fj_H_WW_elenuqq==1) | (fj_H_WW_munuqq==1) ) &
-        (fj_maxdR_HWW_daus<2.0) & 
-        (fj_nProngs>1) & 
-        (fj_genRes_mass>0) & 
+        (fj_maxdR_HWW_daus<2.0) &
+        (fj_nProngs>1) &
+        (fj_genRes_mass>0) &
         (fj_genWstar_mass < 45) &
         (fj_genW_mass > 50) ) )
 
@@ -31,13 +31,18 @@ test_time_selection:
     (fj_msoftdrop>=30) &
     (fj_msoftdrop<320) &
     ( ( ( (fj_isQCDb==1) |
-     (fj_isQCDbb==1) |
-     (fj_isQCDc==1) |
-     (fj_isQCDcc==1) |
-     (fj_isQCDlep == 1) |
-     (fj_isQCDothers == 1) ) & (fj_genRes_mass<0) ) |
-     (((fj_H_WW_elenuqq==1) | (fj_H_WW_munuqq==1) ) &
-     (fj_maxdR_HWW_daus<2.0) & (fj_nProngs>1) & (fj_genRes_mass>0)))
+          (fj_isQCDbb==1) |
+          (fj_isQCDc==1) |
+          (fj_isQCDcc==1) |
+          (fj_isQCDlep == 1) |
+          (fj_isQCDothers == 1) ) &
+        (fj_genRes_mass<0) ) |
+      ( ( (fj_H_WW_elenuqq==1) | (fj_H_WW_munuqq==1) ) &
+        (fj_maxdR_HWW_daus<2.0) &
+        (fj_nProngs>1) &
+        (fj_genRes_mass>0) &
+        (fj_genWstar_mass < 45) &
+        (fj_genW_mass > 50) ) )
 
 new_variables:
     ### [format] name: formula
@@ -137,8 +142,8 @@ labels:
     type: simple
     value: [
         fj_isQCDb, fj_isQCDbb, fj_isQCDc, fj_isQCDcc, fj_isQCDlep, fj_isQCDothers,
-        fj_isHWW_elenuqq_merged, 
-        fj_isHWW_munuqq_merged, 
+        fj_isHWW_elenuqq_merged,
+        fj_isHWW_munuqq_merged,
     ]
 
 observers:
@@ -176,7 +181,7 @@ weights:
        fj_QCD_label,
        fj_isHWW_elenuqq_merged, fj_isHWW_munuqq_merged
        ]
-   class_weights: 
+   class_weights:
        [
        1,
        1, 1
