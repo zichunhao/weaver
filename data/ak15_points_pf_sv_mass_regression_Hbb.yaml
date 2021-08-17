@@ -142,6 +142,7 @@ observers:
    - fj_H_WW_elenuqq
    - fj_H_WW_munuqq
    - fj_H_WW_taunuqq
+   - fj_H_bb
    - fj_nProngs
    - fj_evt_met_pt
    - fj_genWstar_mass
