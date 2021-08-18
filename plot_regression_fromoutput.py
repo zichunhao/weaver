@@ -15,7 +15,7 @@ branches = ["fj_pt","fj_genjetmsd",
             ]
 
 qcd_cats = ["fj_isQCDb","fj_isQCDbb","fj_isQCDc","fj_isQCDcc","fj_isQCDlep","fj_isQCDothers"]
-sig_cats = ["fj_H_WW_4q","fj_H_WW_elenuqq","fj_H_WW_munuqq","fj_H_WW_taunuqq"]
+sig_cats = ["fj_H_bb", "fj_H_WW_4q","fj_H_WW_elenuqq","fj_H_WW_munuqq","fj_H_WW_taunuqq"]
 
 branches += qcd_cats
 branches += sig_cats
@@ -33,6 +33,7 @@ proc_dict = {
            "HWWelenuqq": "fj_H_WW_elenuqq",
            "HWWmunuqq": "fj_H_WW_munuqq",
            "HWWtaunuqq":  "fj_H_WW_taunuqq",
+           "Hbb": "fj_H_bb"
     }
 }
 
@@ -123,7 +124,7 @@ if __name__ == "__main__":
             fig.tight_layout()
             fig.savefig("%s/comparemass_%s_mh125.pdf"%(args.odir,p))
             
-        """
+        
         # plot ratio
         ratio_to_plot = ["outputratio"]
         fig, axs = plt.subplots(1,len(ratio_to_plot), figsize=(len(ratio_to_plot)*8,8))
@@ -135,4 +136,3 @@ if __name__ == "__main__":
             axs_1.set_ylabel('Jets')
         fig.tight_layout()
         fig.savefig("%s/ratio_%s.pdf"%(args.odir,p))
-        """
