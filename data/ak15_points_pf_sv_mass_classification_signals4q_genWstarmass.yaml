@@ -143,8 +143,7 @@ labels:
     type: simple
     value: [
         fj_isQCDb, fj_isQCDbb, fj_isQCDc, fj_isQCDcc, fj_isQCDlep, fj_isQCDothers,
-        fj_isHWW_elenuqq_merged,
-        fj_isHWW_munuqq_merged,
+        fj_H_WW_4q
     ]
 
 observers:
@@ -188,4 +187,5 @@ weights:
        1,
        1
        ]
+   reweight_threshold: 0.1
    reweight_hists:
