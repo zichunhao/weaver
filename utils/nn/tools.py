@@ -95,6 +95,8 @@ def train_classification(model, loss_func, opt, scheduler, train_loader, dev, st
     if scheduler and not getattr(scheduler, '_update_per_step', False):
         scheduler.step()
 
+    return total_loss / num_batches
+
 
 def evaluate_classification(model, test_loader, dev, for_training=True, loss_func=None, steps_per_epoch=None,
                             eval_metrics=['roc_auc_score', 'roc_auc_score_matrix', 'confusion_matrix']):
@@ -169,7 +171,7 @@ def evaluate_classification(model, test_loader, dev, for_training=True, loss_fun
         ['    - %s: \n%s' % (k, str(v)) for k, v in metric_results.items()]))
 
     if for_training:
-        return total_correct / count
+        return total_correct / count, total_loss / count
     else:
         # convert 2D labels/scores
         if len(scores) != entry_count:
@@ -298,6 +300,8 @@ def train_regression(model, loss_func, opt, scheduler, train_loader, dev, steps_
     if scheduler and not getattr(scheduler, '_update_per_step', False):
         scheduler.step()
 
+    return total_loss / num_batches
+
 
 def evaluate_regression(model, test_loader, dev, for_training=True, loss_func=None, steps_per_epoch=None,
                         eval_metrics=['mean_squared_error', 'mean_absolute_error', 'median_absolute_error',
@@ -364,7 +368,7 @@ def evaluate_regression(model, test_loader, dev, for_training=True, loss_func=No
         ['    - %s: \n%s' % (k, str(v)) for k, v in metric_results.items()]))
 
     if for_training:
-        return total_loss / count
+        return total_loss / count, total_loss / count
     else:
         # convert 2D labels/scores
         observers = {k: _concat(v) for k, v in observers.items()}
