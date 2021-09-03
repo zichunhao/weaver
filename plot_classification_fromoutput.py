@@ -53,23 +53,35 @@ def plot_accuracy(args,name,indir=None):
     plt.clf()
 
 # return input by classes (signal and background)
-def roc_input(events,var,label_sig,label_bkg):
-    scores_sig = events[var][(events[label_sig] == 1)].to_numpy()
-    scores_bkg = events[var][(events[label_bkg] == 1)].to_numpy()
+def roc_input(events,var,label_sig,label_bkg,weight_hist=None,bins=None,mask_flat=False):
+    mask_sig = (events[label_sig] == 1)
+    mask_bkg = (events[label_bkg] == 1)
+    if mask_flat:
+        mask_sig = (mask_sig) & (events["fj_genRes_mass"] != 125)
+    
+    scores_sig = events[var][mask_sig].to_numpy()
+    scores_bkg = events[var][mask_bkg].to_numpy()
     predict = np.concatenate((scores_sig,scores_bkg),axis=None)
     siglabels = np.ones(scores_sig.shape)
     bkglabels = np.zeros(scores_bkg.shape)
     truth = np.concatenate((siglabels,bkglabels),axis=None)
-    return truth, predict
+
+    weight = None
+    if weight_hist is not None:
+        weight_sig = weight_hist[np.digitize(events['fj_pt'][mask_sig].to_numpy(), bins)-1]
+        weight_bkg = np.ones(scores_bkg.shape)
+        weight = np.concatenate((weight_sig,weight_bkg),axis=None)
+
+    return truth, predict, weight
 
 # get roc for a table with given scores, a label for signal, and one for background
-def get_roc(events, score_name, label_sig, label_bkg):
-    truth, predict =  roc_input(events,score_name,label_sig,label_bkg)
-    fprs, tprs, threshold = roc_curve(truth, predict)
+def get_roc(events, score_name, label_sig, label_bkg, weight_hist=None,bins=None,mask_flat=False):
+    truth, predict, weight =  roc_input(events,score_name,label_sig,label_bkg, weight_hist,bins,mask_flat)
+    fprs, tprs, threshold = roc_curve(truth, predict, sample_weight=weight)
     return fprs, tprs
 
 # plot roc
-def plot_roc(args, label_sig, label_bkg, fprs, tprs):
+def plot_roc(args, label_sig, label_bkg, fprs, tprs, label):
     fig, axs = plt.subplots(1,1,figsize=(16,16))
     
     def get_round(x_effs,y_effs,to_get=[0.01,0.02,0.03]):
@@ -87,6 +99,7 @@ def plot_roc(args, label_sig, label_bkg, fprs, tprs):
     markers = ['v','^','o','s']
     for k,it in fprs.items():
         leg = k.replace('_score','')
+        print(leg)
         axs.plot(tprs[k], fprs[k], lw=2.5, label=r"{}, AUC = {:.1f}%".format(leg,auc(fprs[k],tprs[k])*100))
         y_effs = [0.01,0.02,0.03]
         x_effs = get_round(fprs[k],tprs[k],y_effs)
@@ -100,10 +113,9 @@ def plot_roc(args, label_sig, label_bkg, fprs, tprs):
     axs.grid(which='major', alpha=0.5)
     axs.set_xlabel(r'Tagging efficiency %s'%label_sig['legend'])
     axs.set_ylabel(r'Mistagging rate %s'%label_bkg['legend'])
-    #fig.savefig("%s/roc_%s.pdf"%(args.odir,label_sig['label']))
     axs.set_ylim(0.0001,1)
     axs.set_yscale('log')
-    fig.savefig("%s/roc_%s_ylog.pdf"%(args.odir,label_sig['label']))
+    fig.savefig("%s/roc_%s_ylog.pdf"%(args.odir,label))
     axs.set_yscale('linear')
 
 # plot rocs for different cuts on mH and pt
@@ -215,6 +227,7 @@ def computePercentiles(data, percentiles):
 
 # plot how variables look after a cut on the scores 
 def plot_var_aftercut(args,hist_val,vars_to_plot,processes,label,cuts,percentiles):
+    print('plot variable after cut')
     density = True
     for proc in processes:
         fig, axs = plt.subplots(1,len(vars_to_plot), figsize=(len(vars_to_plot)*8,8))
@@ -227,12 +240,12 @@ def plot_var_aftercut(args,hist_val,vars_to_plot,processes,label,cuts,percentile
             x = x.integrate('process',proc)
             legends = []
             # now cut on the score
+            print('cuts on score ',cuts)
             for i,cut in enumerate(cuts):
                 cut = round(cut,2)
-                if i==len(cuts)-1:
-                    y = x.integrate('score',slice(cut,1))
-                else:
-                    y = x.integrate('score',slice(cut,round(cuts[i+1],2)))
+                #if i==len(cuts)-1:
+                print(slice(cut,1))
+                y = x.integrate('score',slice(cut,1))
                 legends.append('%s '%(percentiles[i]))
                 if i==0:
                     hist.plot1d(y,ax=axs_1,density=density)
@@ -377,7 +390,7 @@ def main(args):
         # TODO: add other scores here if needed
         hist_features = hist.Hist("Jets",
                                   hist.Cat("process", "Process"),
-                                  hist.Bin("msd", r"fj msoftdrop [GeV]", 60, 0, 320), 
+                                  hist.Bin("msd", r"fj msoftdrop [GeV]", 60, 30, 420), 
                                   hist.Bin("pt", r"fj $p_T$ [GeV]", 50, 200, 1200), # bins of 20
                                   hist.Bin("score", r"Tagger score", 100, 0, 1),
                                   )
@@ -433,8 +446,31 @@ def main(args):
                                 pt = events["fj_pt"][mask_proc],
                 )
 
-        # plot main ROC
-        plot_roc(args, label_dict[signal], label_dict[bkg], fprs, tprs)
+
+        # get pt histograms
+        # define log bins as: np.round(np.exp(np.linspace(np.log(MIN), np.log(MAX), NUM_BINS))).astype('int').tolist()
+        #ptbins = [200, 239, 286, 342, 409, 489, 585, 699, 836, 1000, 2500]
+        ptbins = [200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]
+        mask_proc_sigmh125 = (events[label_dict[signal]['label']]==1) & (events["fj_genRes_mass"]==125)
+        mask_proc_sig = (events[label_dict[signal]['label']]==1) & (events["fj_genRes_mass"]!=125)
+        pthistsigmh, bin_edges = np.histogram(events["fj_pt"][mask_proc_sigmh125].to_numpy(), bins=ptbins)
+        pthistsig, bin_edges = np.histogram(events["fj_pt"][mask_proc_sig].to_numpy(), bins=ptbins)
+        pthist = pthistsigmh/pthistsig
+
+        # plot weight histogram
+        fig, axs = plt.subplots(1,1)
+        weight_sig = pthist[np.digitize(events['fj_pt'][mask_proc_sig].to_numpy(), ptbins)-1]
+        axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins)
+        axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins,weights=weight_sig)
+        axs.set_xlabel('pT (GeV)')
+        fig.savefig('%s/ptweights_%s.pdf'%(args.odir,label_dict[signal]['label']))
+
+        # get ROC for flat sample with pt weights
+        fprs[score_name+'flat_weight'], tprs[score_name+'flat_weight'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=pthist, bins=ptbins,mask_flat=True)
+        fprs[score_name+'flat'], tprs[score_name+'flat'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=None, bins=None,mask_flat=True)
+        
+        # plot ROCs
+        plot_roc(args, label_dict[signal], label_dict[bkg], fprs, tprs, label=label_dict[signal]['label'])
         
         # plot features for this signal and background combination (i.e. all the processes) 
         vars_to_plot = ["pt","msd","score"]
@@ -467,7 +503,6 @@ def main(args):
         # first compute percentiles on bkg (or maybe other process?)
         percentiles, cuts = computePercentiles(events[score_name][(events[bkglabel]==1)].to_numpy(), [0.97, 0.99, 0.995])
         plot_var_aftercut(args,hist_features,vars_to_corr,proc_to_corr,plt_label,cuts,percentiles)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
