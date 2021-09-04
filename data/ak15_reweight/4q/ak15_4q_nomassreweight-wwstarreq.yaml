@@ -23,7 +23,9 @@ selection:
       ( (fj_H_WW_4q==1) &
         (fj_maxdR_HWW_daus<2.0) &
         (fj_nProngs>1) &
-        (fj_genRes_mass>0) ) )
+        (fj_genRes_mass>0) &
+        (fj_genWstar_mass < 45) &
+        (fj_genW_mass > 50) ) )
 
 test_time_selection:
     ### selection to apply at test time (i.e., when running w/ --predict)
@@ -42,7 +44,9 @@ test_time_selection:
       ( (fj_H_WW_4q==1) &
         (fj_maxdR_HWW_daus<2.0) &
         (fj_nProngs>1) &
-        (fj_genRes_mass>0) ) )
+        (fj_genRes_mass>0) &
+        (fj_genWstar_mass < 45) &
+        (fj_genW_mass > 50) ) )
 
 new_variables:
     ### [format] name: formula
