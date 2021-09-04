@@ -1,4 +1,6 @@
-# train with leptonic samples with no reweight on mass and reweight on pt
+# Samples: 4q
+# reweight_method: no reweight
+
 treename:
     Events
 

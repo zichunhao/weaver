@@ -1,4 +1,8 @@
-# train with leptonic samples with no reweight on mass and reweight on pt
+# Samples: semi-leptonic
+# reweight_method: flat with no requirenment on mass
+# Others: requirement on W and W* mass
+
+
 treename:
     Events
 

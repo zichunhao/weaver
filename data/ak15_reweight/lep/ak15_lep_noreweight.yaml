@@ -1,4 +1,6 @@
-# train with leptonic samples with no reweight at all
+# Samples: semi-leptonic
+# reweight_method: no reweight
+
 treename:
     Events
 

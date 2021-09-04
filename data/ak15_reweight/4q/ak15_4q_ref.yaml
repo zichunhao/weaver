@@ -1,4 +1,5 @@
-# train with leptonic samples with reference reweight method
+# Samples: 4q
+# reweight_method: ref
 
 treename:
     Events
