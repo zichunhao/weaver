@@ -1,4 +1,6 @@
-# train with leptonic samples with reference reweight method and requirement on W and W* mass
+# Samples: semi-leptonic
+# reweight_method: ref
+# Others: requirement on W and W* mass
 
 treename:
     Events

@@ -1,4 +1,6 @@
-# Train with 4q signals only
+# Samples: 4q
+# reweight_method: no reweight
+
 treename:
     Events
 
@@ -20,9 +22,7 @@ selection:
       ( (fj_H_WW_4q==1) &
         (fj_maxdR_HWW_daus<2.0) &
         (fj_nProngs>1) &
-        (fj_genRes_mass>0) &
-        (fj_genWstar_mass < 45) &
-        (fj_genW_mass > 50) ) )
+        (fj_genRes_mass>0) ) )
 
 test_time_selection:
     ### selection to apply at test time (i.e., when running w/ --predict)
@@ -41,9 +41,7 @@ test_time_selection:
       ( (fj_H_WW_4q==1) &
         (fj_maxdR_HWW_daus<2.0) &
         (fj_nProngs>1) &
-        (fj_genRes_mass>0) &
-        (fj_genWstar_mass < 45) &
-        (fj_genW_mass > 50) ) )
+        (fj_genRes_mass>0) ) )
 
 new_variables:
     ### [format] name: formula
@@ -143,7 +141,8 @@ labels:
     type: simple
     value: [
         fj_isQCDb, fj_isQCDbb, fj_isQCDc, fj_isQCDcc, fj_isQCDlep, fj_isQCDothers,
-        fj_H_WW_4q
+        fj_isHWW_elenuqq_merged,
+        fj_isHWW_munuqq_merged,
     ]
 
 observers:
@@ -161,31 +160,7 @@ observers:
    - fj_maxdR_HWW_daus
    - fj_genRes_mass
    - fj_genWstar_mass
-   - fj_genW_mass
    - fj_genW_pt
    - fj_genWstar_pt
    - fj_genW_decay
    - fj_genWstar_decay
-
-weights:
-   ### [option 1] use precomputed weights stored in the input files
-   # use_precomputed_weights: true
-   # weight_branches: [weight, class_weight]
-   ### [option 2] compute weights on-the-fly using reweighting histograms
-   use_precomputed_weights: false
-   reweight_method: flat
-   reweight_vars:
-      fj_pt: [200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]
-      fj_msoftdrop: [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 300, 320]
-   reweight_classes:
-       [
-       fj_QCD_label,  # Background
-       fj_H_WW_4q  # Signal
-       ]
-   class_weights:
-       [
-       1,
-       1
-       ]
-   reweight_threshold: 0.1
-   reweight_hists:
