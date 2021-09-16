@@ -53,12 +53,14 @@ def plot_accuracy(args,name,indir=None):
     plt.clf()
 
 # return input by classes (signal and background)
-def roc_input(events,var,label_sig,label_bkg,weight_hist=None,bins=None,mask_flat=False):
+def roc_input(events,var,label_sig,label_bkg,weight_hist=None,bins=None,mask_flat=False,sig_mask=None):
     mask_sig = (events[label_sig] == 1)
     mask_bkg = (events[label_bkg] == 1)
     if mask_flat:
         mask_sig = (mask_sig) & (events["fj_genRes_mass"] != 125)
-    
+    if sig_mask is not None:
+        print(sig_mask)
+        mask_sig = (mask_sig) & (sig_mask)
     scores_sig = events[var][mask_sig].to_numpy()
     scores_bkg = events[var][mask_bkg].to_numpy()
     predict = np.concatenate((scores_sig,scores_bkg),axis=None)
@@ -75,8 +77,8 @@ def roc_input(events,var,label_sig,label_bkg,weight_hist=None,bins=None,mask_fla
     return truth, predict, weight
 
 # get roc for a table with given scores, a label for signal, and one for background
-def get_roc(events, score_name, label_sig, label_bkg, weight_hist=None,bins=None,mask_flat=False):
-    truth, predict, weight =  roc_input(events,score_name,label_sig,label_bkg, weight_hist,bins,mask_flat)
+def get_roc(events, score_name, label_sig, label_bkg, weight_hist=None,bins=None,mask_flat=False,sig_mask=None):
+    truth, predict, weight =  roc_input(events,score_name,label_sig,label_bkg, weight_hist,bins,mask_flat,sig_mask)
     fprs, tprs, threshold = roc_curve(truth, predict, sample_weight=weight)
     return fprs, tprs
 
@@ -335,6 +337,7 @@ def main(args):
         branches = ['fj_pt','fj_msoftdrop','fj_genRes_mass']
         #branches = ['fj_pt','fj_msoftdrop','fj_genH_mass'] # for old training datasets
         branches += [siglabel]
+        print('score ',siglabel)
         branches += ['score_%s'%siglabel,'score_%s'%bkglabel]
         # possibly can add older taggers
         # TODO: add labels for these old taggers
@@ -349,19 +352,20 @@ def main(args):
         ifile = uproot.open(args.ifile)["Events"]
         isqcd_separate = False
         if 'qcd' in bkg:
-            try:
-                #ibranches = branches + ["fj_QCD_label"]
-                ibranches = branches + ["fj_isQCD"]
-                events = ifile.arrays(ibranches,mask)
-            except:
+            if bkg=='qcd':
                 ibranches = branches + ["fj_isQCDb","fj_isQCDbb","fj_isQCDc","fj_isQCDcc","fj_isQCDlep","fj_isQCDothers"]
                 ibranches.remove('score_%s'%bkglabel)
                 ibranches.extend(['score_fj_isQCDb','score_fj_isQCDbb','score_fj_isQCDc','score_fj_isQCDcc','score_fj_isQCDlep','score_fj_isQCDothers'])
+                print(ibranches)
                 events = ifile.arrays(ibranches,mask)
                 events_fj_QCD_label_TrueFalse = ((events["fj_isQCDb"]==1) | (events["fj_isQCDbb"]==1) | (events["fj_isQCDc"]==1) | (events["fj_isQCDcc"]==1) | (events["fj_isQCDlep"]==1) | (events["fj_isQCDothers"]==1))
                 events["fj_QCD_label"] = ak.values_astype(events_fj_QCD_label_TrueFalse, int)
                 isqcd_separate = True
                 print('Added fj_QCD_label to ttree')
+            else:
+                #ibranches = branches + ["fj_QCD_label"]
+                ibranches = branches + ["fj_isQCD"]
+                events = ifile.arrays(ibranches,mask)
         elif 'top' in bkg:
             ibranches = branches + ["fj_Top_label"]
             events = ifile.arrays(ibranches)
@@ -468,6 +472,10 @@ def main(args):
         # get ROC for flat sample with pt weights
         fprs[score_name+'flat_weight'], tprs[score_name+'flat_weight'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=pthist, bins=ptbins,mask_flat=True)
         fprs[score_name+'flat'], tprs[score_name+'flat'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=None, bins=None,mask_flat=True)
+
+        # get ROC for flat sample with mass around mass of higgs
+        mask_proc_mh120130 = (events["fj_genRes_mass"]>=120) & (events["fj_genRes_mass"]<=130) & (events["fj_pt"]<=600)
+        fprs[score_name+'flat_mh120130-pt200600'], tprs[score_name+'flat_mh120130-pt200600'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=None, bins=None,mask_flat=True,sig_mask=mask_proc_mh120130)
         
         # plot ROCs
         plot_roc(args, label_dict[signal], label_dict[bkg], fprs, tprs, label=label_dict[signal]['label'])
@@ -510,7 +518,7 @@ if __name__ == "__main__":
     parser.add_argument('--odir', required=True, help="output dir")
     parser.add_argument('--name', required=True, help='name of the model(s)')
     parser.add_argument('--signals', default='hww_4q_merged', help='signals')
-    parser.add_argument('--bkgs', default='qcd', help='backgrounds') 
+    parser.add_argument('--bkgs', default='qcd', help='backgrounds (if qcd_label then assume that you only have one qcd label)') 
     args = parser.parse_args()
 
     import os
