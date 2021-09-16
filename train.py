@@ -645,8 +645,11 @@ def main(args):
                     torch.save(model, args.model_prefix + '_best_epoch_full.pt')
             _logger.info('Epoch #%d: Current validation metric: %.5f (best: %.5f)' %
                          (epoch, valid_metric, best_valid_metric), color='bold')
+<<<<<<< HEAD
             if not args.regression_mode:
                 _logger.info('Best epoch: #%d:' % best_epoch)
+=======
+>>>>>>> d857b96eaeee2d963c5b35aaddcf9fa981140c46
 
             np.savetxt(args.model_prefix + "_training_losses.txt", training_losses)
             np.savetxt(args.model_prefix + "_validation_losses.txt", validation_losses)
