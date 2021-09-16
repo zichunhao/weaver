@@ -604,6 +604,9 @@ def main(args):
             scaler = None
 
         # training loop
+        training_losses = []
+        validation_losses = []
+
         best_valid_metric = np.inf if args.regression_mode else 0
         for epoch in range(args.num_epochs):
             if args.load_epoch is not None:
@@ -611,8 +614,7 @@ def main(args):
                     continue
             print('-' * 50)
             _logger.info('Epoch #%d training' % epoch)
-            train(model, loss_func, opt, scheduler, train_loader, dev, epoch,
-                  steps_per_epoch=args.steps_per_epoch, grad_scaler=scaler, tb_helper=tb)
+            training_losses.append(train(model, loss_func, opt, scheduler, train_loader, dev, epoch, steps_per_epoch=args.steps_per_epoch, grad_scaler=scaler, tb_helper=tb))
             if args.model_prefix:
                 dirname = os.path.dirname(args.model_prefix)
                 if dirname and not os.path.exists(dirname):
@@ -622,8 +624,13 @@ def main(args):
                 torch.save(opt.state_dict(), args.model_prefix + '_epoch-%d_optimizer.pt' % epoch)
 
             _logger.info('Epoch #%d validating' % epoch)
-            valid_metric = evaluate(model, val_loader, dev, epoch, loss_func=loss_func,
-                                    steps_per_epoch=args.steps_per_epoch_val, tb_helper=tb)
+
+            valid_metric, valid_loss = evaluate(model, val_loader, dev, epoch, loss_func=loss_func,
+                                                steps_per_epoch=None if args.steps_per_epoch is None else
+                                                round(args.steps_per_epoch * (1 - args.train_val_split) / args.train_val_split),
+                                                tb_helper=tb)
+            validation_losses.append(valid_loss)
+
             is_best_epoch = (
                 valid_metric < best_valid_metric) if args.regression_mode else(
                 valid_metric > best_valid_metric)
@@ -635,6 +642,10 @@ def main(args):
                     torch.save(model, args.model_prefix + '_best_epoch_full.pt')
             _logger.info('Epoch #%d: Current validation metric: %.5f (best: %.5f)' %
                          (epoch, valid_metric, best_valid_metric), color='bold')
+
+            np.savetxt(args.model_prefix + "_training_losses.txt", training_losses)
+            np.savetxt(args.model_prefix + "_validation_losses.txt", validation_losses)
+
 
     if args.data_test:
         if training_mode:
