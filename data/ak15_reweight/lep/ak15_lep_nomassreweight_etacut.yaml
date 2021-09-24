@@ -30,6 +30,7 @@ test_time_selection:
     >
     (fj_pt>200) &
     (fj_pt<2500) &
+    (math.abs(fj_eta)<2.4) &
     (fj_msoftdrop>=30) &
     (fj_msoftdrop<320) &
     ( ( ( (fj_isQCDb==1) |
