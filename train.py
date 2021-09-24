@@ -647,7 +647,7 @@ def main(args):
                          (epoch, valid_metric, best_valid_metric), color='bold')
 
             if not args.regression_mode:
-                _logger.info('Best epoch: #%d:' % best_epoch)
+                _logger.info('Best epoch: #%d' % best_epoch, color='bold')
 
             np.savetxt(args.model_prefix + "_training_losses.txt", training_losses)
             np.savetxt(args.model_prefix + "_validation_losses.txt", validation_losses)
