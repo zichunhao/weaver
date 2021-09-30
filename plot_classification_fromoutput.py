@@ -12,6 +12,9 @@ import matplotlib.pyplot as plt
 import mplhep as hep
 plt.style.use(hep.style.ROOT)
 
+mass_branch = 'fj_genRes_mass'
+#mass_branch = 'fj_genH_mass'
+        
 def plot_loss(args,name,indir=None):
     if indir:
         # save the loss in a numpy file
@@ -53,12 +56,13 @@ def plot_accuracy(args,name,indir=None):
     plt.clf()
 
 # return input by classes (signal and background)
-def roc_input(events,var,label_sig,label_bkg,weight_hist=None,bins=None,mask_flat=False):
+def roc_input(events,var,label_sig,label_bkg,weight_hist=None,bins=None,sig_mask=None,bkg_mask=None):
     mask_sig = (events[label_sig] == 1)
     mask_bkg = (events[label_bkg] == 1)
-    if mask_flat:
-        mask_sig = (mask_sig) & (events["fj_genRes_mass"] != 125)
-    
+    if sig_mask is not None:
+        mask_sig = (mask_sig) & (sig_mask)
+    if bkg_mask is not None:
+        mask_bkg = (mask_bkg) & (bkg_mask)
     scores_sig = events[var][mask_sig].to_numpy()
     scores_bkg = events[var][mask_bkg].to_numpy()
     predict = np.concatenate((scores_sig,scores_bkg),axis=None)
@@ -75,8 +79,8 @@ def roc_input(events,var,label_sig,label_bkg,weight_hist=None,bins=None,mask_fla
     return truth, predict, weight
 
 # get roc for a table with given scores, a label for signal, and one for background
-def get_roc(events, score_name, label_sig, label_bkg, weight_hist=None,bins=None,mask_flat=False):
-    truth, predict, weight =  roc_input(events,score_name,label_sig,label_bkg, weight_hist,bins,mask_flat)
+def get_roc(events, score_name, label_sig, label_bkg, weight_hist=None,bins=None,sig_mask=None,bkg_mask=None):
+    truth, predict, weight =  roc_input(events,score_name,label_sig,label_bkg, weight_hist,bins,sig_mask,bkg_mask)
     fprs, tprs, threshold = roc_curve(truth, predict, sample_weight=weight)
     return fprs, tprs
 
@@ -90,22 +94,31 @@ def plot_roc(args, label_sig, label_bkg, fprs, tprs, label):
             for i,f in enumerate(x_effs):
                 if round(f,2) == eff:
                     effs.append(y_effs[i])
-                    # print signal efficiencies
-                    # print(round(f,2),y_effs[i])
                     break
         return effs
 
+    def get_intersections(x_effs, y_effs, to_get=0.01):
+        x_eff = 0
+        for i,f in enumerate(y_effs):
+            if f >= to_get:
+                x_eff = x_effs[i]
+                break
+        return x_eff
+    
     ik = 0
-    markers = ['v','^','o','s']
+    markers = ['v','^','o','s','p','P','h']
     for k,it in fprs.items():
         leg = k.replace('_score','')
-        print(leg)
         axs.plot(tprs[k], fprs[k], lw=2.5, label=r"{}, AUC = {:.1f}%".format(leg,auc(fprs[k],tprs[k])*100))
-        y_effs = [0.01,0.02,0.03]
-        x_effs = get_round(fprs[k],tprs[k],y_effs)
-        #print(tprs[k])
+        y_eff = 0.01
+        x_eff = get_intersections(tprs[k], fprs[k],y_eff)
+        axs.hlines(y=y_eff, xmin=0.00001, xmax=0.99999, linewidth=1, color='dimgrey',linestyle="dashed")
+        axs.vlines(x=x_eff, ymin=0.00001, ymax=y_eff, linewidth=1, color='dimgrey',linestyle="dashed")
+        #y_effs = [0.01,0.02,0.03]
+        #x_effs = get_round(fprs[k],tprs[k],y_effs)
+        #print(tprs[k],k)
         #print(y_effs)
-        axs.scatter(x_effs,y_effs,s=75,marker=markers[ik],label=leg)
+        #axs.scatter(x_effs,y_effs,s=75,marker=markers[ik],label=leg)
         ik+=1
         
     axs.legend(loc='upper left')
@@ -114,6 +127,7 @@ def plot_roc(args, label_sig, label_bkg, fprs, tprs, label):
     axs.set_xlabel(r'Tagging efficiency %s'%label_sig['legend'])
     axs.set_ylabel(r'Mistagging rate %s'%label_bkg['legend'])
     axs.set_ylim(0.0001,1)
+    axs.set_xlim(0.0001,1)
     axs.set_yscale('log')
     fig.savefig("%s/roc_%s_ylog.pdf"%(args.odir,label))
     axs.set_yscale('linear')
@@ -130,9 +144,11 @@ def plot_roc_by_var(args,vars_to_corr,bin_ranges,bin_widths,events,score_name,si
             bf = b+bin_widths[i]
             tag = "%i"%bi
             if not mh:
-                output = events[(events[bkg['label']]==1) | ((events[varname]>=bi) & (events[varname]<=bf) & (events["fj_genRes_mass"]!=125))]
+                output = events[(events[bkg['label']]==1) | ((events[varname]>=bi) & (events[varname]<=bf) & (events[mass_branch]!=125))]
+                # mask_sig = (events[varname]>=bi) & (events[varname]<=bf) & (events[mass_branch]!=125)
             else:
-                output = events[(events[bkg['label']]==1) | ((events[varname]>=bi) & (events[varname]<=bf))]
+                # mask_sig = (events[mass_branch]==125)
+                output = events[(events[bkg['label']]==1) | ((events[varname]>=bi) & (events[varname]<=bf) & (events[mass_branch]==125))]
             fprs[tag], tprs[tag] = get_roc(output, score_name, sig['label'], bkg['label'])
             legends.append('%s %i-%i GeV'%(var,bi,bf))
 
@@ -197,9 +213,12 @@ def plot_score_aftercut(args,hist_val,vars_to_corr,bin_ranges,bin_widths,process
             legends = []
             for j,b in enumerate(bin_ranges[i]):
                 # print histogram identifiers for debugging
-                # print(x.identifiers(m, overflow='all'))
+                #print(x.identifiers(m, overflow='all'))
                 y = x.integrate(m, slice(b,b+bin_widths[i]))
                 legends.append('%s %i-%i GeV'%(m,b,b+bin_widths[i]))
+                #print(b,b+bin_widths[i])
+                #print(y.values())
+                #print(x.values())
                 if j==0:
                     hist.plot1d(y,ax=axs_1,density=True)
                 else:
@@ -228,43 +247,48 @@ def computePercentiles(data, percentiles):
 # plot how variables look after a cut on the scores 
 def plot_var_aftercut(args,hist_val,vars_to_plot,processes,label,cuts,percentiles):
     print('plot variable after cut')
-    density = True
-    for proc in processes:
-        fig, axs = plt.subplots(1,len(vars_to_plot), figsize=(len(vars_to_plot)*8,8))
-        for var in vars_to_plot:
-            if(len(vars_to_plot)==1):
-                axs_1 = axs
-            else:
-                axs_1 = axs[i]
-            x = hist_val.sum(*[ax for ax in hist_val.axes() if ax.name not in {'process',var,'score'}])
-            x = x.integrate('process',proc)
-            legends = []
-            # now cut on the score
-            print('cuts on score ',cuts)
-            for i,cut in enumerate(cuts):
-                cut = round(cut,2)
-                #if i==len(cuts)-1:
-                print(slice(cut,1))
-                y = x.integrate('score',slice(cut,1))
-                legends.append('%s '%(percentiles[i]))
-                if i==0:
-                    hist.plot1d(y,ax=axs_1,density=density)
+    for density in [True,False]:
+        for proc in processes:
+            fig, axs = plt.subplots(1,len(vars_to_plot), figsize=(len(vars_to_plot)*8,8))
+            for var in vars_to_plot:
+                if(len(vars_to_plot)==1):
+                    axs_1 = axs
                 else:
-                    hist.plot1d(y,ax=axs_1,density=density,clear=False)
-            axs_1.set_ylabel('Jets')
-            axs_1.legend(legends,title='Bkg quantile')
-        fig.tight_layout()
-        if density:
-            fig.savefig("%s/%s_scoresculpting_density.pdf"%(args.odir,label))
-        else:
-            fig.savefig("%s/%s_scoresculpting.pdf"%(args.odir,label))
+                    axs_1 = axs[i]
+                x = hist_val.sum(*[ax for ax in hist_val.axes() if ax.name not in {'process',var,'score'}])
+                x = x.integrate('process',proc)
+                legends = []
+                # now cut on the score
+                if not density:
+                    cuts.pop(0)
+                    percentiles.pop(0)
+                #print('cuts on score ',cuts)
+                for i,cut in enumerate(cuts):
+                    cut = round(cut,2)
+                    #if i==len(cuts)-1:
+                    #print(slice(cut,1))
+                    y = x.integrate('score',slice(cut,1))
+                    legends.append('%s '%(percentiles[i]))
+                    if i==0:
+                        hist.plot1d(y,ax=axs_1,density=density)
+                    else:
+                        hist.plot1d(y,ax=axs_1,density=density,clear=False)
+                axs_1.set_ylabel('Jets')
+                axs_1.legend(legends,title='Bkg quantile')
+            fig.tight_layout()
+            if density:
+                fig.savefig("%s/%s_scoresculpting_density.pdf"%(args.odir,label))
+            else:
+                fig.savefig("%s/%s_scoresculpting.pdf"%(args.odir,label))
     
 def main(args):
-    # labels here
+    
+    # label dictionary
     label_dict = {
+        'qcd_old': {'legend': 'QCD',
+                    'label':  'fj_isQCD'},
         'qcd':{'legend': 'QCD',
                'label':  'fj_QCD_label'},
-               # 'label':  'fj_isQCD'}, # for old training datasets
         'qcd_b': {'legend': 'QCDb',
                   'label':  'fj_isQCDb'},
         'qcd_bb': {'legend': 'QCDbb',
@@ -319,9 +343,9 @@ def main(args):
                                    'label': 'fj_isHWW_taunuqq_semimerged'},
     }
 
+    # get signals and backgrounds
     signals = args.signals.split(',')
     backgrounds = args.bkgs.split(',')
-
     if len(signals)!=len(backgrounds):
         print('Number of signals should be the same as backgrounds!')
         exit
@@ -332,36 +356,47 @@ def main(args):
         siglabel = label_dict[signal]['label']
 
         # default branches
-        branches = ['fj_pt','fj_msoftdrop','fj_genRes_mass']
-        #branches = ['fj_pt','fj_msoftdrop','fj_genH_mass'] # for old training datasets
+        branches = ['fj_pt','fj_msoftdrop']
+        branches += [mass_branch]
         branches += [siglabel]
         branches += ['score_%s'%siglabel,'score_%s'%bkglabel]
-        # possibly can add older taggers
-        # TODO: add labels for these old taggers
-        # branches += ["fj_deepTagMD_H4qvsQCD","fj_deepTag_HvsQCD","fj_PN_XbbvsQCD"]
+        # add older taggers
+        if signal=="hww_4q" or signal=="hww_4q_merged" or signal=="hww_3q_merged":
+            # branches += ["fj_deepTagMD_H4qvsQCD","fj_deepTag_HvsQCD"] # values are always -1000?
+            branches += ["fj_PN_H4qvsQCD"] # when included in observers?
 
-        # add selection
-        # NOTE: add selection such that QCD only has genRes_mass < 0
+        # add this only if nProngs is saved
+        add_nProngs = False
+        #add_nProngs = True
+        if add_nProngs:
+            branches += ["fj_nProngs"]
+
+        # add selection (add selection such that QCD only has gen resonance mass < 0)
         mask = "(fj_pt<1200) &"\
+            "(fj_pt>300) &"\
             "((((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)) & (fj_genRes_mass<0)) |"\
             "((%s==1) & (fj_genRes_mass>0) ) )"%siglabel
+        if bkg=='qcd_old':
+            mask = "(fj_pt<1200) & (fj_pt>300) & (((fj_isQCD==1) & (%s<0)) | ((%s==1) & (%s>0) ) )"%(mass_branch,siglabel,mass_branch)
         
         ifile = uproot.open(args.ifile)["Events"]
         isqcd_separate = False
         if 'qcd' in bkg:
-            try:
-                #ibranches = branches + ["fj_QCD_label"]
-                ibranches = branches + ["fj_isQCD"]
-                events = ifile.arrays(ibranches,mask)
-            except:
+            if bkg=='qcd':
                 ibranches = branches + ["fj_isQCDb","fj_isQCDbb","fj_isQCDc","fj_isQCDcc","fj_isQCDlep","fj_isQCDothers"]
                 ibranches.remove('score_%s'%bkglabel)
                 ibranches.extend(['score_fj_isQCDb','score_fj_isQCDbb','score_fj_isQCDc','score_fj_isQCDcc','score_fj_isQCDlep','score_fj_isQCDothers'])
+                # print(ibranches)
                 events = ifile.arrays(ibranches,mask)
                 events_fj_QCD_label_TrueFalse = ((events["fj_isQCDb"]==1) | (events["fj_isQCDbb"]==1) | (events["fj_isQCDc"]==1) | (events["fj_isQCDcc"]==1) | (events["fj_isQCDlep"]==1) | (events["fj_isQCDothers"]==1))
                 events["fj_QCD_label"] = ak.values_astype(events_fj_QCD_label_TrueFalse, int)
                 isqcd_separate = True
                 print('Added fj_QCD_label to ttree')
+            else:
+                #ibranches = branches + ["fj_QCD_label"]
+                print(branches)
+                ibranches = branches + ["fj_isQCD"]
+                events = ifile.arrays(ibranches,mask)
         elif 'top' in bkg:
             ibranches = branches + ["fj_Top_label"]
             events = ifile.arrays(ibranches)
@@ -380,14 +415,8 @@ def main(args):
             events[score_name] = events['score_%s'%siglabel] / (events['score_%s'%siglabel] + events['score_fj_isQCDb'] + events['score_fj_isQCDbb'] + events['score_fj_isQCDc'] + events['score_fj_isQCDcc'] + events['score_fj_isQCDlep'] + events['score_fj_isQCDothers'])
         else:
             events[score_name] = events['score_%s'%siglabel] / (events['score_%s'%siglabel] + events['score_%s'%bkglabel])
-
-        # get roc
-        fprs = {}
-        tprs = {}
-        fprs[score_name], tprs[score_name] = get_roc(events, score_name, siglabel, bkglabel)
         
         # define and fill coffea histograms
-        # TODO: add other scores here if needed
         hist_features = hist.Hist("Jets",
                                   hist.Cat("process", "Process"),
                                   hist.Bin("msd", r"fj msoftdrop [GeV]", 60, 30, 420), 
@@ -414,11 +443,11 @@ def main(args):
             p = proc.split('-')[0]
             legend = label_dict[p]['legend']
             if 'mh125' in proc:
-                mask_proc = (events[label_dict[p]['label']]==1) & (events["fj_genRes_mass"]==125)
+                mask_proc = (events[label_dict[p]['label']]==1) & (events[mass_branch]==125)
                 legend += ' mh125'
             elif 'mhflat' in proc:
                 # beware of mRes = 175....
-                mask_proc = (events[label_dict[p]['label']]==1) & (events["fj_genRes_mass"]!=125)
+                mask_proc = (events[label_dict[p]['label']]==1) & (events[mass_branch]!=125)
                 legend += ' mhflat'
             else:
                 mask_proc = (events[label_dict[p]['label']]==1)
@@ -441,7 +470,7 @@ def main(args):
             # only fill the gen mass histogram for signal
             if signal in proc:
                 hist_gmass.fill(process=proc,
-                                mH = events["fj_genRes_mass"][mask_proc],
+                                mH = events[mass_branch][mask_proc],
                                 score = events[score_name][mask_proc],
                                 pt = events["fj_pt"][mask_proc],
                 )
@@ -451,24 +480,58 @@ def main(args):
         # define log bins as: np.round(np.exp(np.linspace(np.log(MIN), np.log(MAX), NUM_BINS))).astype('int').tolist()
         #ptbins = [200, 239, 286, 342, 409, 489, 585, 699, 836, 1000, 2500]
         ptbins = [200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]
-        mask_proc_sigmh125 = (events[label_dict[signal]['label']]==1) & (events["fj_genRes_mass"]==125)
-        mask_proc_sig = (events[label_dict[signal]['label']]==1) & (events["fj_genRes_mass"]!=125)
+        mask_proc_sigmh125 = (events[label_dict[signal]['label']]==1) & (events[mass_branch]==125)
+        mask_proc_sig = (events[label_dict[signal]['label']]==1) & (events[mass_branch]!=125)
         pthistsigmh, bin_edges = np.histogram(events["fj_pt"][mask_proc_sigmh125].to_numpy(), bins=ptbins)
         pthistsig, bin_edges = np.histogram(events["fj_pt"][mask_proc_sig].to_numpy(), bins=ptbins)
         pthist = pthistsigmh/pthistsig
 
         # plot weight histogram
-        fig, axs = plt.subplots(1,1)
         weight_sig = pthist[np.digitize(events['fj_pt'][mask_proc_sig].to_numpy(), ptbins)-1]
-        axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins)
-        axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins,weights=weight_sig)
+        fig, axs = plt.subplots(1,1)
+        axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins,histtype='step')
+        axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins,weights=weight_sig,histtype='step')
         axs.set_xlabel('pT (GeV)')
+        axs.legend(['Unweighted','Weighted'])
         fig.savefig('%s/ptweights_%s.pdf'%(args.odir,label_dict[signal]['label']))
+        fig, axs = plt.subplots(1,1)
+        axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins,histtype='step',density=True)
+        axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins,weights=weight_sig,histtype='step',density=True)
+        axs.set_xlabel('pT (GeV)')
+        axs.legend(['Unweighted','Weighted'])
+        fig.savefig('%s/ptweights_%s_density.pdf'%(args.odir,label_dict[signal]['label']))
+                
+        # masks
+        mask_flat = (events[mass_branch] != 125)
+        mask_mh125 = (events[mass_branch] == 125)
+        mask_proc_mh120130 = (events[mass_branch]>=120) & (events[mass_branch]<=130) & (events["fj_pt"]<=600) & mask_flat
 
-        # get ROC for flat sample with pt weights
-        fprs[score_name+'flat_weight'], tprs[score_name+'flat_weight'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=pthist, bins=ptbins,mask_flat=True)
-        fprs[score_name+'flat'], tprs[score_name+'flat'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=None, bins=None,mask_flat=True)
+        # get ROC
+        fprs = {}
+        tprs = {}
+        fprs[score_name], tprs[score_name] = get_roc(events, score_name, siglabel, bkglabel)
         
+        # get ROC for flat sample with pt weights
+        fprs[score_name+'flat_weight'], tprs[score_name+'flat_weight'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=pthist, bins=ptbins,sig_mask=mask_flat)
+        fprs[score_name+'flat'], tprs[score_name+'flat'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=None, bins=None,sig_mask=mask_flat)
+
+        # get ROC for flat sample with mass around mass of higgs
+        fprs[score_name+'flat_mh120130-pt200600'], tprs[score_name+'flat_mh120130-pt200600'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=None, bins=None,sig_mask=mask_proc_mh120130)
+        fprs[score_name+'flat_mh120130-pt200600-weight'], tprs[score_name+'flat_mh120130-pt200600-weight'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=pthist, bins=ptbins,sig_mask=mask_proc_mh120130)
+
+        # get ROC for Particle Net if 3q/4q
+        if signal=="hww_4q" or signal=="hww_4q_merged" or signal=="hww_3q_merged":
+            #fprs['DeepAK8_H4q_MD_flat'], tprs['DeepAK8_H4q_MD_flat'] = get_roc(events, "fj_deepTagMD_H4qvsQCD", siglabel, bkglabel,sig_mask=mask_flat)
+            #fprs['DeepAK8_H_flat'], tprs['DeepAK8_H_flat'] = get_roc(events, "fj_deepTag_HvsQCD", siglabel, bkglabel,sig_mask=mask_flat)
+            fprs['PN_H4q_flat'], tprs['PN_H4q_flat'] = get_roc(events, "fj_PN_H4qvsQCD", siglabel, bkglabel,sig_mask=mask_flat)
+            
+            # get ROCs for score but for 3q/4q independently
+            if add_nProngs:
+                mask_proc_3q = (events["fj_nProngs"] == 3) & mask_flat
+                mask_proc_4q = (events["fj_nProngs"] == 4) & mask_flat
+                fprs[score_name+'_flat_3q'], tprs[score_name+'_flat_3q'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=None, bins=None,sig_mask=mask_proc_3q)
+                fprs[score_name+'_flat_4q'], tprs[score_name+'_flat_4q'] = get_roc(events, score_name, siglabel, bkglabel, weight_hist=None, bins=None,sig_mask=mask_proc_4q)
+             
         # plot ROCs
         plot_roc(args, label_dict[signal], label_dict[bkg], fprs, tprs, label=label_dict[signal]['label'])
         
@@ -486,16 +549,50 @@ def main(args):
         plot_score_aftercut(args,hist_gmass,vars_to_corr,bin_ranges,bin_widths,proc_to_corr,plt_label)
 
         # plot roc for different cuts on mH and pt
-        vars_to_corr = {"mH":"fj_genRes_mass",
+        vars_to_corr = {"mH":mass_branch,
                         "pt":"fj_pt"}
         plot_roc_by_var(args,vars_to_corr,bin_ranges,bin_widths,events,score_name,label_dict[signal],label_dict[bkg])
+
+        # accumulate rocs for summary
+        fprs_summary = {}; tprs_summary = {}
+        fprs_summary['flat'] = fprs[score_name+'flat']; tprs_summary['flat'] = tprs[score_name+'flat']
+        fprs_summary['flat-mhptSM'] = fprs[score_name+'flat_mh120130-pt200600-weight']; tprs_summary['flat-mhptSM'] = tprs[score_name+'flat_mh120130-pt200600-weight']
+        if signal=="hww_4q" or signal=="hww_4q_merged" or signal=="hww_3q_merged":
+            fprs_summary['flat-PN4q'] = fprs['PN_H4q_flat']; tprs_summary['flat-PN4q'] = tprs['PN_H4q_flat']
         
         # plot roc for mh=125
-        vars_to_corr = {"mH":"fj_genRes_mass"}
-        bin_ranges = [[125,125]]
-        bin_widths = [5]
-        plot_roc_by_var(args,vars_to_corr,bin_ranges,bin_widths,events,score_name,label_dict[signal],label_dict[bkg],True)
+        fprs = {} # reset fprs
+        mask_mh125_100150 = mask_mh125 & (events["fj_msoftdrop"] >= 100) & (events["fj_msoftdrop"] <=150)
+        mask_100150 = (events["fj_msoftdrop"] >= 100) & (events["fj_msoftdrop"] <=150)
+        fprs[score_name+'_mh125'], tprs[score_name+'_mh125'] = get_roc(events,  score_name, siglabel, bkglabel, weight_hist=None, bins=None, sig_mask=mask_mh125)
+        # fprs[score_name+'_mh125_msd100-150'], tprs[score_name+'_mh125_msd100-150'] = get_roc(events,  score_name, siglabel, bkglabel, weight_hist=None, bins=None, sig_mask=mask_mh125_100150, bkg_mask=mask_100150)
+        if signal=="hww_4q" or signal=="hww_4q_merged" or signal=="hww_3q_merged":
+            fprs['PN_H4q_mh125-nonMD'], tprs['PN_H4q_mh125-nonMD'] = get_roc(events, "fj_PN_H4qvsQCD", siglabel, bkglabel, sig_mask=mask_mh125)
+            fprs['PN_H4q_mh125_msd100-150'], tprs['PN_H4q_mh125_msd100-150'] = get_roc(events, "fj_PN_H4qvsQCD", siglabel, bkglabel, sig_mask=mask_mh125_100150, bkg_mask=mask_100150)
+            if add_nProngs:
+                mask_proc_3q = (events["fj_nProngs"] == 3) & mask_mh125
+                mask_proc_4q = (events["fj_nProngs"] == 4) & mask_mh125
+                fprs[score_name+'_mh125_4q'], tprs[score_name+'_mh125_4q'] = get_roc(events,  score_name, siglabel, bkglabel, weight_hist=None, bins=None, sig_mask=mask_proc_4q)
+                fprs[score_name+'_mh125_3q'], tprs[score_name+'_mh125_3q'] = get_roc(events,  score_name, siglabel, bkglabel, weight_hist=None, bins=None, sig_mask=mask_proc_3q)
+                fprs['PN_H4q_mh125-nonMD_4q'], tprs['PN_H4q_mh125-nonMD_4q'] = get_roc(events, "fj_PN_H4qvsQCD", siglabel, bkglabel, sig_mask=mask_proc_4q)
+                fprs['PN_H4q_mh125-nonMD_3q'], tprs['PN_H4q_mh125-nonMD_3q'] = get_roc(events, "fj_PN_H4qvsQCD", siglabel, bkglabel, sig_mask=mask_proc_3q)                                
+        plot_roc(args, label_dict[signal], label_dict[bkg], fprs, tprs, label=label_dict[signal]['label']+'_mh125_all')
 
+        # more rocs for summary
+        fprs_summary['SM'] = fprs[score_name+'_mh125']; tprs_summary['SM'] = tprs[score_name+'_mh125']
+        if signal=="hww_4q" or signal=="hww_4q_merged" or signal=="hww_3q_merged":
+            fprs_summary['SM-PN4q-msd100-150'] = fprs['PN_H4q_mh125_msd100-150']; tprs_summary['SM-PN4q-msd100-150'] = tprs['PN_H4q_mh125_msd100-150']
+
+        # plot roc summary
+        plot_roc(args, label_dict[signal], label_dict[bkg], fprs_summary, tprs_summary, label=label_dict[signal]['label']+'_summary')
+        
+        # xcheck plot for mh=125
+        vars_to_corr = {"mH":mass_branch,
+                        "pt":"fj_pt"}
+        bin_ranges = [[125,125],list(range(200,1200,200))]
+        bin_widths = [4,200]
+        plot_roc_by_var(args,vars_to_corr,bin_ranges,bin_widths,events,score_name,label_dict[signal],label_dict[bkg],True)
+        
         # plot how variables look after cut on classifier (tagger score)
         vars_to_corr = ["msd"]
         proc_to_corr = [bkg]
@@ -510,7 +607,7 @@ if __name__ == "__main__":
     parser.add_argument('--odir', required=True, help="output dir")
     parser.add_argument('--name', required=True, help='name of the model(s)')
     parser.add_argument('--signals', default='hww_4q_merged', help='signals')
-    parser.add_argument('--bkgs', default='qcd', help='backgrounds') 
+    parser.add_argument('--bkgs', default='qcd', help='backgrounds (if qcd_label then assume that you only have one qcd label)') 
     args = parser.parse_args()
 
     import os

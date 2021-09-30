@@ -13,20 +13,20 @@ from coffea import hist
 hists_dict = {
     'fj_prop': hist.Hist("fj",
                          hist.Cat("process", "Process"),
-                         hist.Bin("gmass", r"gen Res mass [GeV]", 42, 50, 260),
+                         hist.Bin("gmass", r"gen Res mass [GeV]", 48, 20, 260),
                          hist.Bin("msd", r"fj msoftdrop [GeV]", 50, 20, 260),
                          hist.Bin("pt", r"fj pT [GeV]", 60, 300, 1500),
                          hist.Bin("mass", r"fj mass [GeV]", 30, 50, 200),
                          ),
     'h_gen': hist.Hist("h",
                        hist.Cat("process", "Process"),
-                       hist.Bin("gmass", r"gen Res mass [GeV]", 42, 50, 260),
+                       hist.Bin("gmass", r"gen Res mass [GeV]", 48, 20, 260),
                        hist.Bin("gpt_over_mass", "gen H pT/mass", 30, 0, 25),
                        hist.Bin("gpt", r" gen H pt [GeV]", 30, 200, 1600),
                        ),
     'fj_dr': hist.Hist("dr",
                        hist.Cat("process", "Process"),
-                       hist.Bin("gmass", r"gen Res mass [GeV]", 42, 50, 260),
+                       hist.Bin("gmass", r"gen Res mass [GeV]", 48, 20, 260),
                        hist.Bin("dr_W", r"dR(fj,W)", 25, 0, 2.5),
                        hist.Bin("dr_Wstar", r"dR(fj,W*)", 25, 0, 2.5),
                        hist.Bin("min_dr_Wdau", r"min dR(fj,4qs)", 30, 0, 1.0),
@@ -34,7 +34,7 @@ hists_dict = {
                        ),
     'w_gen': hist.Hist("w",
                        hist.Cat("process", "Process"),
-                       hist.Bin("gmass", r"gen Res mass [GeV]", 42, 50, 260),
+                       hist.Bin("gmass", r"gen Res mass [GeV]", 48, 20, 260),
                        hist.Bin("wmass", r"gen W mass [GeV]", 30, 10, 110),
                        hist.Bin("wsmass", r"gen W* mass [GeV]", 30, 10, 100),
                        hist.Bin("wpt", r"gen W pT [GeV]", 30, 50, 1000),
@@ -51,7 +51,7 @@ hists_dict = {
                             ),
     'labels_ww': hist.Hist("labels",
                            hist.Cat("process", "Process"),
-                           hist.Bin("gmass", r"gen Res mass [GeV]", 42, 50, 260),
+                           hist.Bin("gmass", r"gen Res mass [GeV]", 48, 20, 260),
                            hist.Bin("ww_4q", "WW 4q label", 2, 0, 2),
                            hist.Bin("ww_3q", "WW 3q label", 2, 0, 2),
                            hist.Bin("ww_elenuqq_merged", "WW ele merged label", 2, 0, 2),
@@ -61,7 +61,7 @@ hists_dict = {
                            ),
     'target': hist.Hist("mass",
                         hist.Cat("process", "Process"),
-                        hist.Bin("gmass", r"gen Res mass [GeV]", 42, 50, 260),
+                        hist.Bin("gmass", r"gen Res mass [GeV]", 48, 20, 260),
                         hist.Bin("genmsd", r"fj gen msoftdrop [GeV]", 60, 0, 260),
                         hist.Bin("targetmass", r"target mass [GeV]", 70, 0, 260),
                         ),
@@ -70,12 +70,12 @@ hists_dict = {
 
 def plot_by_mass(h, vars_to_plot, plabel, args, by_proc=[]):
     #masses = [120]
-    masses = list(range(50, 200, 20))
+    masses = list(range(30, 200, 20))
     masses.remove(70)
     masses.remove(110)
     masses.remove(150)
 
-    invmasses = list(reversed(range(50, 200, 20)))
+    invmasses = list(reversed(range(30, 200, 20)))
     #invmasses += [120]
     invmasses.remove(70)
     invmasses.remove(110)
@@ -168,7 +168,7 @@ if __name__ == "__main__":
         "grav": os.path.join(args.data_dir, "train/GravitonToHHToWWWW*/*.root:Events"),
         "hh": os.path.join(args.data_dir, "test/*HH*cHHH1*/*.root:Events"),
         "qcd": os.path.join(args.data_dir, "train/QCD*/*.root:Events"),
-        "bulk": os.path.join(args.data_dir, "train/Bulk*/*.root:Events"),
+        "bulk": os.path.join(args.data_dir, "train/Bulk*HHTo4Q*/*.root:Events"),
         "hww": os.path.join(args.data_dir, "test/*HToWW_*/*.root:Events"),
         "hwwlnuqq": os.path.join(args.data_dir, "test/*HToWWTo*/*.root:Events"),
         "tthad": os.path.join(args.data_dir, "test/*TTToHad*/*.root:Events"),
@@ -194,15 +194,16 @@ if __name__ == "__main__":
                 "fj_genjetmsd",
                 "fj_genRes_mass",
                 "fj_genRes_pt",
-                "fj_maxdR_HWW_daus",
+                #"fj_maxdR_HWW_daus",
                 "fj_nProngs",
                 ]
     branches += sig_branches
     branches += qcd_branches
-
-    branches += ["fj_isW","fj_isWlep","fj_isTop","fj_isToplep"]
-    branches += ["fj_dR_W", "fj_dR_Wstar", "fj_mindR_HWW_daus",
-                 "fj_genW_pt", "fj_genWstar_pt", "fj_genW_mass", "fj_genWstar_mass"]
+    branches += hqq_branches
+    
+    #branches += ["fj_isW","fj_isWlep","fj_isTop","fj_isToplep"]
+    #branches += ["fj_dR_W", "fj_dR_Wstar", "fj_mindR_HWW_daus",
+    #             "fj_genW_pt", "fj_genWstar_pt", "fj_genW_mass", "fj_genWstar_mass"]
 
     # define selection
     if args.selection == "regression":
@@ -222,16 +223,9 @@ if __name__ == "__main__":
     mask = "(fj_pt>200) & (fj_pt<2500) & (fj_msoftdrop>=30) & (fj_msoftdrop<260)" # relaxed mask
     mask = "(fj_pt>200) & (fj_pt<2500)" # basic mask
     #mask = "(fj_pt>200) & (fj_pt<2500) & ((fj_genRes_mass<0) | (fj_genRes_pt/fj_genRes_mass<=5))" #ptmass mask
-    mask = "(fj_pt>200) & (fj_pt<2500) & ((fj_genRes_mass<0) | ((fj_genW_mass>40) & (fj_genWstar_mass<50)))"
+    #mask = "(fj_pt>200) & (fj_pt<2500) & ((fj_genRes_mass<0) | ((fj_genW_mass>40) & (fj_genWstar_mass<50)))"
     
     # define processes
-    # sig_processes = ["fj_H_WW_4q","fj_H_WW_elenuqq","fj_H_WW_munuqq","fj_H_WW_taunuqq"]
-    sig_processes = ["fj_isHWW_elenuqq_merged", "fj_isHWW_elenuqq_semimerged",
-                     "fj_isHWW_munuqq_merged", "fj_isHWW_munuqq_semimerged",  # only load electrons since that should be the same as muons
-                     "fj_isHWW_taunuqq_merged", "fj_isHWW_taunuqq_semimerged",
-                     "fj_H_WW_4q_3q", "fj_H_WW_4q_4q"]
-    qcd_processes = ["fj_isQCDb", "fj_isQCDbb", "fj_isQCDc", "fj_isQCDcc", "fj_isQCDlep", "fj_isQCDothers"]
-
     proc_dict = {
         "qcd": {"QCDb": "fj_isQCDb",
                 "QCDbb": "fj_isQCDbb",
@@ -265,7 +259,13 @@ if __name__ == "__main__":
         },
         "wjets":{
             "wlep": "fj_isWlep",
-        }
+        },
+        "hqq_all":{
+            "Hbb": "fj_H_bb",
+            "Hcc": "fj_H_cc",
+            "Hqq": "fj_H_qq",
+        },
+
     }
 
     #proc_dict["grav"]  = proc_dict["hww"]
@@ -275,6 +275,7 @@ if __name__ == "__main__":
     proc_dict["hh"] = proc_dict["hww_all"]
     proc_dict["hww"] = proc_dict["hww_all"]
     proc_dict["hwwlnuqq"] = proc_dict["hww_all"]
+    proc_dict["bulk"] = proc_dict["hqq_all"]
 
     # try all
     #proc_dict["qcd"] = {"qcd": "fj_isQCDb"}
@@ -289,8 +290,9 @@ if __name__ == "__main__":
 
     # open events
     for sample in args.samples.split(','):
+        print(ifiles[sample], branches)
         events = uproot.iterate(ifiles[sample], branches, mask)
-
+        
         for ev in events:
             # need to define new variables for all labels:
             ev["fj_H_WW_4q_4q"] = (ev["fj_H_WW_4q"] == 1) & (ev["fj_nProngs"] == 4)
