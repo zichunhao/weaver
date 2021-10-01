@@ -131,7 +131,7 @@ observers:
    - fj_PN_H4qvsQCD
    - fj_mindR_HWW_daus
    - fj_maxdR_HWW_daus
-   - fj_genH_mass
+   - fj_genRes_mass
    - fj_genW_mass
    - fj_genWstar_mass
    - fj_genW_pt
