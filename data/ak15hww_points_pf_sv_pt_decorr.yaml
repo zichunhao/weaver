@@ -39,6 +39,7 @@ new_variables:
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
    pfcand_mask: (pfcand_pt_log_nopuppi!=0)
    sv_mask: (sv_pt_log!=0)
+   fj_isQCD: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep == 1) | (fj_isQCDothers == 1)
 
 preprocess:
   ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -109,8 +110,8 @@ labels:
    ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
    type: simple
    value: [
-       fj_isQCDb, fj_isQCDbb, fj_isQCDc, fj_isQCDcc, fj_isQCDlep, fj_isQCDothers,
-       fj_H_WW_4q_3q, fj_H_WW_4q_4q,
+       fj_H_WW_4q, fj_H_WW_elenuqq, fj_H_WW_munuqq,
+       fj_isQCD, 
    ]
    ### [option 2] otherwise use `custom` to define the label, then `value` is a map
    # type: custom
@@ -148,10 +149,6 @@ weights:
    reweight_vars:
       fj_pt: [300, 380, 481, 658, 770, 974, 1233, 1561, 1975, 2500]
       fj_msoftdrop: [-10000, 10000]
-   reweight_classes: 
-       [
-       fj_isQCDb, fj_isQCDbb, fj_isQCDc, fj_isQCDcc, fj_isQCDlep, fj_isQCDothers,
-       fj_H_WW_4q_3q, fj_H_WW_4q_4q
-       ]
+   reweight_classes:  [fj_isQCD, fj_H_WW_4q, fj_H_WW_elenuqq, fj_H_WW_munuqq]
    class_weights: [1, 0.33, 0.33, 0.33] #, 1]
    reweight_hists:
