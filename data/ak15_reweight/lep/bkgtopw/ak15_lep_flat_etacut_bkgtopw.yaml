@@ -16,8 +16,7 @@ selection:
     (fj_msoftdrop>=10) &
     (fj_msoftdrop<320) &
     ( ( ( (fj_isTop==1) |
-          (fj_isWlep==1) ) &
-        (fj_genRes_mass<0) ) |
+          (fj_isWlep==1) ) ) |
       ( ( (fj_H_WW_elenuqq==1) | (fj_H_WW_munuqq==1) ) &
         (fj_maxdR_HWW_daus<2.0) &
         (fj_nProngs>1) &
@@ -32,8 +31,7 @@ test_time_selection:
     (fj_msoftdrop>=10) &
     (fj_msoftdrop<320) &
     ( ( ( (fj_isTop==1) |
-          (fj_isWlep==1) ) &
-        (fj_genRes_mass<0) ) |
+          (fj_isWlep==1) ) ) |
       ( ( (fj_H_WW_elenuqq==1) | (fj_H_WW_munuqq==1) ) &
         (fj_maxdR_HWW_daus<2.0) &
         (fj_nProngs>1) &
@@ -44,7 +42,7 @@ new_variables:
     ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
     pfcand_mask: (pfcand_pt_log_nopuppi!=0)
     sv_mask: (sv_pt_log!=0)
-    target_mass: np.maximum(1, np.where(fj_genRes_mass>0, fj_genRes_mass, fj_msoftdrop))
+    target_mass: np.maximum(1, np.where(((fj_H_WW_elenuqq==1)|(fj_H_WW_munuqq==1)), fj_genRes_mass, fj_msoftdrop))
     # Background (Top)
     fj_isTop_merged: (fj_isTop==1) & (fj_nProngs==3)
     fj_isTop_semimerged: (fj_isTop==1) & (fj_nProngs==2)
