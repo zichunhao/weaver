@@ -546,7 +546,7 @@ def main(args):
         bin_widths = [10,200]
         proc_to_corr = ['%s-mhflat'%signal]
         plt_label = "%svs%s"%(siglabel,bkglabel)
-        plot_score_aftercut(args,hist_gmass,vars_to_corr,bin_ranges,bin_widths,proc_to_corr,plt_label)
+        # plot_score_aftercut(args,hist_gmass,vars_to_corr,bin_ranges,bin_widths,proc_to_corr,plt_label)
 
         # plot roc for different cuts on mH and pt
         vars_to_corr = {"mH":mass_branch,
