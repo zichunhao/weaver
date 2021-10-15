@@ -183,7 +183,7 @@ class ParticleNetDynamicEdgeConv(MessagePassing):
 
         if self.is_edge_feat("m2"):
             fourvec_list = []
-            for kins in zip(kin_i, kin_j):
+            for kins in [kin_i, kin_j]:
                 # convert from (E, pT, eta, phi) to (E, px, py, pz) 4-vector
                 px = kins[..., 2] * torch.cos(kins[..., 1])
                 py = kins[..., 2] * torch.sin(kins[..., 1])
@@ -402,7 +402,8 @@ class FeatureConv(nn.Module):
 
 class ParticleNetTaggerPyG(nn.Module):
     """
-    Tagger module, forward pass takes an input of particle flow (pf) candidates and secondary vertices (sv) and outputs the tagger scores for each class
+    Tagger module, forward pass takes an input of particle flow (pf) candidates and secondary vertices (sv),
+    and outputs the tagger scores for each class
 
     Args:
         pf_features_dim (int): dimension of pf candidate features
