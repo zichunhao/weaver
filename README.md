@@ -316,3 +316,11 @@ pip install uproot coffea
 or
 
 ```python plot_weights_frominput.py --config data/NAMEOFCONFIG```
+
+## For testing new models
+
+Change the `--data-train` input to wherever your small sample files are located.
+
+```bash
+python train.py --data-train '.../sample_data/*/*.root' --data-config data/cm/ak15_4q_flat_eta_genHm_pt300.yaml --network-config networks/particle_net_pf_sv_4_layers_pyg_ef.py --model-prefix models/ef_test/ef_test --batch-size 8 --log logs/ef_test.log
+```
