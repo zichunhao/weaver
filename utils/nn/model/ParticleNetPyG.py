@@ -101,7 +101,7 @@ class ParticleNetDynamicEdgeConv(MessagePassing):
         },
         batch_norm: bool = True,
         aggr: str = "mean",
-        **kwargs
+        **kwargs,
     ):
 
         super(ParticleNetDynamicEdgeConv, self).__init__(
@@ -141,7 +141,7 @@ class ParticleNetDynamicEdgeConv(MessagePassing):
             x (Tensor): input tensor of shape ``[batch size * num nodes per batch, num features]``
             batch (Tensor): tensor listing batch of each node in x i.e. = ``[0 x num nodes, 1 x num nodes, ..., (N - 1) x num nodes]``
             coords (Tensor, optional): tensor of coordinates to use for knn, only if not using x features itself ``[batch size * num nodes per batch, num coordinates]``
-            kinematics (Tensor, optional): tensor of (etarel, phirel, pT, E) kinematics features to use to calculate edge features, of shape ``[batch size * num nodes per batch, 4]``
+            kinematics (Tensor, optional): tensor of (etarel, phirel, pT, E, abseta) kinematics features to use to calculate edge features, of shape ``[batch size * num nodes per batch, 5]``
         """
 
         # gets edges to nearest neighbours
@@ -179,32 +179,52 @@ class ParticleNetDynamicEdgeConv(MessagePassing):
             # norm of (eta_i, phi_i) - (eta_j, phi_j)
             deltaR = torch.norm(kin_i[..., :2] - kin_j[..., :2], dim=-1)
             if self.is_edge_feat("deltaR"):
-                edge_feats.append(deltaR)
+                edge_feats.append(torch.log10(deltaR) / 5)
 
         if self.is_edge_feat("m2"):
             fourvec_list = []
             for kins in [kin_i, kin_j]:
-                # convert from (E, pT, eta, phi) to (E, px, py, pz) 4-vector
+                # convert from (eta, phi, pT, E) to (E, px, py, pz) 4-vector
                 px = kins[..., 2] * torch.cos(kins[..., 1])
                 py = kins[..., 2] * torch.sin(kins[..., 1])
-                pz = kins[..., 2] * torch.sinh(kins[..., 0])
+                pz = kins[..., 2] * torch.sinh(kins[..., 4])
                 E = kins[..., 3]
                 fourvec_list.append(torch.stack([E, px, py, pz], dim=-1))
+
+                # print("kins")
+                # print(kins[::16])
+                #
+                # print("fourvecs")
+                # print(fourvec_list[-1][::16])
+                #
+                # # print("fourvecs mass^2")
+                # m = (
+                #     fourvec_list[-1][::16][..., 0] ** 2
+                #     - torch.norm(fourvec_list[-1][::16][..., 1:], dim=-1) ** 2
+                # )
+                # # print(m)
+                #
+                # print("- m^2s")
+                # print(
+                #     torch.cat((m.unsqueeze(-1), fourvec_list[-1][::16], kins[::16]), dim=-1)[
+                #         m < -0.01
+                #     ]
+                # )
 
             # add 4 vectors and calculate invariant mass
             tot_p = fourvec_list[0] + fourvec_list[1]
             m2 = tot_p[..., 0] ** 2 - torch.norm(tot_p[..., 1:], dim=-1) ** 2
-            edge_feats.append(m2)
+            edge_feats.append(torch.log10(torch.abs(m2)) / 5)
 
         if self.is_edge_feat("kT") or self.is_edge_feat("z"):
             min_pt = torch.min(kin_i[..., 3], kin_j[..., 3])
             kT = min_pt * deltaR
             if self.is_edge_feat("kT"):
-                edge_feats.append(kT)
+                edge_feats.append(torch.log10(kT) / 5)
 
         if self.is_edge_feat("z"):
             z = min_pt / (kin_i[..., 3] + kin_j[..., 3])
-            edge_feats.append(z)
+            edge_feats.append(torch.log10(z) / 5)
 
         return torch.stack(edge_feats, dim=-1)
 
@@ -212,13 +232,19 @@ class ParticleNetDynamicEdgeConv(MessagePassing):
         self, x_i: Tensor, x_j: Tensor, kin_i: Tensor = None, kin_j: Tensor = None
     ) -> Tensor:
         if self.use_edge_feats:
-            # kin_i = x_i[..., -4:]
-            # x_i = x_i[..., :-4]
-            #
-            # kin_j = x_j[..., -4:]
-            # x_j = x_j[..., :-4]
-
             edge_feats = self.get_edge_feats(kin_i, kin_j)
+
+            # print("Edge Feats")
+            # print(edge_feats)
+            #
+            # print("mins")
+            # print(torch.min(edge_feats.view(-1, 4), dim=0).values)
+            #
+            # print("maxes")
+            # print(torch.max(edge_feats.view(-1, 4), dim=0).values)
+            #
+            # print("abs mins")
+            # print(torch.min(torch.abs(edge_feats).view(-1, 4), dim=0).values)
 
             # TODO: try without the subtraction!!
             input = torch.cat([x_i, x_j - x_i, edge_feats], dim=-1)
@@ -260,7 +286,7 @@ class ParticleNetPyG(nn.Module):
         for_inference: bool = False,
         for_segmentation: bool = False,
         use_edge_feats: bool = False,
-        **kwargs
+        **kwargs,
     ):
         super(ParticleNetPyG, self).__init__(**kwargs)
 
@@ -326,13 +352,13 @@ class ParticleNetPyG(nn.Module):
 
         self.for_inference = for_inference
 
-    def forward(self, points: Tensor, pe: Tensor, features: Tensor, mask: Tensor = None):
+    def forward(self, points: Tensor, pee: Tensor, features: Tensor, mask: Tensor = None):
         """
         runs nodes through ParticleNet and outputs multi-class tagger scores
 
         Args:
             points (Tensor): node coordinates of shape ``[batch size, 2, num nodes]``
-            pe (Tensor): node pT and E of shape ``[batch size, 2, num_nodes]``
+            pee (Tensor): node pT, E, abseta of shape ``[batch size, 3, num_nodes]``
             features (Tensor): node features of shape ``[batch size, num features, num nodes]``
             mask (Tensor, optional): node masks of shape ``[batch size, 1, num nodes]``
         """
@@ -349,12 +375,16 @@ class ParticleNetPyG(nn.Module):
         mask = mask.view(-1).bool()
 
         points = points.permute(0, 2, 1).reshape(batch_size * num_nodes, -1)[mask]
-        pe = pe.permute(0, 2, 1).reshape(batch_size * num_nodes, -1)[mask]
+        pee = pee.permute(0, 2, 1).reshape(batch_size * num_nodes, -1)[mask]
         features = features.permute(0, 2, 1).reshape(batch_size * num_nodes, -1)[mask]
         zeros = torch.zeros(batch_size * num_nodes, dtype=int, device=points.device)
         zeros[torch.arange(batch_size) * num_nodes] = 1
         # batch = [0 x num nodes in jet 1 ... 1 x num nodes in jet 2 ... (N - 1) x num nodes]
         batch = (torch.cumsum(zeros, 0) - 1)[mask]
+
+        kins = torch.cat((points, pee), dim=1)
+        # print("kins before conv")
+        # print(kins)
 
         # feature batch norm
         fts = features if not self.use_fts_bn else self.bn_fts(features)
@@ -364,7 +394,7 @@ class ParticleNetPyG(nn.Module):
             outputs = []
 
         for idx, conv in enumerate(self.edge_convs):
-            fts = conv(fts, batch, None if idx > 0 else points, torch.cat((points, pe), dim=1))
+            fts = conv(fts, batch, None if idx > 0 else points, kins)
             if self.use_fusion:
                 outputs.append(fts)
 
@@ -426,7 +456,7 @@ class ParticleNetTaggerPyG(nn.Module):
         sv_input_dropout: bool = None,
         for_inference: bool = False,
         use_edge_feats: bool = False,
-        **kwargs
+        **kwargs,
     ):
         super(ParticleNetTaggerPyG, self).__init__(**kwargs)
         self.pf_input_dropout = nn.Dropout(pf_input_dropout) if pf_input_dropout else None
@@ -478,17 +508,107 @@ class ParticleNetTaggerPyG(nn.Module):
             sv_points *= sv_mask
             sv_features *= sv_mask
 
-        pf_pt = torch.exp(pf_features[:, 0:1])
-        pf_e = torch.exp(pf_features[:, 1:2])
-        pf_pe = torch.cat((pf_pt, pf_e), dim=1)
+        pf_pt = torch.exp((pf_features[:, 0] / 0.5) + 1.0)
+        pf_e = torch.exp((pf_features[:, 1] / 0.5) + 1.3)
+        pf_abseta = (pf_features[:, 9] / 1.6) + 0.6
+        pf_pee = torch.stack((pf_pt, pf_e, pf_abseta), dim=1)
+        pf_pee *= pf_mask
 
-        sv_pt = torch.exp(sv_features[:, 0:1])
-        sv_m = sv_features[:, 1:2]
-        sv_p = sv_pt * torch.cosh(sv_points[:, 0:1])
+        sv_pt = torch.exp((sv_features[:, 0] / 0.6) + 4.0)
+        sv_m = (sv_features[:, 1] / 0.3) + 1.2
+        sv_abseta = (sv_features[:, 4] / 1.6) + 0.5
+        sv_p = sv_pt * torch.cosh(sv_abseta)
         sv_e = torch.sqrt((sv_m ** 2) + (sv_p ** 2))
-        sv_pe = torch.cat((sv_pt, sv_e), dim=1)
+        sv_pee = torch.stack((sv_pt, sv_e, sv_abseta), dim=1)
+        sv_pee *= sv_mask
 
-        pe = torch.cat((pf_pe, sv_pe), dim=2)
+        # print("\npf_pee")
+        # print(pf_pee.permute(0, 2, 1))
+        #
+        # print("sv_pee")
+        # print(sv_pee.permute(0, 2, 1))
+        #
+        # print("mins")
+        # # print(pf_pee.permute(0, 2, 1).shape)
+        # print(torch.min(pf_pee.permute(0, 2, 1).reshape(-1, 3), dim=0).values)
+        # print(torch.min(sv_pee.permute(0, 2, 1).reshape(-1, 3), dim=0).values)
+        #
+        # print("maxes")
+        # print(torch.max(pf_pee.permute(0, 2, 1).reshape(-1, 3), dim=0).values)
+        # print(torch.max(sv_pee.permute(0, 2, 1).reshape(-1, 3), dim=0).values)
+        #
+        # px = pf_pee[:, 0] * torch.cos(pf_points[:, 1])
+        # py = pf_pee[:, 0] * torch.sin(pf_points[:, 1])
+        # pz = pf_pee[:, 0] * torch.sinh(pf_pee[:, 2])
+        # E = pf_pee[:, 1]
+        #
+        # m = E ** 2 - (px ** 2 + py ** 2 + pz ** 2)
+        #
+        # print("masses")
+        # print(m)
+        #
+        # print(f"mass max {torch.max(m)} min {torch.min(m)}")
+        #
+        # px = sv_pee[:, 0] * torch.cos(sv_points[:, 1])
+        # py = sv_pee[:, 0] * torch.sin(sv_points[:, 1])
+        # pz = sv_pee[:, 0] * torch.sinh(sv_pee[:, 2])
+        # E = sv_pee[:, 1]
+        #
+        # msv = E ** 2 - (px ** 2 + py ** 2 + pz ** 2)
+        #
+        # print("masses")
+        # print(msv)
+        #
+        # print(f"mass sv max {torch.max(msv)} min {torch.min(msv)}")
+        #
+        # # print("- m^2s")
+        # # print(
+        # #     torch.cat((m.unsqueeze(-1), fourvec_list[-1][::16], kins[::16]), dim=-1)[
+        # #         m < -0.01
+        # #     ]
+        # # )
+        #
+        # import matplotlib.pyplot as plt
+        # import numpy as np
+        # import time
+        #
+        # mask = pf_mask.view(-1).bool()
+        # masksv = sv_mask.view(-1).bool()
+        #
+        # plt.rcParams.update({"font.size": 28})
+        # fig, axs = plt.subplots(1, 5, figsize=(60, 12))
+        # xlabels = ["$p_T$ (GeV)", "E (GeV)", "$|\eta|$"]
+        # maxbin = [200, 200, 4]
+        #
+        # for i in range(3):
+        #     axs[i].hist(
+        #         pf_pee.permute(0, 2, 1).reshape(-1, 3)[mask][:, i].numpy(),
+        #         np.linspace(0, maxbin[i], 101),
+        #         histtype="step",
+        #     )
+        #     axs[i].set_xlabel(xlabels[i])
+        #     axs[i].set_ylabel("# particles")
+        #
+        # axs[3].hist(
+        #     m.reshape(-1)[mask].numpy(),
+        #     np.linspace(-0.1, 0.1, 101),
+        #     histtype="step",
+        # )
+        # axs[3].set_xlabel("Mass PF (GeV)")
+        # axs[3].set_ylabel("# particles")
+        #
+        # axs[4].hist(
+        #     msv.reshape(-1)[masksv].numpy(),
+        #     np.linspace(-0.1, 0.1, 101),
+        #     histtype="step",
+        # )
+        # axs[4].set_xlabel("Mass SV (GeV)")
+        # axs[4].set_ylabel("# particles")
+        #
+        # plt.savefig(f"../plots/pnet_unnormalized_kinchecks/{time.time()}.pdf", bbox_inches="tight")
+        # plt.close()
+
+        pee = torch.cat((pf_pee, sv_pee), dim=2)
 
         points = torch.cat((pf_points, sv_points), dim=2)
         features = torch.cat(
@@ -499,4 +619,4 @@ class ParticleNetTaggerPyG(nn.Module):
             dim=2,
         )
         mask = torch.cat((pf_mask, sv_mask), dim=2)
-        return self.pn(points, pe, features, mask)
+        return self.pn(points, pee, features, mask)
