@@ -1,9 +1,13 @@
 """
-Rewriting ParticleNet (https://github.com/hqucms/weaver/blob/master/utils/nn/model/ParticleNet.py) in PyTorch Geometric
+Rewriting ParticleNet (https://github.com/hqucms/weaver/blob/master/utils/nn/model/ParticleNet.py)
+in PyTorch Geometric 2.
+
+This model particularly leverage the heterogeneous graph functionalities.
 
 Author: Raghav Kansal
 """
-from typing import Union
+
+from typing import Union, Tuple
 from torch_geometric.typing import OptTensor, PairTensor, PairOptTensor, Adj
 
 import torch
@@ -20,37 +24,19 @@ from torch_cluster import knn, knn_graph
 
 import numpy as np
 
-#
-# pf_features = torch.rand(7, 3)
-# sv_features = torch.rand(2, 3)
-#
-# data = HeteroData()
-#
-# data["pfs"].x = pf_features
-# data["pfs"].batch = torch.tensor([0, 0, 0, 1, 1, 1, 2])
-# data["svs"].x = sv_features
-# data["svs"].batch = torch.tensor([0, 1])
-#
-# pf_sv_edge_index = knn(sv_features, pf_features, 1)
-#
-# data["pfs", "edge", "pfs"].edge_index = knn_graph(pf_features, 3, loop=True)
-# data["svs", "edge", "svs"].edge_index = knn_graph(sv_features, 2, loop=True)
-# data["pfs", "edge", "svs"].edge_index = pf_sv_edge_index
-# data["svs", "edge", "pfs"].edge_index = pf_sv_edge_index[[1, 0]]  # invert source and dest
-#
-#
-# homog_data = data.to_homogeneous()
-# homog_data.batch
-
 
 class LinearNet(nn.Module):
     r"""
-    Module for simple fully connected networks, with ReLU activations and optional batch norm (TODO: try dropout?)
+    Module for simple fully connected networks, with ReLU activations and optional batch norm
+    (TODO: try dropout?)
 
     Args:
-        layers (list): list with layers of the fully connected network, optionally containing the input and output sizes inside e.g. [input_size, ... hidden layers ..., output_size]
-        input_size (list, optional): size of input, if 0 or unspecified, first element of `layers` will be treated as the input size
-        output_size (list, optional): size of output, if 0 or unspecified, last element of `layers` will be treated as the output size
+        layers (list): list with layers of the fully connected network, optionally containing the
+          input and output sizes inside e.g. ``[input_size, ... hidden layers ..., output_size]``
+        input_size (list, optional): size of input, if 0 or unspecified, first element of ``layers``
+          will be treated as the input size
+        output_size (list, optional): size of output, if 0 or unspecified, last element of
+          ``layers`` will be treated as the output size
         batch_norm (bool, optional): use batch norm or not
     """
 
@@ -129,7 +115,8 @@ class ParticleNetEdgeNet(MessagePassing):
             batch_norm=batch_norm,
         )
 
-        # 1d conv to make input dims -> output dims if not already equal for final shortcut connection
+        # 1d conv to make input dims -> output dims if not already equal for final shortcut
+        # connection
         self.sc = (
             None
             if dest_in_feat == out_feats[-1]
@@ -162,328 +149,24 @@ class ParticleNetEdgeNet(MessagePassing):
         return "{}(nn={})".format(self.__class__.__name__, self.nn)
 
 
-class ParticleNetDynamicEdgeConv(MessagePassing):
-    r"""Modified PyG implementation of DynamicEdgeConv (below) to include a shortcut connection.
-
-    The dynamic edge convolutional operator from the `"Dynamic Graph CNN
-    for Learning on Point Clouds" <https://arxiv.org/abs/1801.07829>`_ paper
-    (see :class:`torch_geometric.nn.conv.EdgeConv`), where the graph is
-    dynamically constructed using nearest neighbors in the feature space.
-
-    Args:
-        k (int): Number of nearest neighbors for edge conv.
-        in_feat (int): Number of input features
-        out_feat (list): # of output features of each edge network layer
-        use_edge_feats (bool): use edge feats during edge convolution or not. Defaults to False.
-        edge_feats (dict): dict of bools specifying which edge features to use, out of ('deltaR', 'm2', 'kT', 'z'). Defaults to all True.
-        aggr (string): The aggregation operator to use (:obj:`"add"`, :obj:`"mean"`, :obj:`"max"`). (default: :obj:`"mean"`)
-        **kwargs (optional): Additional arguments of :class:`torch_geometric.nn.conv.MessagePassing`.
-    """
-
-    def __init__(
-        self,
-        k: int,
-        in_feat: int,
-        out_feats: list,
-        use_edge_feats: bool = False,
-        edge_feats: dict = {
-            "deltaR": True,
-            "m2": True,
-            "kT": True,
-            "z": True,
-        },
-        batch_norm: bool = True,
-        aggr: str = "mean",
-        **kwargs,
-    ):
-
-        super(ParticleNetDynamicEdgeConv, self).__init__(
-            aggr=aggr, flow="target_to_source", **kwargs
-        )
-
-        self.k = k
-        self.edge_feats = edge_feats
-
-        self.num_edge_feats = 0
-        for key in edge_feats:
-            if edge_feats[key]:
-                self.num_edge_feats += 1
-
-        self.use_edge_feats = use_edge_feats and self.num_edge_feats > 0
-
-        self.nn = LinearNet(out_feats, in_feat * 2 + self.num_edge_feats, batch_norm=batch_norm)
-
-        # 1d conv to make input dims -> output dims if not already equal for final shortcut connection
-        self.sc = (
-            None
-            if in_feat == out_feats[-1]
-            else nn.Sequential(
-                *[
-                    nn.Conv1d(in_feat, out_feats[-1], kernel_size=1, bias=False),
-                    nn.BatchNorm1d(out_feats[-1]),
-                ]
-            )
-        )
-
-    def forward(self, x: Tensor, batch: Tensor, coords: Tensor = None, kinematics: Tensor = None):
-        """
-        Run x through DynamicEdgeConv then add original features to output (shortcut connection)
-        Inputs must be in PyG format, see args below.
-
-        Args:
-            x (Tensor): input tensor of shape ``[batch size * num nodes per batch, num features]``
-            batch (Tensor): tensor listing batch of each node in x i.e. = ``[0 x num nodes, 1 x num nodes, ..., (N - 1) x num nodes]``
-            coords (Tensor, optional): tensor of coordinates to use for knn, only if not using x features itself ``[batch size * num nodes per batch, num coordinates]``
-            kinematics (Tensor, optional): tensor of (etarel, phirel, pT, E, abseta) kinematics features to use to calculate edge features, of shape ``[batch size * num nodes per batch, 5]``
-        """
-
-        # gets edges to nearest neighbours
-        edge_index = knn_graph(x if coords is None else coords, self.k, batch)
-
-        # message passing and aggregation
-        # if self.use_edge_feats:
-        #     # combine edge
-        #     out = self.propagate(edge_index, x=x, kin=kinematics, size=None)
-        # else:
-        #     out = self.propagate(edge_index, x=x, size=None)
-
-        out = self.propagate(edge_index, x=x, kin=kinematics, size=None)
-
-        # shortcut connection, described in paper
-        sc = x if not self.sc else self.sc(x.unsqueeze(2)).squeeze()
-
-        return F.relu(out + sc)
-
-    def is_edge_feat(self, edge_feat: str) -> bool:
-        """check if ``edge_feat`` is in the ``self.edge_feats`` dict and if it's True"""
-        return edge_feat in self.edge_feats and self.edge_feats[edge_feat]
-
-    def get_edge_feats(self, kin_i: Tensor, kin_j: Tensor) -> Tensor:
-        """
-        Calculate edge features using the kinematic features of the two nodes.
-        Returns tensor of shape ``[..., num_edge_feats]``,
-        where the ``...`` match all but the last dimension of the ``kin_i`` and ``kin_j`` tensors.
-        """
-
-        edge_feats = []
-
-        # deltaR used for both deltaR and kT feats
-        if self.is_edge_feat("deltaR") or self.is_edge_feat("kT"):
-            # norm of (eta_i, phi_i) - (eta_j, phi_j)
-            deltaR = torch.norm(kin_i[..., :2] - kin_j[..., :2], dim=-1)
-            if self.is_edge_feat("deltaR"):
-                edge_feats.append(torch.log10(deltaR) / 5)
-
-        if self.is_edge_feat("m2"):
-            fourvec_list = []
-            for kins in [kin_i, kin_j]:
-                # convert from (eta, phi, pT, E) to (E, px, py, pz) 4-vector
-                px = kins[..., 2] * torch.cos(kins[..., 1])
-                py = kins[..., 2] * torch.sin(kins[..., 1])
-                pz = kins[..., 2] * torch.sinh(kins[..., 4])
-                E = kins[..., 3]
-                fourvec_list.append(torch.stack([E, px, py, pz], dim=-1))
-
-            # add 4 vectors and calculate invariant mass
-            tot_p = fourvec_list[0] + fourvec_list[1]
-            m2 = tot_p[..., 0] ** 2 - torch.norm(tot_p[..., 1:], dim=-1) ** 2
-            edge_feats.append(torch.log10(torch.abs(m2)) / 5)
-
-        if self.is_edge_feat("kT") or self.is_edge_feat("z"):
-            min_pt = torch.min(kin_i[..., 3], kin_j[..., 3])
-            kT = min_pt * deltaR
-            if self.is_edge_feat("kT"):
-                edge_feats.append(torch.log10(kT) / 5)
-
-        if self.is_edge_feat("z"):
-            z = min_pt / (kin_i[..., 3] + kin_j[..., 3])
-            edge_feats.append(torch.log10(z) / 5)
-
-        return torch.stack(edge_feats, dim=-1)
-
-    def message(
-        self, x_i: Tensor, x_j: Tensor, kin_i: Tensor = None, kin_j: Tensor = None
-    ) -> Tensor:
-        if self.use_edge_feats:
-            edge_feats = self.get_edge_feats(kin_i, kin_j)
-            # TODO: try without the subtraction!!
-            input = torch.cat([x_i, x_j - x_i, edge_feats], dim=-1)
-        else:
-            input = torch.cat([x_i, x_j - x_i], dim=-1)
-
-        return self.nn(input)
-
-    def __repr__(self):
-        return "{}(nn={}, k={})".format(self.__class__.__name__, self.nn, self.k)
-
-
-class ParticleNetPyG(nn.Module):
-    """
-    ParticleNet model
-
-    Args:
-        input_dims (int): input node feature size
-        num_classes (int): number of output classes
-        conv_params (list of tuples of tuples, optional): parameters for each graph convolutional layer, formatted per layer as (# nearest neighbours, (# of output features per layer))
-        fc_params (list of tuples, optional): layer sizes and dropout rates for final fully connected network, formatted per layer as (layer size, dropout rate)
-        use_fusion (bool, optional): use all intermediate edge conv layer outputs for final output (see forward pass)
-        use_ftns_bn (bool, optional): use initial batch norm layers on the input
-        use_counts (bool, optional): when averaging divide by actual # of particles or zero-padded # - second one doesn't make sense anymore with PyG so not implemented
-        for_inference (bool, optional): for inference i.e. whether to use softmax at the end or not
-        for_segmentation (bool, optional): for segmentation - not sure the use case for this - NOT IMPLEMENTED PROPERLY YET
-        use_edge_feats (bool): use edge features in dynamic edge conv or not
-    """
-
-    def __init__(
-        self,
-        input_dims: int,
-        num_classes: int,
-        conv_params: list = [(7, (32, 32, 32)), (7, (64, 64, 64))],
-        fc_params: list = [(128, 0.1)],
-        use_fusion: bool = True,
-        use_fts_bn: bool = True,
-        use_counts: bool = True,
-        for_inference: bool = False,
-        for_segmentation: bool = False,
-        use_edge_feats: bool = False,
-        **kwargs,
-    ):
-        super(ParticleNetPyG, self).__init__(**kwargs)
-
-        self.use_fts_bn = use_fts_bn
-        if self.use_fts_bn:
-            self.bn_fts = nn.BatchNorm1d(input_dims)
-
-        self.use_counts = use_counts
-
-        self.edge_convs = nn.ModuleList()
-        for idx, layer_param in enumerate(conv_params):
-            k, channels = layer_param
-            in_feat = input_dims if idx == 0 else conv_params[idx - 1][1][-1]
-            self.edge_convs.append(
-                ParticleNetDynamicEdgeConv(
-                    k=k,
-                    in_feat=in_feat,
-                    out_feats=list(channels),
-                    use_edge_feats=use_edge_feats,
-                )
-            )
-
-        self.use_fusion = use_fusion
-        if self.use_fusion:
-            in_chn = sum(x[-1] for _, x in conv_params)
-            out_chn = np.clip((in_chn // 128) * 128, 128, 1024)
-            self.fusion_block = nn.Sequential(
-                nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False),
-                nn.BatchNorm1d(out_chn),
-                nn.ReLU(),
-            )
-
-        self.for_segmentation = for_segmentation
-
-        fcs = []
-        for idx, layer_param in enumerate(fc_params):
-            channels, drop_rate = layer_param
-            if idx == 0:
-                in_chn = out_chn if self.use_fusion else conv_params[-1][1][-1]
-            else:
-                in_chn = fc_params[idx - 1][0]
-
-            if self.for_segmentation:
-                fcs.append(
-                    nn.Sequential(
-                        nn.Conv1d(in_chn, channels, kernel_size=1, bias=False),
-                        nn.BatchNorm1d(channels),
-                        nn.ReLU(),
-                        nn.Dropout(drop_rate),
-                    )
-                )
-            else:
-                fcs.append(
-                    nn.Sequential(nn.Linear(in_chn, channels), nn.ReLU(), nn.Dropout(drop_rate))
-                )
-
-        if self.for_segmentation:
-            fcs.append(nn.Conv1d(fc_params[-1][0], num_classes, kernel_size=1))
-        else:
-            fcs.append(nn.Linear(fc_params[-1][0], num_classes))
-
-        self.fc = nn.Sequential(*fcs)
-
-        self.for_inference = for_inference
-
-    def forward(self, points: Tensor, pee: Tensor, features: Tensor, mask: Tensor = None):
-        """
-        runs nodes through ParticleNet and outputs multi-class tagger scores
-
-        Args:
-            points (Tensor): node coordinates of shape ``[batch size, 2, num nodes]``
-            pee (Tensor): node pT, E, abseta of shape ``[batch size, 3, num_nodes]``
-            features (Tensor): node features of shape ``[batch size, num features, num nodes]``
-            mask (Tensor, optional): node masks of shape ``[batch size, 1, num nodes]``
-        """
-
-        # convert to PyG format:
-        # points: [batch size * num nodes per jet, num node coordinates], x: [batch size * num nodes per jet, num node features], batch = [0 x num nodes in jet 1 ... 1 x num nodes in jet 2 ... (N - 1) x num nodes]
-        # allows naturally for variable-sized particle clouds
-
-        batch_size = points.size(0)
-        num_nodes = points.size(2)
-
-        if mask is None:
-            mask = features.abs().sum(dim=1, keepdim=True) != 0  # [batch size, 1, num nodes]
-        mask = mask.view(-1).bool()
-
-        points = points.permute(0, 2, 1).reshape(batch_size * num_nodes, -1)[mask]
-        pee = pee.permute(0, 2, 1).reshape(batch_size * num_nodes, -1)[mask]
-        features = features.permute(0, 2, 1).reshape(batch_size * num_nodes, -1)[mask]
-        zeros = torch.zeros(batch_size * num_nodes, dtype=int, device=points.device)
-        zeros[torch.arange(batch_size) * num_nodes] = 1
-        # batch = [0 x num nodes in jet 1 ... 1 x num nodes in jet 2 ... (N - 1) x num nodes]
-        batch = (torch.cumsum(zeros, 0) - 1)[mask]
-
-        kins = torch.cat((points, pee), dim=1)
-        # print("kins before conv")
-        # print(kins)
-
-        # feature batch norm
-        fts = features if not self.use_fts_bn else self.bn_fts(features)
-
-        # EdgeConv layers - if using fusion, saving outputs of each layer for 'fusion' step
-        if self.use_fusion:
-            outputs = []
-
-        for idx, conv in enumerate(self.edge_convs):
-            fts = conv(fts, batch, None if idx > 0 else points, kins)
-            if self.use_fusion:
-                outputs.append(fts)
-
-        # fusion step i.e. use all intermediate outputs for final output
-        if self.use_fusion:
-            fts = self.fusion_block(torch.cat(outputs, dim=1).unsqueeze(2)).squeeze()
-
-        if self.for_segmentation:
-            x = fts  # still need to reshape this back into a [batch size, num features, num nodes] shape tensor if actually doing segmentation
-        else:
-            x = global_mean_pool(fts, batch)  #
-
-        output = self.fc(x)
-        if self.for_inference:
-            output = torch.softmax(output, dim=1)
-
-        return output
-
-
 class ParticleNetTaggerPyGHetero(nn.Module):
     """
-    Tagger module, forward pass takes an input of particle flow (pf) candidates and secondary vertices (sv),
-    and outputs the tagger scores for each class
+    Tagger module, forward pass takes an input of particle flow (pf) candidates and secondary
+    vertices (sv), and outputs the tagger scores for each class
 
     Args:
         pf_features_dim (int): dimension of pf candidate features
         sv_features_dim (int): dimension of sv features
         num_classes (int): number of output classes
-        **args: args for the ParticleNetPyG model
+        conv_params (list of tuples of tuples, optional): parameters for each edge net layer,
+          formatted per layer as
+          ``(# nearest neighbours for pf -> pf, #NN sv -> sv, #NN sv -> pf, #NN pf -> sv), (# of output features per layer)``
+        fc_params (list of tuples, optional): layer sizes and dropout rates for final fully
+          connected network, formatted per layer as ``(layer size, dropout rate)``
+        use_fusion (bool, optional): use all intermediate edge conv layer outputs for final output
+        use_ftns_bn (bool, optional): use initial batch norm layers on the input
+        for_inference (bool, optional): for inference i.e. whether to use softmax at the end or not
+        use_edge_feats (bool): use edge features in dynamic edge conv or not
     """
 
     def __init__(
@@ -491,7 +174,6 @@ class ParticleNetTaggerPyGHetero(nn.Module):
         pf_features_dims: int,
         sv_features_dims: int,
         num_classes: int,
-        # hidden_features_dims: int = 32,
         conv_params: list = [
             ((16, 7, 1, 16), (64, 64, 64)),
             ((16, 7, 1, 16), (128, 128, 128)),
@@ -527,6 +209,7 @@ class ParticleNetTaggerPyGHetero(nn.Module):
             pf_ins = pf_features_dims if idx == 0 else conv_params[idx - 1][1][-1]
             sv_ins = sv_features_dims if idx == 0 else conv_params[idx - 1][1][-1]
 
+            # Separate EdgeNets for every type of interaction
             conv = HeteroConv(
                 {
                     ("pfs", "edge", "pfs"): ParticleNetEdgeNet(
@@ -563,13 +246,15 @@ class ParticleNetTaggerPyGHetero(nn.Module):
 
         fcs = []
         for idx, layer_param in enumerate(fc_params):
-            channels, drop_rate = layer_param
+            layer_size, drop_rate = layer_param
             if idx == 0:
                 in_chn = out_chn if self.use_fusion else conv_params[-1][1][-1]
             else:
                 in_chn = fc_params[idx - 1][0]
 
-            fcs.append(nn.Sequential(nn.Linear(in_chn, channels), nn.ReLU(), nn.Dropout(drop_rate)))
+            fcs.append(
+                nn.Sequential(nn.Linear(in_chn, layer_size), nn.ReLU(), nn.Dropout(drop_rate))
+            )
 
         fcs.append(nn.Linear(fc_params[-1][0], num_classes))
 
@@ -605,11 +290,11 @@ class ParticleNetTaggerPyGHetero(nn.Module):
         if self.sv_input_dropout:
             sv_mask = (self.sv_input_dropout(sv_mask) != 0).float()
 
-        pf_points, pf_features, pf_mask, pf_batch = self._convert_to_pyg_graphs(
+        pf_points, pf_features, pf_batch = self._convert_to_pyg_graphs(
             pf_points, pf_features, pf_mask
         )
 
-        sv_points, sv_features, sv_mask, sv_batch = self._convert_to_pyg_graphs(
+        sv_points, sv_features, sv_batch = self._convert_to_pyg_graphs(
             sv_points, sv_features, sv_mask
         )
 
@@ -632,23 +317,29 @@ class ParticleNetTaggerPyGHetero(nn.Module):
         for idx, conv in enumerate(self.edge_convs):
             # knn-ing
             pf_k, sv_k, pf_sv_k, sv_pf_k = self.conv_params[idx][0]
-            if idx == 0:
-                pf_edge_index = knn_graph(pf_points, pf_k)
-                sv_edge_index = knn_graph(sv_points, sv_k)
-                pf_sv_edge_index = knn(sv_points, pf_points, pf_sv_k)
 
-                sv_pf_edge_index = knn(pf_points, sv_points, sv_pf_k)
+            # separate knn for each interaction
+            if idx == 0:
+                pf_edge_index = knn_graph(pf_points, pf_k, pf_batch)
+                sv_edge_index = knn_graph(sv_points, sv_k, sv_batch)
+                # knn goes from pfs -> sv but for message passing we want sv -> pf so edge index is
+                # inverted (same for pf -> sv message passing).
+                pf_sv_edge_index = knn(sv_points, pf_points, pf_sv_k, sv_batch, pf_batch)[[1, 0]]
+                sv_pf_edge_index = knn(pf_points, sv_points, sv_pf_k, pf_batch, sv_batch)[[1, 0]]
             else:
-                pf_edge_index = knn_graph(data["pfs"].x, pf_k)
-                sv_edge_index = knn_graph(data["svs"].x, sv_k)
-                pf_sv_edge_index = knn(data["svs"].x, data["pfs"].x, pf_sv_k)
-                sv_pf_edge_index = knn(data["pfs"].x, data["svs"].x, sv_pf_k)
+                pf_edge_index = knn_graph(data["pfs"].x, pf_k, pf_batch)
+                sv_edge_index = knn_graph(data["svs"].x, sv_k, sv_batch)
+                pf_sv_edge_index = knn(data["svs"].x, data["pfs"].x, pf_sv_k, sv_batch, pf_batch)[
+                    [1, 0]
+                ]
+                sv_pf_edge_index = knn(data["pfs"].x, data["svs"].x, sv_pf_k, pf_batch, sv_batch)[
+                    [1, 0]
+                ]
 
             data["pfs", "edge", "pfs"].edge_index = pf_edge_index
             data["svs", "edge", "svs"].edge_index = sv_edge_index
-            # invert source and dest nodes
-            data["svs", "edge", "pfs"].edge_index = pf_sv_edge_index[[1, 0]]
-            data["pfs", "edge", "svs"].edge_index = sv_pf_edge_index[[1, 0]]
+            data["svs", "edge", "pfs"].edge_index = pf_sv_edge_index
+            data["pfs", "edge", "svs"].edge_index = sv_pf_edge_index
 
             out = conv(data.x_dict, data.edge_index_dict)
             for key in out:
@@ -674,7 +365,17 @@ class ParticleNetTaggerPyGHetero(nn.Module):
 
         return output
 
-    def _convert_to_pyg_graphs(self, points, features, mask):
+    def _convert_to_pyg_graphs(self, points: Tensor, features: Tensor, mask: Tensor):
+        """
+        Converts 3D ``points`` and ``features`` tensors, of shape
+        ``[num_jets, num_features, num_particles]``, to a single large disconnected graph of shape
+        ``[sum of num_particles in each jet, num_features]``, excluding the masked particles.
+
+        particles <--> jet mapping is retained in the ``batch`` tensor of shape
+        ``[sum of num_particles in each jet]`` which stores the jet # of each particle.
+
+        Returns the reformatted ``points`` and ``features`` tensors, and the ``batch`` tensor.
+        """
         batch_size = points.size(0)
         num_nodes = points.size(2)
 
@@ -690,9 +391,10 @@ class ParticleNetTaggerPyGHetero(nn.Module):
         # batch = [0 x num nodes in jet 1 ... 1 x num nodes in jet 2 ... (N - 1) x num nodes]
         batch = (torch.cumsum(zeros, 0) - 1)[mask]
 
-        return points, features, mask, batch
+        return points, features, batch
 
     def _get_pee(self, pf_points, pf_features, sv_points, sv_features):
+        """Calculates the pT, E, and |\eta| for each pf cand and sv"""
         pf_pt = torch.exp((pf_features[:, 0] / 0.5) + 1.0)
         pf_e = torch.exp((pf_features[:, 1] / 0.5) + 1.3)
         pf_abseta = (pf_features[:, 9] / 1.6) + 0.6

@@ -17,12 +17,16 @@ import numpy as np
 
 class LinearNet(nn.Module):
     r"""
-    Module for simple fully connected networks, with ReLU activations and optional batch norm (TODO: try dropout?)
+    Module for simple fully connected networks, with ReLU activations and optional batch norm
+    (TODO: try dropout?)
 
     Args:
-        layers (list): list with layers of the fully connected network, optionally containing the input and output sizes inside e.g. [input_size, ... hidden layers ..., output_size]
-        input_size (list, optional): size of input, if 0 or unspecified, first element of `layers` will be treated as the input size
-        output_size (list, optional): size of output, if 0 or unspecified, last element of `layers` will be treated as the output size
+        layers (list): list with layers of the fully connected network, optionally containing the
+          input and output sizes inside e.g. ``[input_size, ... hidden layers ..., output_size]``
+        input_size (list, optional): size of input, if 0 or unspecified, first element of ``layers``
+          will be treated as the input size
+        output_size (list, optional): size of output, if 0 or unspecified, last element of
+          ``layers`` will be treated as the output size
         batch_norm (bool, optional): use batch norm or not
     """
 
@@ -65,8 +69,7 @@ class LinearNet(nn.Module):
         return x
 
     def __repr__(self):
-        # TODO!
-        return ""
+        return f"{self.__class__.__name__}(net = {self.net})"
 
 
 class ParticleNetDynamicEdgeConv(MessagePassing):
