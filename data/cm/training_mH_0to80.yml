@@ -1,0 +1,74 @@
+# samples: 4q & QCD
+# sample type: flat
+# reweight_method: flat in mH
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: weaver-zh-training-flatsamples-flatmH-0to80
+  labels:
+    app: weavertagger
+spec:
+  template:
+    spec:
+      containers:
+      - name: container
+        image: gitlab-registry.nrp-nautilus.io/raghsthebest/hww-tagger/weaver
+        command:
+        - "/bin/bash"
+        - "-c"
+        - >
+          git clone https://github.com/zichunhao/weaver &&
+          cd weaver &&
+          git fetch &&
+          git checkout zh-weights &&
+          mkdir -p /hwwtaggervol/models/zh_classifications/ak15_flatsamples_4q_flatmH/4q-mH-0to80 &&
+          mkdir -p /hwwtaggervol/logs/zh_classifications/training/4q-mH-0to80/ &&
+          (python -u train.py
+          --data-train
+          '/hwwtaggervol/training/ak15_Jul27/train/Grav*/*.root' '/hwwtaggervol/training/ak15_Jul27/train/QCD*/*.root'
+          --data-config data/cm/ak15_4q3q_flat_eta_genHm_pt300_mH_0to80.yaml
+          --network-config networks/particle_net_pf_sv_4_layers.py
+          --model-prefix /hwwtaggervol/models/zh_classifications/4q-mH-0to80/ak15_flatsamples_4q_flat_classification
+          --num-workers 3
+          --batch-size 256
+          --num-epochs 64
+          --start-lr 3e-3
+          --optimizer ranger
+          --gpu "0,1"
+          --fetch-step 0.02
+          | tee /hwwtaggervol/logs/zh_classifications/training/4q-mH-0to80/ak15_flatsamples_4q_flat_classification.txt &
+          wait)
+        volumeMounts:
+        - mountPath: /hwwtaggervol
+          name: hwwtaggervol
+        resources:
+          limits:
+            memory: 128Gi
+            cpu: "4"
+            nvidia.com/gpu: "2"
+          requests:
+            memory: 64Gi
+            cpu: "3"
+            nvidia.com/gpu: "2"
+      volumes:
+      - name: hwwtaggervol
+        persistentVolumeClaim:
+          claimName: hwwtaggervol
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: topology.kubernetes.io/region
+                operator: In
+                values:
+                - us-west
+              - key: gpu-type
+                operator: In
+                values:
+                - "1080"
+                - 1080Ti
+                - 2080Ti
+      restartPolicy: Never
+  backoffLimit: 0

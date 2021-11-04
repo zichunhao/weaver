@@ -13,20 +13,21 @@ from coffea import hist
 hists_dict = {
     'fj_prop': hist.Hist("fj",
                          hist.Cat("process", "Process"),
-                         hist.Bin("gmass", r"gen Res mass [GeV]", 48, 20, 260),
+                         hist.Bin("gmass", r"gen Res mass [GeV]", 56, 20, 300),
                          hist.Bin("msd", r"fj msoftdrop [GeV]", 50, 20, 260),
-                         hist.Bin("pt", r"fj pT [GeV]", 60, 300, 1500),
+                         hist.Bin("pt", r"fj pT [GeV]", [200, 251, 316, 398, 501, 630, 793, 997, 1255]),
+                         #hist.Bin("pt", r"fj pT [GeV]", [200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]),
                          hist.Bin("mass", r"fj mass [GeV]", 30, 50, 200),
                          ),
     'h_gen': hist.Hist("h",
                        hist.Cat("process", "Process"),
-                       hist.Bin("gmass", r"gen Res mass [GeV]", 48, 20, 260),
+                       hist.Bin("gmass", r"gen Res mass [GeV]", 56, 20, 300),
                        hist.Bin("gpt_over_mass", "gen H pT/mass", 30, 0, 25),
                        hist.Bin("gpt", r" gen H pt [GeV]", 30, 200, 1600),
                        ),
     'fj_dr': hist.Hist("dr",
                        hist.Cat("process", "Process"),
-                       hist.Bin("gmass", r"gen Res mass [GeV]", 48, 20, 260),
+                       hist.Bin("gmass", r"gen Res mass [GeV]", 56, 20, 300),
                        hist.Bin("dr_W", r"dR(fj,W)", 25, 0, 2.5),
                        hist.Bin("dr_Wstar", r"dR(fj,W*)", 25, 0, 2.5),
                        hist.Bin("min_dr_Wdau", r"min dR(fj,4qs)", 30, 0, 1.0),
@@ -34,7 +35,7 @@ hists_dict = {
                        ),
     'w_gen': hist.Hist("w",
                        hist.Cat("process", "Process"),
-                       hist.Bin("gmass", r"gen Res mass [GeV]", 48, 20, 260),
+                       hist.Bin("gmass", r"gen Res mass [GeV]", 56, 20, 300),
                        hist.Bin("wmass", r"gen W mass [GeV]", 30, 10, 110),
                        hist.Bin("wsmass", r"gen W* mass [GeV]", 30, 10, 100),
                        hist.Bin("wpt", r"gen W pT [GeV]", 30, 50, 1000),
@@ -51,7 +52,7 @@ hists_dict = {
                             ),
     'labels_ww': hist.Hist("labels",
                            hist.Cat("process", "Process"),
-                           hist.Bin("gmass", r"gen Res mass [GeV]", 48, 20, 260),
+                           hist.Bin("gmass", r"gen Res mass [GeV]", 56, 20, 300),
                            hist.Bin("ww_4q", "WW 4q label", 2, 0, 2),
                            hist.Bin("ww_3q", "WW 3q label", 2, 0, 2),
                            hist.Bin("ww_elenuqq_merged", "WW ele merged label", 2, 0, 2),
@@ -61,7 +62,7 @@ hists_dict = {
                            ),
     'target': hist.Hist("mass",
                         hist.Cat("process", "Process"),
-                        hist.Bin("gmass", r"gen Res mass [GeV]", 48, 20, 260),
+                        hist.Bin("gmass", r"gen Res mass [GeV]", 56, 20, 300),
                         hist.Bin("genmsd", r"fj gen msoftdrop [GeV]", 60, 0, 260),
                         hist.Bin("targetmass", r"target mass [GeV]", 70, 0, 260),
                         ),
@@ -130,8 +131,10 @@ def plot_by_mass(h, vars_to_plot, plabel, args, by_proc=[]):
                 ax_var.set_title(proc)
         if density:
             fig.savefig("%s/%s_by_mh_density.pdf" % (args.odir, plotlabel))
+            fig.savefig("%s/%s_by_mh_density.png" % (args.odir, plotlabel))
         else:
             fig.savefig("%s/%s_by_mh.pdf" % (args.odir, plotlabel))
+            fig.savefig("%s/%s_by_mh.png" % (args.odir, plotlabel))
 
 
 def plot_by_process(h, vars_to_plot, label, args):
@@ -145,8 +148,10 @@ def plot_by_process(h, vars_to_plot, label, args):
         fig.tight_layout()
         if density:
             fig.savefig("%s/%s_density.pdf" % (args.odir, label))
+            fig.savefig("%s/%s_density.png" % (args.odir, label))
         else:
             fig.savefig("%s/%s.pdf" % (args.odir, label))
+            fig.savefig("%s/%s.png" % (args.odir, label))
 
 
 if __name__ == "__main__":
@@ -165,16 +170,23 @@ if __name__ == "__main__":
     os.system('mkdir -p %s' % args.odir)
 
     ifiles = {
-        "grav": os.path.join(args.data_dir, "train/GravitonToHHToWWWW*/*.root:Events"),
-        "hh": os.path.join(args.data_dir, "test/*HH*cHHH1*/*.root:Events"),
-        "qcd": os.path.join(args.data_dir, "train/QCD*/*.root:Events"),
-        "bulk": os.path.join(args.data_dir, "train/Bulk*HHTo4Q*/*.root:Events"),
-        "hww": os.path.join(args.data_dir, "test/*HToWW_*/*.root:Events"),
-        "hwwlnuqq": os.path.join(args.data_dir, "test/*HToWWTo*/*.root:Events"),
-        "tthad": os.path.join(args.data_dir, "test/*TTToHad*/*.root:Events"),
-        "ttlep": os.path.join(args.data_dir, "test/*TTToSemi*/*.root:Events"),
-        "wjets": os.path.join(args.data_dir, "test/*WJets*/*.root:Events"),
+        "grav": os.path.join(args.data_dir, "*/GravitonToHHToWWWW*/*.root:Events"),
+        "bg": os.path.join(args.data_dir, "*/*BulkGravTohhTohVVhbb_*/*.root:Events"),
+        "hh": os.path.join(args.data_dir, "*/*HH*cHHH1*/*.root:Events"),
+        "qcd": os.path.join(args.data_dir, "*/QCD*/*.root:Events"),
+        "bulk": os.path.join(args.data_dir, "*/Bulk*HHTo4Q*/*.root:Events"),
+        "hww": os.path.join(args.data_dir, "*/*HToWW_*/*.root:Events"),
+        "hwwlnuqq": os.path.join(args.data_dir, "*/*HToWWTo*/*.root:Events"),
+        "tthad": os.path.join(args.data_dir, "*/*TTToHad*/*.root:Events"),
+        "ttlep": os.path.join(args.data_dir, "*/*TTToSemi*/*.root:Events"),
+        "wjets": os.path.join(args.data_dir, "*/*WJets*/*.root:Events"),
     }
+    #import glob
+    #lfiles_smhww = glob.glob(os.path.join(args.data_dir, "*/*HH*cHHH1*/*.root")) + glob.glob(os.path.join(args.data_dir, "*/*HToWW_*/*.root")) + glob.glob(os.path.join(args.data_dir, "*/*HToWWTo*/*.root"))
+    ifiles["smhww"] = {os.path.join(args.data_dir, "*/*HH*cHHH1*/*.root"): "Events",
+                       os.path.join(args.data_dir, "*/*HToWW_*/*.root"): "Events",
+                       os.path.join(args.data_dir, "*/*HToWWTo*/*.root"): "Events"}
+    print(ifiles["smhww"])
     # use few files if testing script
     if args.test:
         ifiles = {
@@ -194,7 +206,7 @@ if __name__ == "__main__":
                 "fj_genjetmsd",
                 "fj_genRes_mass",
                 "fj_genRes_pt",
-                #"fj_maxdR_HWW_daus",
+                "fj_maxdR_HWW_daus",
                 "fj_nProngs",
                 ]
     branches += sig_branches
@@ -202,8 +214,8 @@ if __name__ == "__main__":
     branches += hqq_branches
     
     #branches += ["fj_isW","fj_isWlep","fj_isTop","fj_isToplep"]
-    #branches += ["fj_dR_W", "fj_dR_Wstar", "fj_mindR_HWW_daus",
-    #             "fj_genW_pt", "fj_genWstar_pt", "fj_genW_mass", "fj_genWstar_mass"]
+    branches += ["fj_dR_W", "fj_dR_Wstar", "fj_mindR_HWW_daus",
+                 "fj_genW_pt", "fj_genWstar_pt", "fj_genW_mass", "fj_genWstar_mass"]
 
     # define selection
     if args.selection == "regression":
@@ -220,10 +232,10 @@ if __name__ == "__main__":
             "( ( (fj_H_WW_4q==1) | (fj_H_WW_elenuqq==1) | (fj_H_WW_munuqq==1) | (fj_H_WW_taunuqq==1) ) & "\
             "(fj_maxdR_HWW_daus<2.0) & (fj_nProngs>1) & (fj_genRes_mass>0) ) )"
 
-    mask = "(fj_pt>200) & (fj_pt<2500) & (fj_msoftdrop>=30) & (fj_msoftdrop<260)" # relaxed mask
-    mask = "(fj_pt>200) & (fj_pt<2500)" # basic mask
+    mask = "(fj_pt>200) & (fj_pt<2500) & (fj_msoftdrop>=30) & (fj_msoftdrop<320)" # relaxed mask
+    #mask = "(fj_pt>200) & (fj_pt<2500)" # basic mask
     #mask = "(fj_pt>200) & (fj_pt<2500) & ((fj_genRes_mass<0) | (fj_genRes_pt/fj_genRes_mass<=5))" #ptmass mask
-    #mask = "(fj_pt>200) & (fj_pt<2500) & ((fj_genRes_mass<0) | ((fj_genW_mass>40) & (fj_genWstar_mass<50)))"
+    #mask = "(fj_pt>200) & (fj_pt<2500) & ((fj_genRes_mass<0) | ((fj_genW_mass>40) & (fj_genWstar_mass<50)))" #wstar mass mask
     
     # define processes
     proc_dict = {
@@ -275,7 +287,14 @@ if __name__ == "__main__":
     proc_dict["hh"] = proc_dict["hww_all"]
     proc_dict["hww"] = proc_dict["hww_all"]
     proc_dict["hwwlnuqq"] = proc_dict["hww_all"]
+    proc_dict["smhww"] = proc_dict["hww_all"]
     proc_dict["bulk"] = proc_dict["hqq_all"]
+    proc_dict["bg"] = proc_dict["hqq_all"]
+    for key,item in proc_dict["hww_all"].items():
+        proc_dict["bg"][key] = item
+
+    for key,item in proc_dict["hqq_all"].items():
+        proc_dict["hh"][key] = item
 
     # try all
     #proc_dict["qcd"] = {"qcd": "fj_isQCDb"}
@@ -292,6 +311,7 @@ if __name__ == "__main__":
     for sample in args.samples.split(','):
         print(ifiles[sample], branches)
         events = uproot.iterate(ifiles[sample], branches, mask)
+        print(events)
         
         for ev in events:
             # need to define new variables for all labels:
@@ -315,7 +335,8 @@ if __name__ == "__main__":
                     if k == "fj_prop":
                         hists[k].fill(process=proc,
                                       gmass=ev.fj_genRes_mass[mask_proc],
-                                      msd=ev.fj_msoftdrop[mask_proc],
+                                      #msd=ev.fj_msoftdrop[mask_proc],
+                                      msd=ev.fj_mass[mask_proc],
                                       pt=ev.fj_pt[mask_proc],
                                       mass=ev.fj_mass[mask_proc],
                                       )
@@ -390,4 +411,7 @@ if __name__ == "__main__":
             plot_by_mass(h, var_dict[k], k, args)
 
             # plot by mass for these different processes
-            plot_by_mass(h, var_dict[k], k, args, by_proc=["HWW4q", "HWW3q", "HWWele-merged", "HWWtau-merged"])
+            if sample=="bulk":
+                plot_by_mass(h, var_dict[k], k, args, by_proc=["Hbb","Hcc","Hqq"])
+            else:
+                plot_by_mass(h, var_dict[k], k, args, by_proc=["HWW4q", "HWW3q", "HWWele-merged", "HWWtau-merged"])
