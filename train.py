@@ -293,9 +293,6 @@ def train_load(args):
     if args.in_memory and (args.steps_per_epoch is None or args.steps_per_epoch_val is None):
         raise RuntimeError("Must set --steps-per-epoch when using --in-memory!")
 
-    print(f"\n\n\n\n\n{train_files}\n\n\n\n\n")
-    print(val_files)
-
     train_data = SimpleIterDataset(
         train_files,
         args.data_config,
@@ -618,6 +615,7 @@ def model_setup(args, data_config):
     if args.use_amp:
         network_options["use_amp"] = True
     model, model_info = network_module.get_model(data_config, **network_options)
+    print(model)
     # _logger.info(model)
     flops(model, model_info)
     return model, model_info, network_module, network_options
