@@ -38,17 +38,20 @@ class DataConfig(object):
             "preprocess": {"method": "manual", "data_fraction": 0.1, "params": None},
             "new_variables": {},
             "inputs": {},
+            # "edge_inputs": {},
             "labels": {},
             "observers": [],
             "monitor_variables": [],
             "weights": None,
         }
+
         for k, v in kwargs.items():
             if v is not None:
                 if isinstance(opts[k], dict):
                     opts[k].update(v)
                 else:
                     opts[k] = v
+
         # only information in ``self.options'' will be persisted when exporting to YAML
         self.options = opts
         if print_info:
@@ -66,6 +69,7 @@ class DataConfig(object):
         self.preprocess_params = (
             opts["preprocess"]["params"] if opts["preprocess"]["params"] is not None else {}
         )
+
         # inputs
         self.input_names = tuple(opts["inputs"].keys())
         self.input_dicts = {k: [] for k in self.input_names}
@@ -101,6 +105,43 @@ class DataConfig(object):
                     if params["center"] == "auto":
                         self._missing_standardization_info = True
                     self.preprocess_params[v[0]] = params
+
+        # # edgeinputs
+        # self.edge_input_names = tuple(opts["edge_inputs"].keys())
+        # self.edge_input_dicts = {k: [] for k in self.edge_input_names}
+        # self.edge_input_shapes = {}
+        # for k, o in opts["edge_inputs"].items():
+        #     self.edge_input_shapes[k] = (-1, len(o["vars"]), o["length"])
+        #     for v in o["vars"]:
+        #         v = _as_list(v)
+        #         self.edge_input_dicts[k].append(v[0])
+        #
+        #         if opts["preprocess"]["params"] is None:
+        #
+        #             def _get(idx, default):
+        #                 try:
+        #                     return v[idx]
+        #                 except IndexError:
+        #                     return default
+        #
+        #             params = {
+        #                 "length": o["length"],
+        #                 "pad_mode": o.get("pad_mode", "constant").lower(),
+        #                 "center": _get(1, "auto" if self._auto_standardization else None),
+        #                 "scale": _get(2, 1),
+        #                 "min": _get(3, -5),
+        #                 "max": _get(4, 5),
+        #                 "pad_value": _get(5, 0),
+        #             }
+        #             if v[0] in self.preprocess_params and params != self.preprocess_params[v[0]]:
+        #                 raise RuntimeError(
+        #                     "Incompatible info for variable %s, had: \n  %s\nnow got:\n  %s"
+        #                     % (v[0], str(self.preprocess_params[k]), str(params))
+        #                 )
+        #             if params["center"] == "auto":
+        #                 self._missing_standardization_info = True
+        #             self.preprocess_params[v[0]] = params
+
         # labels
         self.label_type = opts["labels"]["type"]
         self.label_value = opts["labels"]["value"]
@@ -202,6 +243,9 @@ class DataConfig(object):
         # inputs
         for names in self.input_dicts.values():
             self.keep_branches.update(names)
+        # # edge inputs
+        # for names in self.edge_input_dicts.values():
+        #     self.keep_branches.update(names)
         # labels
         self.keep_branches.update(self.label_names)
         # weight

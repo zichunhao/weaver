@@ -226,7 +226,7 @@ class ParticleNetDynamicEdgeConv(MessagePassing):
             z = min_pt / (kin_i[..., 3] + kin_j[..., 3])
             edge_feats.append(torch.log10(z) / 5)
 
-        return torch.stack(edge_feats, dim=-1)
+        return torch.clip(torch.stack(edge_feats, dim=-1), -1.2)
 
     def message(
         self, x_i: Tensor, x_j: Tensor, kin_i: Tensor = None, kin_j: Tensor = None
