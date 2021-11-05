@@ -22,6 +22,8 @@ from torch_geometric.nn import global_mean_pool
 # import torch_geometric.transforms as T
 from torch_cluster import knn, knn_graph
 
+# from torch_geometric.nn.pool import knn, knn_graph
+
 import numpy as np
 
 
@@ -320,11 +322,20 @@ class ParticleNetTaggerPyGHetero(nn.Module):
 
             # separate knn for each interaction
             if idx == 0:
-                pf_edge_index = knn_graph(pf_points, pf_k, pf_batch)
-                sv_edge_index = knn_graph(sv_points, sv_k, sv_batch)
+                pf_edge_index = knn_graph(pf_points, pf_k, pf_batch, loop=True)
+                sv_edge_index = knn_graph(sv_points, sv_k, sv_batch, loop=True)
                 # knn goes from pfs -> sv but for message passing we want sv -> pf so edge index is
                 # inverted (same for pf -> sv message passing).
-                pf_sv_edge_index = knn(sv_points, pf_points, pf_sv_k, sv_batch, pf_batch)[[1, 0]]
+                try:
+                    pf_sv_edge_index = knn(sv_points, pf_points, pf_sv_k, sv_batch, pf_batch)[
+                        [1, 0]
+                    ]
+                except RuntimeError:
+                    torch.save(pf_points.cpu(), "pf_points.pt")
+                    torch.save(sv_points.cpu(), "sv_points.pt")
+                    torch.save(pf_batch.cpu(), "pf_batch.pt")
+                    torch.save(sv_batch.cpu(), "sv_batch.pt")
+                    raise
                 sv_pf_edge_index = knn(pf_points, sv_points, sv_pf_k, pf_batch, sv_batch)[[1, 0]]
             else:
                 pf_edge_index = knn_graph(data["pfs"].x, pf_k, pf_batch)
