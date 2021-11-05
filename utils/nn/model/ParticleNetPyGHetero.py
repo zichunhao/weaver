@@ -157,7 +157,7 @@ def knn_hack(pf_points, sv_points, pf_sv_k, sv_pf_k, pf_batch, sv_batch):
     # issue occurs when no SVs in the last batch
     if sv_batch[-1] != pf_batch[-1]:
         # find index of last batch and remove all nodes in that batch from pf tensors
-        last_batch_idx = torch.searchsorted(pf_batch, pf_batch[-1])
+        last_batch_idx = torch.searchsorted(pf_batch, sv_batch[-1] + 1)
         temp_pf_batch = pf_batch[:last_batch_idx]
         temp_pf_points = pf_points[:last_batch_idx]
 
