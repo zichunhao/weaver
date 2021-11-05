@@ -151,6 +151,27 @@ class ParticleNetEdgeNet(MessagePassing):
         return "{}(nn={})".format(self.__class__.__name__, self.nn)
 
 
+def knn_hack(pf_points, sv_points, pf_sv_k, sv_pf_k, pf_batch, sv_batch):
+    """quick hack for knn while waiting for fix for https://github.com/pyg-team/pytorch_geometric/issues/3441"""
+
+    # issue occurs when no SVs in the last batch
+    if sv_batch[-1] != pf_batch[-1]:
+        # find index of last batch and remove all nodes in that batch from pf tensors
+        last_batch_idx = torch.searchsorted(pf_batch, pf_batch[-1])
+        temp_pf_batch = pf_batch[:last_batch_idx]
+        temp_pf_points = pf_points[:last_batch_idx]
+
+        pf_sv_edge_index = knn(sv_points, temp_pf_points, pf_sv_k, sv_batch, temp_pf_batch)[[1, 0]]
+        sv_pf_edge_index = knn(temp_pf_points, sv_points, sv_pf_k, temp_pf_batch, sv_batch)[[1, 0]]
+
+        return pf_sv_edge_index, sv_pf_edge_index
+    else:
+        pf_sv_edge_index = knn(sv_points, pf_points, pf_sv_k, sv_batch, pf_batch)[[1, 0]]
+        sv_pf_edge_index = knn(pf_points, sv_points, sv_pf_k, pf_batch, sv_batch)[[1, 0]]
+
+        return pf_sv_edge_index, sv_pf_edge_index
+
+
 class ParticleNetTaggerPyGHetero(nn.Module):
     """
     Tagger module, forward pass takes an input of particle flow (pf) candidates and secondary
@@ -326,26 +347,27 @@ class ParticleNetTaggerPyGHetero(nn.Module):
                 sv_edge_index = knn_graph(sv_points, sv_k, sv_batch, loop=True)
                 # knn goes from pfs -> sv but for message passing we want sv -> pf so edge index is
                 # inverted (same for pf -> sv message passing).
-                try:
-                    pf_sv_edge_index = knn(sv_points, pf_points, pf_sv_k, sv_batch, pf_batch)[
-                        [1, 0]
-                    ]
-                except RuntimeError:
-                    torch.save(pf_points.cpu(), "pf_points.pt")
-                    torch.save(sv_points.cpu(), "sv_points.pt")
-                    torch.save(pf_batch.cpu(), "pf_batch.pt")
-                    torch.save(sv_batch.cpu(), "sv_batch.pt")
-                    raise
-                sv_pf_edge_index = knn(pf_points, sv_points, sv_pf_k, pf_batch, sv_batch)[[1, 0]]
+
+                # pf_sv_edge_index = knn(sv_points, pf_points, pf_sv_k, sv_batch, pf_batch)[[1, 0]]
+                # sv_pf_edge_index = knn(pf_points, sv_points, sv_pf_k, pf_batch, sv_batch)[[1, 0]]
+
+                pf_sv_edge_index, sv_pf_edge_index = knn_hack(
+                    pf_points, sv_points, pf_sv_k, sv_pf_k, pf_batch, sv_batch
+                )
             else:
                 pf_edge_index = knn_graph(data["pfs"].x, pf_k, pf_batch)
                 sv_edge_index = knn_graph(data["svs"].x, sv_k, sv_batch)
-                pf_sv_edge_index = knn(data["svs"].x, data["pfs"].x, pf_sv_k, sv_batch, pf_batch)[
-                    [1, 0]
-                ]
-                sv_pf_edge_index = knn(data["pfs"].x, data["svs"].x, sv_pf_k, pf_batch, sv_batch)[
-                    [1, 0]
-                ]
+
+                # pf_sv_edge_index = knn(data["svs"].x, data["pfs"].x, pf_sv_k, sv_batch, pf_batch)[
+                #     [1, 0]
+                # ]
+                # sv_pf_edge_index = knn(data["pfs"].x, data["svs"].x, sv_pf_k, pf_batch, sv_batch)[
+                #     [1, 0]
+                # ]
+
+                pf_sv_edge_index, sv_pf_edge_index = knn_hack(
+                    data["pfs"].x, data["svs"].x, pf_sv_k, sv_pf_k, pf_batch, sv_batch
+                )
 
             data["pfs", "edge", "pfs"].edge_index = pf_edge_index
             data["svs", "edge", "svs"].edge_index = sv_edge_index
