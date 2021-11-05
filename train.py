@@ -617,7 +617,7 @@ def model_setup(args, data_config):
     model, model_info = network_module.get_model(data_config, **network_options)
     print(model)
     # _logger.info(model)
-    flops(model, model_info)
+    # flops(model, model_info)
     return model, model_info, network_module, network_options
 
 
