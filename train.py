@@ -608,6 +608,7 @@ def main(args):
         validation_losses = []
 
         best_valid_metric = np.inf if args.regression_mode else 0
+        best_epoch = None if args.regression_mode else 0
         for epoch in range(args.num_epochs):
             if args.load_epoch is not None:
                 if epoch <= args.load_epoch:
@@ -636,12 +637,19 @@ def main(args):
                 valid_metric > best_valid_metric)
             if is_best_epoch:
                 best_valid_metric = valid_metric
+                if not args.regression_mode:
+                    best_epoch = epoch
                 if args.model_prefix:
                     shutil.copy2(args.model_prefix + '_epoch-%d_state.pt' %
                                  epoch, args.model_prefix + '_best_epoch_state.pt')
                     torch.save(model, args.model_prefix + '_best_epoch_full.pt')
-            _logger.info('Epoch #%d: Current validation metric: %.5f (best: %.5f)' %
-                         (epoch, valid_metric, best_valid_metric), color='bold')
+
+            if not args.regression_mode:
+                _logger.info('Epoch #%d: Current validation metric: %.5f (best: %.5f at Epoch #%d)' %
+                             (epoch, valid_metric, best_valid_metric, best_epoch), color='bold')
+            else:
+                _logger.info('Epoch #%d: Current validation metric: %.5f (best: %.5f)' %
+                             (epoch, valid_metric, best_valid_metric), color='bold')
 
             np.savetxt(args.model_prefix + "_training_losses.txt", training_losses)
             np.savetxt(args.model_prefix + "_validation_losses.txt", validation_losses)
