@@ -121,7 +121,11 @@ class ParticleNetDynamicEdgeConv(MessagePassing):
 
         self.use_edge_feats = use_edge_feats and self.num_edge_feats > 0
 
-        self.nn = LinearNet(out_feats, in_feat * 2 + self.num_edge_feats, batch_norm=batch_norm)
+        self.nn = LinearNet(
+            out_feats,
+            in_feat * 2 + (self.num_edge_feats * int(self.use_edge_feats)),
+            batch_norm=batch_norm,
+        )
 
         # 1d conv to make input dims -> output dims if not already equal for final shortcut connection
         self.sc = (
@@ -253,6 +257,8 @@ class ParticleNetDynamicEdgeConv(MessagePassing):
             input = torch.cat([x_i, x_j - x_i, edge_feats], dim=-1)
         else:
             input = torch.cat([x_i, x_j - x_i], dim=-1)
+
+        # print(f"{input.shape = }")
 
         return self.nn(input)
 
