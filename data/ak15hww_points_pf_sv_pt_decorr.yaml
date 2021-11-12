@@ -4,16 +4,42 @@ treename:
 selection:
    ### use `&`, `|`, `~` for logical operations on numpy arrays
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-   (fj_pt>300) & (fj_pt<2500) & (fj_msoftdrop>=30) & (fj_msoftdrop<260) & ( (fj_isQCD==1) | ((fj_H_WW_4q==1) & (fj_maxdR_HWW_daus<2.0)) | ((fj_H_WW_elenuqq==1) & (fj_maxdR_HWW_daus<2.0)) | ((fj_H_WW_munuqq==1) & (fj_maxdR_HWW_daus<2.0)) )
+   >
+   (fj_pt>300) & 
+   (fj_pt<2500) & 
+   (fj_msoftdrop>=30) & 
+   (fj_msoftdrop<260) & 
+   ( 
+     (fj_isQCD==1) | 
+     ((fj_H_WW_4q==1) & (fj_maxdR_HWW_daus<2.0)) | 
+     ((fj_H_WW_elenuqq==1) & (fj_maxdR_HWW_daus<2.0)) | 
+     ((fj_H_WW_munuqq==1) & (fj_maxdR_HWW_daus<2.0)) 
+   )
 
 test_time_selection:
-   (fj_pt>300) & (fj_pt<2500) & (fj_msoftdrop>=30) & (fj_msoftdrop<260) & ((fj_isQCD==1) | ((fj_genH_mass==125) & (((fj_H_WW_4q==1) & (fj_maxdR_HWW_daus<2.0)) | ((fj_H_WW_elenuqq==1) & (fj_maxdR_HWW_daus<2.0)) | ((fj_H_WW_munuqq==1) & (fj_maxdR_HWW_daus<2.0)))))
+    >
+    (fj_pt>300) &
+    (fj_pt<2500) &
+    (fj_msoftdrop>=30) &
+    (fj_msoftdrop<260) &
+    ( ( ( (fj_isQCDb==1) |
+     (fj_isQCDbb==1) |
+     (fj_isQCDc==1) |
+     (fj_isQCDcc==1) |
+     (fj_isQCDlep == 1) |
+     (fj_isQCDothers == 1) ) & (fj_genRes_mass<0) ) |
+     ( ((fj_H_WW_4q==1) & (fj_maxdR_HWW_daus<2.0)) |
+       ((fj_H_WW_elenuqq==1) & (fj_maxdR_HWW_daus<2.0)) |
+       ((fj_H_WW_munuqq==1) & (fj_maxdR_HWW_daus<2.0)) |
+       ((fj_H_WW_taunuqq==1) & (fj_maxdR_HWW_daus<2.0)) ) )
+
 
 new_variables:
    ### [format] name: formula
    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
    pfcand_mask: (pfcand_pt_log_nopuppi!=0)
    sv_mask: (sv_pt_log!=0)
+   fj_isQCD: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep == 1) | (fj_isQCDothers == 1)
 
 preprocess:
   ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -84,10 +110,9 @@ labels:
    ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
    type: simple
    value: [
-      fj_H_WW_4q, fj_H_WW_elenuqq, fj_H_WW_munuqq,
-      fj_isQCD, 
-      #fj_isTop,
-      ]
+       fj_H_WW_4q, fj_H_WW_elenuqq, fj_H_WW_munuqq,
+       fj_isQCD, 
+   ]
    ### [option 2] otherwise use `custom` to define the label, then `value` is a map
    # type: custom
    # value: 
@@ -106,7 +131,7 @@ observers:
    - fj_PN_H4qvsQCD
    - fj_mindR_HWW_daus
    - fj_maxdR_HWW_daus
-   - fj_genH_mass
+   - fj_genRes_mass
    - fj_genW_mass
    - fj_genWstar_mass
    - fj_genW_pt
@@ -124,6 +149,6 @@ weights:
    reweight_vars:
       fj_pt: [300, 380, 481, 658, 770, 974, 1233, 1561, 1975, 2500]
       fj_msoftdrop: [-10000, 10000]
-   reweight_classes: [fj_isQCD, fj_H_WW_4q, fj_H_WW_elenuqq, fj_H_WW_munuqq] #,fj_isTop]
+   reweight_classes:  [fj_isQCD, fj_H_WW_4q, fj_H_WW_elenuqq, fj_H_WW_munuqq]
    class_weights: [1, 0.33, 0.33, 0.33] #, 1]
    reweight_hists:
