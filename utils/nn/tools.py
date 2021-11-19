@@ -40,6 +40,8 @@ def train_classification(
     steps_per_epoch=None,
     grad_scaler=None,
     tb_helper=None,
+    l1_lambda=0,
+    l2_lambda=0,
 ):
     model.train()
 
@@ -73,6 +75,11 @@ def train_classification(
 
             logits = _flatten_preds(model_output, label_mask)
             loss = loss_func(logits, label)
+
+            if l1_lambda > 0:
+                l1_norm = sum(p.abs().sum() for p in model.parameters())
+                loss += l1_lambda * l1_norm
+
             if grad_scaler is None:
                 loss.backward()
                 opt.step()

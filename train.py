@@ -184,6 +184,12 @@ parser.add_argument(
     help="use mixed precision training (fp16); NOT WORKING YET",
 )
 parser.add_argument(
+    "--l1-lambda",
+    type=int,
+    default=0,
+    help="L1 regularization weight. If 0, not used",
+)
+parser.add_argument(
     "--gpus",
     type=str,
     default="0",
@@ -850,6 +856,7 @@ def main(args):
                     steps_per_epoch=args.steps_per_epoch,
                     grad_scaler=scaler,
                     tb_helper=tb,
+                    l1_lambda=args.l1_lambda,
                 )
             )
             if args.model_prefix:
