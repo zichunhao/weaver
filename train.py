@@ -137,7 +137,7 @@ parser.add_argument(
 )
 parser.add_argument("--num-epochs", type=int, default=20, help="number of epochs")
 parser.add_argument(
-    'p', 
+    '-p', 
     "--patience", 
     type=int, 
     default=math.inf, 
