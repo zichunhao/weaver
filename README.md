@@ -80,8 +80,8 @@ pip install tables
 # install onnxruntime if needs to run inference w/ ONNX models
 pip install onnxruntime-gpu
 
-# to choose 1 free GPU to use
-pip install setGPU
+# install tensorboard for visualization
+pip install tensorboard
 
 # install pytorch, follow instructions for your OS/CUDA version at:
 # https://pytorch.org/get-started
