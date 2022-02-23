@@ -15,7 +15,7 @@ import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 from labels import label_dict
-from utils import *
+from plot_utils import *
 
 def fill_hists(args,events,bkg,signal,score):
     pt = "fj_pt"
@@ -30,11 +30,11 @@ def fill_hists(args,events,bkg,signal,score):
     mass = None
     if args.mbranch:
         mass = args.mbranch
-        
+
     hist_features = hist.Hist("Jets",
                               hist.Cat("process", "Process"),
                               hist.Bin("msd", r"fj msoftdrop [GeV]", 40, 30, 260),
-                              hist.Bin("pt", r"fj $p_T$ [GeV]", 50, 200, 1200), # bins of 20                                                                                                            
+                              hist.Bin("pt", r"fj $p_T$ [GeV]", 50, 200, 1200), # bins of 20
                               hist.Bin("score", r"Tagger score", 100, 0, 1),
                               #hist.Bin("pn_score", r"Old Tagger score", 100, 0, 1),
                               )
@@ -43,8 +43,8 @@ def fill_hists(args,events,bkg,signal,score):
         hist_gmass = hist.Hist("genmass",
                                hist.Cat("process", "Process"),
                                hist.Bin("score", r"Tagger score", 70, 0, 1),
-                               hist.Bin("pt", r"fj $p_T$ [GeV]", 50, 200, 1200), # bins of 20                                                                                                           
-                               hist.Bin("mH", r"gen Res mass [GeV]", 42, 50, 260), # bins of 5                                                                                                          
+                               hist.Bin("pt", r"fj $p_T$ [GeV]", 50, 200, 1200), # bins of 20
+                               hist.Bin("mH", r"gen Res mass [GeV]", 42, 50, 260), # bins of 5
                                )
 
     processes = [bkg]
@@ -66,7 +66,7 @@ def fill_hists(args,events,bkg,signal,score):
         else:
             mask_proc = (events[label_dict[p]['label']]==1)
             legends[proc] = legend
-            
+
         # check if events with that mask are not zero
         if len(events[msd][mask_proc])==0:
             processes.remove(proc)
@@ -91,8 +91,8 @@ def fill_hists(args,events,bkg,signal,score):
 def get_score(score,bkg,events,siglabel,bkglabel):
     """
     We expect all scores to sum up to 1, e.g. given two signals in the event (signal 1 and 2) and one background process (background 1)
-      score_signal_1 + score_signal_2 + score_background_1 = 1                                                                                                                                            
-    Then nn_signal_1 = score_signal_1 / (score_signal_1 + score_background_1) = score_signal_1 / (1 - score_signal_2)                                                                                   
+      score_signal_1 + score_signal_2 + score_background_1 = 1
+    Then nn_signal_1 = score_signal_1 / (score_signal_1 + score_background_1) = score_signal_1 / (1 - score_signal_2)
     """
     if bkg=='qcd':
         events[score] = events[f'score_{siglabel}'] / (events[f'score_{siglabel}'] + events['score_fj_isQCDb'] + events['score_fj_isQCDbb'] + events['score_fj_isQCDc'] + events['score_fj_isQCDcc'] + \
@@ -113,21 +113,21 @@ def get_weights_mh125(args,events,signal,mask_flat,mask_mh125):
 
     # get pt bins
     # log bins as: np.round(np.exp(np.linspace(np.log(MIN), np.log(MAX), NUM_BINS))).astype('int').tolist()
-    ptbins = [200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]                                                                                                                           
-    pthistsigmh, bin_edges = np.histogram(events["fj_pt"][mask_proc_sigmh125].to_numpy(), bins=ptbins)                                                                                                  
-    pthistsig, bin_edges = np.histogram(events["fj_pt"][mask_proc_sig].to_numpy(), bins=ptbins)                                                                                                         
+    ptbins = [200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]
+    pthistsigmh, bin_edges = np.histogram(events["fj_pt"][mask_proc_sigmh125].to_numpy(), bins=ptbins)
+    pthistsig, bin_edges = np.histogram(events["fj_pt"][mask_proc_sig].to_numpy(), bins=ptbins)
     pthist = pthistsigmh/pthistsig
 
     # now plot
     weight_sig = pthist[np.digitize(events['fj_pt'][mask_proc_sig].to_numpy(), ptbins)-1]
-    fig, axs = plt.subplots(1,1)                                                                                                                                                                        
-    axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins,histtype='step')                                                                                                                                
-    axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins,weights=weight_sig,histtype='step')                                                                                                             
+    fig, axs = plt.subplots(1,1)
+    axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins,histtype='step')
+    axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins,weights=weight_sig,histtype='step')
     axs.set_xlabel('pT (GeV)')
     axs.legend(['Unweighted','Weighted'])
     fig.savefig(f'%s/ptweights_%s.pdf'%(args.odir,label_dict[signal]['label']))
     fig.savefig(f'%s/ptweights_%s.png'%(args.odir,label_dict[signal]['label']))
-    
+
     fig, axs = plt.subplots(1,1)
     axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins,histtype='step',density=True)
     axs.hist(events["fj_pt"][mask_proc_sig],bins=ptbins,weights=weight_sig,histtype='step',density=True)
@@ -135,7 +135,7 @@ def get_weights_mh125(args,events,signal,mask_flat,mask_mh125):
     axs.legend(['Unweighted','Weighted'])
     fig.savefig(f'%s/ptweights_%s_density.pdf'%(args.odir,label_dict[signal]['label']))
     fig.savefig(f'%s/ptweights_%s_density.png'%(args.odir,label_dict[signal]['label']))
-    
+
     return pthist
 
 def get_branches(args,bkg,siglabel,bkglabel):
@@ -147,7 +147,7 @@ def get_branches(args,bkg,siglabel,bkglabel):
     else:
         msd = "fj_msoftdrop"
         oldpn = "fj_PN_H4qvsQCD"
-        
+
     branches = [pt,msd,eta] #,oldpn]
 
     # mask
@@ -161,7 +161,7 @@ def get_branches(args,bkg,siglabel,bkglabel):
 
     if args.nprongs:
         branches.append("fj_nProngs")
-        
+
     # score branch for signal
     branches.append(siglabel)
     branches.append(f'score_{siglabel}')
@@ -182,7 +182,7 @@ def get_branches(args,bkg,siglabel,bkglabel):
         mask += f"& ( ({bkglabel}==1) | ({siglabel}==1) )"
 
     return branches,mask
-        
+
 def main(args):
     # get signals and backgrounds processes
     signals = args.signals.split(',')
@@ -190,7 +190,7 @@ def main(args):
     if len(signals)!=len(backgrounds):
         print('Number of signals should be the same as backgrounds!')
         exit
-        
+
     pt = "fj_pt"
     eta = "fj_eta"
     if args.dnn:
@@ -199,7 +199,7 @@ def main(args):
     else:
         msd = "fj_msoftdrop"
         oldpn = "fj_PN_H4qvsQCD"
-        
+
     # for each (signal,bkg) process build a roc curve
     fp_tp_all = {}
     for i,sig in enumerate(signals):
@@ -222,11 +222,11 @@ def main(args):
             events["fj_QCD_label"] = events["fj_isQCDb"] | events["fj_isQCDbb"] | events["fj_isQCDc"] | events["fj_isQCDcc"] | events["fj_isQCDlep"] | events["fj_isQCDothers"]
         if bkg=='qcd_dnn':
             events["fj_QCD_label"] = events["label_QCD_b"] | events["label_QCD_bb"] | events["label_QCD_c"] | events["label_QCD_cc"] | events["label_QCD_others"]
-        
+
         # compute scores
         score = f"{args.name}_score"
         get_score(score,bkg,events,siglabel,bkglabel)
-            
+
         # get ROCs
         # by default apply pT and msd selection
         ptcut = r'%s $p_T$:[400-600] GeV, $|\eta|<2.4$'%args.jet
@@ -234,7 +234,7 @@ def main(args):
         roc_mask = (events[pt] > 400) & (events[pt] < 600) & (events[msd] > 90) & (events[msd] < 140) & (abs(events["fj_eta"])<2.4)
         roc_mask_num = roc_mask
         roc_mask_den = (events[pt] > 400) & (events[pt] < 600) & (abs(events["fj_eta"])<2.4)
-        
+
         fp_tp = {}
         fp_tp[score]     = get_roc(events, score, siglabel, bkglabel, roc_mask=roc_mask)
         #fp_tp['PNnonMD'] = get_roc(events, oldpn, siglabel, bkglabel, roc_mask=roc_mask)
@@ -243,7 +243,7 @@ def main(args):
 
         #np.savetxt("../xcheckdawei/precutmass_ROC_ParticleNetV01_official-Cristina.csv", np.vstack((fp_tp['PNnonMD-nomass'][1], fp_tp['PNnonMD-nomass'][0])).T,delimiter=',')
         #np.savetxt("../xcheckdawei/postcutmass_ROC_ParticleNetV01_official-Cristina.csv", np.vstack((fp_tp['PNnonMD-ratio'][1], fp_tp['PNnonMD-ratio'][0])).T,delimiter=',')
-        
+
         if args.mbranch:
             mask_flat = (events[args.mbranch] != 125)
             mask_mh125 = (events[args.mbranch] == 125)
@@ -272,13 +272,13 @@ def main(args):
             if args.nprongs:
                 fp_tp['3prongs'] = get_roc(events, score, siglabel, bkglabel, roc_mask=roc_mask, sig_mask=(events["fj_nProngs"] == 3))
                 fp_tp['4prongs'] = get_roc(events, score, siglabel, bkglabel, roc_mask=roc_mask, sig_mask=(events["fj_nProngs"] == 4))
-            
+
         # plot ROC
         title = f"ROC Curve of {siglegend} vs {bkglegend}"
         label = f"{siglabel}vs{bkglabel}"
         plot_roc(odir, siglegend, bkglegend, fp_tp, label=label+"_pn", title=title, pkeys=[score],ptcut=ptcut, msdcut=msdcut)
         plot_roc(odir, siglegend, bkglegend, fp_tp, label=label+"_pnnonmd", title=title, pkeys=[score,'PNnonMD'],ptcut=ptcut, msdcut=msdcut)
-        plot_roc(odir, siglegend, bkglegend, fp_tp, label=label+"_summary", title=title, 
+        plot_roc(odir, siglegend, bkglegend, fp_tp, label=label+"_summary", title=title,
                  pkeys=[score,r'$m_H$:125',r'$m_H$:[50-230]'],
                  ptcut=ptcut, msdcut=msdcut)
 
@@ -305,10 +305,10 @@ def main(args):
         plot_var_aftercut(odir,hist_features,["msd"],[bkg],label+"_msdsculpt",cuts,percentiles)
 
         fp_tp_all[sig] = fp_tp[score]
-        
+
     # plot summary ROC
     plot_roc(args.odir, "HWW", "QCD", fp_tp_all, label="allsig_summary", title=f"ROC Curve of HWW vs {bkglegend}", ptcut=ptcut, msdcut=msdcut)
-        
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--ifile', help='input file(s)')
@@ -324,5 +324,5 @@ if __name__ == "__main__":
 
     import os
     os.system('mkdir -p %s'%args.odir)
-    
+
     main(args)
