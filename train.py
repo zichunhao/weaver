@@ -250,6 +250,12 @@ parser.add_argument(
     default=False,
     help="do not run training/prediction but only print model information, e.g., FLOPs and number of parameters of a model",
 )
+parser.add_argument(
+    "--l1-lambda",
+    type=int,
+    default=0,
+    help="L1 regularization weight. If 0, not used",
+)
 parser.add_argument("--profile", action="store_true", default=False, help="run the profiler")
 
 
