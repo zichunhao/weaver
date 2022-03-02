@@ -858,8 +858,12 @@ def main(args):
             scaler = None
 
         # training loop
-        training_losses = []
-        validation_losses = []
+        if args.load_epoch is not None and args.load_epoch > 0:
+            training_losses = list(np.loadtxt(args.model_prefix + "_training_losses.txt"))
+            validation_losses = list(np.loadtxt(args.model_prefix + "_validation_losses.txt"))
+        else:
+            training_losses = []
+            validation_losses = []
 
         best_valid_metric = np.inf if args.regression_mode else 0
         grad_scaler = torch.cuda.amp.GradScaler() if args.use_amp else None
