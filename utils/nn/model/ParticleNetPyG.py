@@ -1,5 +1,6 @@
 """
-Rewriting ParticleNet (https://github.com/hqucms/weaver/blob/master/utils/nn/model/ParticleNet.py) in PyTorch Geometric
+Rewriting ParticleNet (https://github.com/hqucms/weaver/blob/master/utils/nn/model/ParticleNet.py)
+in PyTorch Geometric
 
 Author: Raghav Kansal
 """
@@ -85,9 +86,12 @@ class ParticleNetDynamicEdgeConv(MessagePassing):
         in_feat (int): Number of input features
         out_feat (list): # of output features of each edge network layer
         use_edge_feats (bool): use edge feats during edge convolution or not. Defaults to False.
-        edge_feats (dict): dict of bools specifying which edge features to use, out of ('deltaR', 'm2', 'kT', 'z'). Defaults to all True.
-        aggr (string): The aggregation operator to use (:obj:`"add"`, :obj:`"mean"`, :obj:`"max"`). (default: :obj:`"mean"`)
-        **kwargs (optional): Additional arguments of :class:`torch_geometric.nn.conv.MessagePassing`.
+        edge_feats (dict): dict of bools specifying which edge features to use, out of
+          ('deltaR', 'm2', 'kT', 'z'). Defaults to all True.
+        aggr (string): The aggregation operator to use (:obj:`"add"`, :obj:`"mean"`, :obj:`"max"`).
+          (default: :obj:`"mean"`)
+        **kwargs (optional): Additional arguments of
+          :class:``torch_geometric.nn.conv.MessagePassing``.
     """
 
     def __init__(
@@ -146,9 +150,13 @@ class ParticleNetDynamicEdgeConv(MessagePassing):
 
         Args:
             x (Tensor): input tensor of shape ``[batch size * num nodes per batch, num features]``
-            batch (Tensor): tensor listing batch of each node in x i.e. = ``[0 x num nodes, 1 x num nodes, ..., (N - 1) x num nodes]``
-            coords (Tensor, optional): tensor of coordinates to use for knn, only if not using x features itself ``[batch size * num nodes per batch, num coordinates]``
-            kinematics (Tensor, optional): tensor of (etarel, phirel, pT, E, abseta) kinematics features to use to calculate edge features, of shape ``[batch size * num nodes per batch, 5]``
+            batch (Tensor): tensor listing batch of each node in x i.e. =
+              ``[0 x num nodes, 1 x num nodes, ..., (N - 1) x num nodes]``
+            coords (Tensor, optional): tensor of coordinates to use for knn, only if not using x
+              features itself ``[batch size * num nodes per batch, num coordinates]``
+            kinematics (Tensor, optional): tensor of (etarel, phirel, pT, E, abseta) kinematics
+              features to use to calculate edge features, of shape
+              ``[batch size * num nodes per batch, 5]``
         """
 
         # gets edges to nearest neighbours
@@ -241,13 +249,18 @@ class ParticleNetPyG(nn.Module):
     Args:
         input_dims (int): input node feature size
         num_classes (int): number of output classes
-        conv_params (list of tuples of tuples, optional): parameters for each graph convolutional layer, formatted per layer as (# nearest neighbours, (# of output features per layer))
-        fc_params (list of tuples, optional): layer sizes and dropout rates for final fully connected network, formatted per layer as (layer size, dropout rate)
-        use_fusion (bool, optional): use all intermediate edge conv layer outputs for final output (see forward pass)
+        conv_params (list of tuples of tuples, optional): parameters for each graph convolutional
+          layer, formatted per layer as (# nearest neighbours, (# of output features per layer))
+        fc_params (list of tuples, optional): layer sizes and dropout rates for final fully
+          connected network, formatted per layer as (layer size, dropout rate)
+        use_fusion (bool, optional): use all intermediate edge conv layer outputs for final output
+          (see forward pass)
         use_ftns_bn (bool, optional): use initial batch norm layers on the input
-        use_counts (bool, optional): when averaging divide by actual # of particles or zero-padded # - second one doesn't make sense anymore with PyG so not implemented
+        use_counts (bool, optional): when averaging divide by actual # of particles or zero-padded #
+          - second one doesn't make sense anymore with PyG so not implemented
         for_inference (bool, optional): for inference i.e. whether to use softmax at the end or not
-        for_segmentation (bool, optional): for segmentation - not sure the use case for this - NOT IMPLEMENTED PROPERLY YET
+        for_segmentation (bool, optional): for segmentation - not sure the use case for this -
+          NOT IMPLEMENTED PROPERLY YET
         use_edge_feats (bool): use edge features in dynamic edge conv or not
     """
 
@@ -341,7 +354,9 @@ class ParticleNetPyG(nn.Module):
         """
 
         # convert to PyG format:
-        # points: [batch size * num nodes per jet, num node coordinates], x: [batch size * num nodes per jet, num node features], batch = [0 x num nodes in jet 1 ... 1 x num nodes in jet 2 ... (N - 1) x num nodes]
+        # points: [batch size * num nodes per jet, num node coordinates],
+        # x: [batch size * num nodes per jet, num node features],
+        # batch = [0 x num nodes in jet 1 ... 1 x num nodes in jet 2 ... (N - 1) x num nodes]
         # allows naturally for variable-sized particle clouds
 
         batch_size = points.size(0)
@@ -380,7 +395,9 @@ class ParticleNetPyG(nn.Module):
             fts = self.fusion_block(torch.cat(outputs, dim=1).unsqueeze(2)).squeeze()
 
         if self.for_segmentation:
-            x = fts  # still need to reshape this back into a [batch size, num features, num nodes] shape tensor if actually doing segmentation
+            # still need to reshape this back into a ``[batch size, num features, num nodes]`` shape
+            # tensor if actually doing segmentation
+            x = fts
         else:
             x = global_mean_pool(fts, batch)  #
 
@@ -409,8 +426,8 @@ class FeatureConv(nn.Module):
 
 class ParticleNetTaggerPyG(nn.Module):
     """
-    Tagger module, forward pass takes an input of particle flow (pf) candidates and secondary vertices (sv),
-    and outputs the tagger scores for each class
+    Tagger module, forward pass takes an input of particle flow (pf) candidates and secondary
+    vertices (sv), and outputs the tagger scores for each class
 
     Args:
         pf_features_dim (int): dimension of pf candidate features
@@ -469,9 +486,10 @@ class ParticleNetTaggerPyG(nn.Module):
         Runs pf candidates and svs through ParticleNet and outputs multi-class tagger scores
 
         Args:
-            pf_points (Tensor): pf candidate coordinates of shape [batch size, 2, num particles]
-            pf_features (Tensor): pf candidate features of shape [batch size, num features, num particles]
-            pf_mask (Tensor): pf candidate masks of shape [batch size, num 1, num particles]
+            pf_points (Tensor): pf candidate coordinates of shape ``[batch size, 2, num particles]``
+            pf_features (Tensor): pf candidate features of shape
+              ``[batch size, num features, num particles]``
+            pf_mask (Tensor): pf candidate masks of shape ``[batch size, num 1, num particles]``
             sv_*: same as for pfs
         """
 
@@ -510,14 +528,5 @@ class ParticleNetTaggerPyG(nn.Module):
             dim=2,
         )
         mask = torch.cat((pf_mask, sv_mask), dim=2)
-
-        # print("points")
-        # print(points[:, :, :2])
-        # print("pee")
-        # print(pee[:, :, :2])
-        # print("features")
-        # print(features[:, :2, :2])
-        # print("mask")
-        # print(mask[:, :, :2])
 
         return self.pn(points, pee, features, mask)
