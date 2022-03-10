@@ -4,16 +4,15 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 import os
-from jetnet.utils import to_image
+import jetnet
 from copy import copy
 import mplhep as hep
 from tqdm import tqdm
 from matplotlib import colors
 
-#
+
 # plot_dir = "../plots/sample_checks/"
 # sample_dir = "../sample_data/"
-
 
 plot_dir = "/hwwtaggervol/plots/sample_checks/Mar9/"
 sample_dir = "/hwwtaggervol/training/ak15_Feb14/test/"
@@ -21,6 +20,7 @@ sample_dir = "/hwwtaggervol/training/ak15_Feb14/test/"
 os.system(f"mkdir -p {plot_dir}")
 
 samples = {
+    # label     : [name,         selector to get subset of files (~20 each)]
     "JHU_HHbbWW": ["jhu_HHbbWW", "miniaod_20ul_51"],
     "JHU_HH4W": ["GluGluToBulkGravitonToHHTo4W_JHUGen_M-2500_narrow", "miniaod_20ul_35914-9"],
     "HHbbVV": ["GluGluToHHTobbVV_node_cHHH1_TuneCP5_13TeV-powheg-pythia8", "nano_mc2017_1-"],
@@ -31,27 +31,15 @@ events_dict = {}
 for sample, (dir, sel) in samples.items():
     print(sample)
     events_dict[sample] = uproot.concatenate(f"{sample_dir}/{dir}/{sel}*.root:Events")
-    events_dict[sample]["npfcands"] = np.sum(
-        events_dict[sample]["pfcand_etarel"] != 0, axis=1, keepdims=True
-    )
 
+# n pfcands, n svs
 for sample, (dir, sel) in samples.items():
     events_dict[sample]["npfcands"] = np.sum(
         events_dict[sample]["pfcand_etarel"] != 0, axis=1, keepdims=True
     )
     events_dict[sample]["nsvs"] = np.sum(events_dict[sample]["sv_mass"] != 0, axis=1, keepdims=True)
 
-# ak.values_astype(masks[sample], bool)
-# events_dict[sample][masks[sample]]
-events_dict[sample].fields
-
-
-events_dict[sample]["fj_H_WW_4q"]
-events_dict[sample]["fj_genW_pt"]
-events_dict[sample]["fj_genWstar_pt"]
-events_dict[sample]["fj_genWstar_eta"]
-events_dict[sample]["fj_eta"]
-
+# get pT and WW_4q mask
 pt_min = 300
 pt_max = 400
 
@@ -62,6 +50,7 @@ for sample, events in events_dict.items():
         (events["fj_pt"] > pt_min) * (events["fj_pt"] < pt_max) * (events["fj_H_WW_4q"]), bool
     )
 
+# features to plot and plot ranges
 features = {
     "npfcands": [0, 100],
     "nsvs": [0, 10],
@@ -97,13 +86,8 @@ features = {
     "sv_d3dsig": [0, 20],
 }
 
-#
-# # tagger_vars["sv_features"]["var_names"]
-#
 # with open("../models/pyg_ef_ul_cw_8_2_preprocess.json") as f:
 #     tagger_vars = json.load(f)
-#
-# tagger_vars
 
 for var, bins in features.items():
     print(var)
@@ -120,6 +104,8 @@ for var, bins in features.items():
     plt.savefig(f"{plot_dir}/{var}.pdf")
     plt.close()
 
+
+# jet images
 
 average_images = {}
 
@@ -142,7 +128,7 @@ def del_phi(a, b):
 
 def event_to_image(event, maxR, im_size):
     num_parts = np.sum(event["pfcand_etarel"] != 0)
-    return to_image(
+    return jetnet.utils.to_image(
         np.vstack(
             (
                 event["pfcand_etarel"].to_numpy()[:num_parts],
@@ -204,27 +190,11 @@ for j, (sample, events) in enumerate(events_dict.items()):
             ms=30,
             mew=2,
         )
-        # axes[j][i].plot(
-        #     events[i]["fj_genW_phi"],  # - events[i]["fj_phi"],
-        #     events[i]["fj_genW_eta"],  # - events[i]["fj_eta"],
-        #     "+",
-        #     color="brown",
-        #     ms=30,
-        #     mew=2,
-        # )
-        # axes[j][i].plot(
-        #     events[i]["fj_genWstar_phi"],  # - events[i]["fj_phi"],
-        #     events[i]["fj_genWstar_eta"],  # - events[i]["fj_eta"],
-        #     "b+",
-        #     ms=30,
-        #     mew=2,
-        # )
         axes[j][i].tick_params(which="both", bottom=False, top=False, left=False, right=False)
         axes[j][i].set_xlabel("$\phi^{rel}$")
         axes[j][i].set_ylabel("$\eta^{rel}$")
 
     # average jet image
-
     if sample not in average_images:
         num_ave_ims = 200
         ave_im = np.zeros((ave_im_size, ave_im_size))
@@ -252,33 +222,3 @@ for j, (sample, events) in enumerate(events_dict.items()):
 # fig.tight_layout()
 plt.savefig(f"{plot_dir}/jet_images.pdf", bbox_inches="tight")
 plt.show()
-
-
-# sample = "JHU_HH4W"
-# events = events_dict[sample][masks[sample]]
-#
-# i = 0
-#
-# plt.imshow(
-#     event_to_image(events[i], maxR=maxR, im_size=im_size),
-#     cmap=cm,
-#     interpolation="nearest",
-#     extent=[-maxR, maxR, -maxR, maxR],
-#     norm=colors.LogNorm(vmin, vmax),
-# )
-# # plot Ws
-# plt.plot(
-#     events[i]["fj_genW_phi"] - events[i]["fj_phi"],
-#     events[i]["fj_genW_eta"] - events[i]["fj_eta"],
-#     "+",
-#     color="black",
-#     ms=30,
-#     mew=2,
-# )
-# plt.plot(
-#     events[i]["fj_genWstar_phi"] - events[i]["fj_phi"],
-#     events[i]["fj_genWstar_eta"] - events[i]["fj_eta"],
-#     "b+",
-#     ms=30,
-#     mew=2,
-# )
