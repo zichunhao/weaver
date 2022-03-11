@@ -14,7 +14,7 @@ from PyPDF2 import PdfFileMerger
 # plot_dir = "../plots/sample_checks/"
 # sample_dir = "../sample_data/"
 
-plot_dir = "/hwwtaggervol/plots/sample_checks/Mar10/"
+plot_dir = "/hwwtaggervol/plots/sample_checks/Mar11_HWW/"
 sample_dir = "/hwwtaggervol/training/ak15_Feb14/test/"
 
 os.system(f"mkdir -p {plot_dir}")
@@ -25,6 +25,17 @@ samples = {
     "JHU_HH4W": ["GluGluToBulkGravitonToHHTo4W_JHUGen_M-2500_narrow", "miniaod_20ul_35914-9"],
     "HHbbVV": ["GluGluToHHTobbVV_node_cHHH1_TuneCP5_13TeV-powheg-pythia8", "nano_mc2017_1-"],
     "DNN_JHU_HHbbWW": ["jhu_HHbbWW_DNN", "miniaod_20ul_52"],
+    "DNN_JHU_HHbbWW_AK15": ["jhu_HHbbWW_DNN_ak15", "miniaod_52"],
+    # "HWW": ["GluGluHToWWTo4q_M-125_TuneCP5_13TeV-powheg-pythia8", "nano_mc2017_1??_"],
+}
+
+colours = {
+    "JHU_HHbbWW": "blue",
+    "JHU_HH4W": "orange",
+    "HHbbVV": "green",
+    "DNN_JHU_HHbbWW": "red",
+    "DNN_JHU_HHbbWW_AK15": "pink",
+    "HWW": "purple",
 }
 
 events_dict = {}
@@ -36,8 +47,8 @@ for sample, (dir, sel) in samples.items():
         events_dict[sample] = uproot.concatenate(f"{sample_dir}/{dir}/{sel}*.root:{branch}")
 
 
-sample = "DNN_JHU_HHbbWW"
-events_dict
+sample = "JHU_HHbbWW"
+events_dict[sample].fields
 
 file = uproot.open("/hwwtaggervol/training/ak15_Feb14/test//jhu_HHbbWW_DNN/miniaod_20ul_51.root")
 file["deepntuplizer/tree"].keys()
@@ -101,37 +112,62 @@ features = {
     "sv_dxysig": [0, 30],
     "sv_d3d": [0, 5],
     "sv_d3dsig": [0, 20],
+    "fj_dR_W": [0, 1.5],
+    "fj_genW_pt": [0, 100],
+    "fj_genW_eta": [-3.5, 3.5],
+    "fj_genW_phi": [-3.5, 3.5],
+    "fj_genW_mass": [0, 100],
+    "fj_dR_Wstar": [0, 1.5],
+    "fj_genWstar_pt": [0, 100],
+    "fj_genWstar_eta": [-3.5, 3.5],
+    "fj_genWstar_phi": [-3.5, 3.5],
+    "fj_genWstar_mass": [0, 100],
+    "fj_mindR_HWW_daus": [0, 4],
+    "fj_maxdR_HWW_daus": [0, 4],
+    "fj_maxdR_Hbb_daus": [0, 4],
 }
 
 # with open("../models/pyg_ef_ul_cw_8_2_preprocess.json") as f:
 #     tagger_vars = json.load(f)
 
-merger = PdfFileMerger()
+merger_inputs = PdfFileMerger()
+merger_ws = PdfFileMerger()
 
 for var, bins in features.items():
     print(var)
     for sample, events in events_dict.items():
+        if "DNN" in sample and var.startswith("fj"):
+            continue
         vals = events[var][masks[sample]]
-        if var[0] != "n":
+        if not (var.startswith("n") or var.startswith("fj")):
             feat_mask = pfcand_masks[sample] if var.startswith("pfcand") else sv_masks[sample]
             vals = ak.flatten(vals[feat_mask[masks[sample]]])
 
         _ = plt.hist(
             vals,
-            bins=np.linspace(bins[0], bins[1], 15 if var.startswith("sv") else 25),
+            bins=np.linspace(
+                bins[0], bins[1], 15 if (var.startswith("sv") or var.startswith("fj")) else 25
+            ),
             histtype="step",
             density=True,
             label=sample,
+            color=colours[sample],
         )
     plt.legend()
     plt.xlabel(var)
     plt.savefig(f"{plot_dir}/{var}.pdf")
     plt.show()
-    merger.append(f"{plot_dir}/{var}.pdf")
 
-# os.system(f"rm {plot_dir}/feature_plots.pdf")
-merger.write(f"{plot_dir}/feature_plots.pdf")
-merger.close()
+    if var.startswith("fj"):
+        merger_ws.append(f"{plot_dir}/{var}.pdf")
+    else:
+        merger_inputs.append(f"{plot_dir}/{var}.pdf")
+
+merger_inputs.write(f"{plot_dir}/input_feature_plots.pdf")
+merger_inputs.close()
+
+merger_ws.write(f"{plot_dir}/w_feature_plots.pdf")
+merger_ws.close()
 
 
 # jet images
@@ -182,17 +218,21 @@ fig, axes = plt.subplots(
 vmin = 1e-2
 vmax = 200
 
-for j, (sample, events) in enumerate(events_dict.items()):
+for j, sample in enumerate(samples.keys()):
+    events = events_dict[sample]
     events = events[masks[sample]]
 
+    annotate_label = "PKU's" if "DNN" in sample else "Our"
+
     axes[j][0].annotate(
-        sample,
+        f"{sample}\n{annotate_label} PFNanoNTuples",
         xy=(0, -1),
         xytext=(-axes[j][0].yaxis.labelpad - 15, 0),
         xycoords=axes[j][0].yaxis.label,
         textcoords="offset points",
         ha="right",
         va="center",
+        fontsize=48,
     )
 
     for i in range(num_images):
@@ -252,33 +292,3 @@ for j, (sample, events) in enumerate(events_dict.items()):
 # fig.tight_layout()
 plt.savefig(f"{plot_dir}/jet_images.pdf", bbox_inches="tight")
 plt.show()
-
-
-# sample = "JHU_HH4W"
-# events = events_dict[sample][masks[sample]]
-#
-# i = 0
-#
-# plt.imshow(
-#     event_to_image(events[i], maxR=maxR, im_size=im_size),
-#     cmap=cm,
-#     interpolation="nearest",
-#     extent=[-maxR, maxR, -maxR, maxR],
-#     norm=colors.LogNorm(vmin, vmax),
-# )
-# # plot Ws
-# plt.plot(
-#     events[i]["fj_genW_phi"] - events[i]["fj_phi"],
-#     events[i]["fj_genW_eta"] - events[i]["fj_eta"],
-#     "+",
-#     color="black",
-#     ms=30,
-#     mew=2,
-# )
-# plt.plot(
-#     events[i]["fj_genWstar_phi"] - events[i]["fj_phi"],
-#     events[i]["fj_genWstar_eta"] - events[i]["fj_eta"],
-#     "b+",
-#     ms=30,
-#     mew=2,
-# )
