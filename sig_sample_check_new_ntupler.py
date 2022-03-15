@@ -11,7 +11,7 @@ from tqdm import tqdm
 from matplotlib import colors
 from PyPDF2 import PdfFileMerger
 
-plot_dir = "../plots/sample_checks/new_ntupler/Mar15/"
+plot_dir = "../plots/sample_checks/new_ntupler/Mar15_2D_reweight/"
 sample_dir = "../sample_data/tagger_input_outs/"
 
 # plot_dir = "/hwwtaggervol/plots/sample_checks/Mar11_HWW/"
@@ -98,23 +98,58 @@ for sample, mask in masks.items():
 from coffea.lookup_tools.dense_lookup import dense_lookup
 from hist import Hist
 
-bbVV_pt = (Hist.new.Reg(50, 250, 750, name="jetpt", label="$p_T (GeV)$").Double()).fill(
-    jetpt=ak.flatten(events_dict["HHbbVV"].fj_pt[masks["HHbbVV"]]),
+reweight_vars = {"fj_pt": [250, 750], "fj_genRes_pt": [120, 700]}
+bulkG_weights = {}
+
+for var, bins in reweight_vars.items():
+    print(var)
+    bbVV_pt = (Hist.new.Reg(20, *bins, name="pt", label="$p_T (GeV)$").Double()).fill(
+        pt=ak.flatten(events_dict["HHbbVV"][var][masks["HHbbVV"]]),
+    )
+
+    bulkG_pt = (Hist.new.Reg(20, *bins, name="pt", label="$p_T (GeV)$").Double()).fill(
+        pt=ak.flatten(events_dict["JHU_HH4W"][var][masks["JHU_HH4W"]]),
+    )
+
+    pt_weights = bbVV_pt.view(flow=False) / bulkG_pt.view(flow=False)
+    pt_weights_lookup = dense_lookup(pt_weights, bbVV_pt.axes.edges)
+
+    bulkG_weights[var] = pt_weights_lookup(events_dict["JHU_HH4W"][var])
+
+num_bins = 15
+
+bbVV_pt = (
+    Hist.new.Reg(num_bins, *reweight_vars["fj_pt"], name="fj_pt", label="$p_T (GeV)$")
+    .Reg(num_bins, *reweight_vars["fj_genRes_pt"], name="fj_genRes_pt", label="$p_T (GeV)$")
+    .Double()
+).fill(
+    fj_pt=ak.flatten(events_dict["HHbbVV"]["fj_pt"][masks["HHbbVV"]]),
+    fj_genRes_pt=ak.flatten(events_dict["HHbbVV"]["fj_genRes_pt"][masks["HHbbVV"]]),
 )
 
-bulkG_pt = (Hist.new.Reg(50, 250, 750, name="jetpt", label="$p_T (GeV)$").Double()).fill(
-    jetpt=ak.flatten(events_dict["JHU_HH4W"].fj_pt[masks["JHU_HH4W"]]),
+bulkG_pt = (
+    Hist.new.Reg(num_bins, *reweight_vars["fj_pt"], name="fj_pt", label="$p_T (GeV)$")
+    .Reg(num_bins, *reweight_vars["fj_genRes_pt"], name="fj_genRes_pt", label="$p_T (GeV)$")
+    .Double()
+).fill(
+    fj_pt=ak.flatten(events_dict["JHU_HH4W"]["fj_pt"][masks["JHU_HH4W"]]),
+    fj_genRes_pt=ak.flatten(events_dict["JHU_HH4W"]["fj_genRes_pt"][masks["JHU_HH4W"]]),
 )
 
 pt_weights = bbVV_pt.view(flow=False) / bulkG_pt.view(flow=False)
-pt_weights_lookup = dense_lookup(pt_weights, bbVV_pt.axes.edges)
+pt_weights_lookup = dense_lookup(
+    np.nan_to_num(pt_weights, nan=0, posinf=0), np.squeeze(bbVV_pt.axes.edges)
+)
 
-bulkG_weights = pt_weights_lookup(events_dict["JHU_HH4W"].fj_pt)
-
+bulkG_weights["2d"] = pt_weights_lookup(
+    events_dict["JHU_HH4W"]["fj_pt"], events_dict["JHU_HH4W"]["fj_genRes_pt"]
+)
 
 #####################
 # Plot features
 #####################
+
+reweight_var = "2d"
 
 # features to plot and plot ranges
 features = {
@@ -208,12 +243,18 @@ for var, bins in features.items():
             vals = vals[mask]
 
             weights = (
-                np.repeat(bulkG_weights[masks[sample]], np.array(events[var]).shape[1], 1)[mask]
+                np.repeat(
+                    bulkG_weights[reweight_var][masks[sample]], np.array(events[var]).shape[1], 1
+                )[mask]
                 if sample == "JHU_HH4W"
                 else np.ones(len(vals))
             )
         else:
-            weights = bulkG_weights[masks[sample]] if sample == "JHU_HH4W" else np.ones(len(vals))
+            weights = (
+                bulkG_weights[reweight_var][masks[sample]]
+                if sample == "JHU_HH4W"
+                else np.ones(len(vals))
+            )
 
         # print(weights)
 
