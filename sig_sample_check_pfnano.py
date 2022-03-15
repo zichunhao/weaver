@@ -66,7 +66,7 @@ os.system(f"mkdir -p {plot_dir}")
 
 samples = {
     # label     : [name,         selector to get subset of files (~20 each)]
-    "JHU_HHbbWW": ["jhu_HHbbWW", "miniaod_20ul_5179"],
+    "JHU_HHbbWW": ["jhu_HHbbWW", "miniaod_20ul_52"],
     "JHU_HH4W": ["GluGluToBulkGravitonToHHTo4W_JHUGen_M-2500_narrow", "miniaod_20ul_35914-9"],
     # "HHbbVV": ["GluGluToHHTobbVV_node_cHHH1_TuneCP5_13TeV-powheg-pythia8", "nano_mc2017_1-"],
 }
@@ -88,10 +88,11 @@ for sample, (miniaoddir, sel) in samples.items():
         .decode("utf-8")
         .split("\n")[:-1]
     )
-    files = [f"{eosbase}{sample_dir}{miniaoddir}/{f}" for f in fileset if sel in f]
+    files = [f"{eosbase}{sample_dir}{miniaoddir}/{f}:Events" for f in fileset if sel in f]
     print(files)
+    open_files = uproot.concatenate(files)
     events = NanoEventsFactory.from_root(
-        files[0], schemaclass=NanoAODSchema, entry_stop=10000
+        open_files, schemaclass=NanoAODSchema, entry_stop=10000
     ).events()
     events_dict[sample] = events
 
