@@ -116,6 +116,43 @@ for var, bins in reweight_vars.items():
 
     bulkG_weights[var] = pt_weights_lookup(events_dict["JHU_HH4W"][var])
 
+reweight_vars_2d = {
+    "2d_pt": [("fj_pt", [250, 750]), ("fj_genRes_pt", [120, 700])],
+    "2d_pt_eta": [("fj_genRes_eta", [-4, 4]), ("fj_genRes_pt", [120, 700])],
+}
+
+num_bins = 15
+
+for var2d, vars in reweight_vars.items():
+    var1 = vars[0][0]
+    bins1 = vars[0][1]
+    var2 = vars[1][0]
+    bins2 = vars[1][1]
+
+    bbVV_pt = (
+        Hist.new.Reg(num_bins, *bins1, name="var1").Reg(num_bins, *bins2, name="var2").Double()
+    ).fill(
+        var1=ak.flatten(events_dict["HHbbVV"][var1][masks["HHbbVV"]]),
+        var2=ak.flatten(events_dict["HHbbVV"][var2][masks["HHbbVV"]]),
+    )
+
+    bulkG_pt = (
+        Hist.new.Reg(num_bins, *bins1, name="var1").Reg(num_bins, *bins2, name="var2").Double()
+    ).fill(
+        var1=ak.flatten(events_dict["JHU_HH4W"][var1][masks["JHU_HH4W"]]),
+        var2=ak.flatten(events_dict["JHU_HH4W"][var2][masks["JHU_HH4W"]]),
+    )
+
+    pt_weights = bbVV_pt.view(flow=False) / bulkG_pt.view(flow=False)
+    pt_weights_lookup = dense_lookup(
+        np.nan_to_num(pt_weights, nan=0, posinf=0), np.squeeze(bbVV_pt.axes.edges)
+    )
+
+    bulkG_weights[var2d] = pt_weights_lookup(
+        events_dict["JHU_HH4W"][var1], events_dict["JHU_HH4W"][var2]
+    )
+
+
 num_bins = 15
 
 bbVV_pt = (
