@@ -48,7 +48,7 @@ def _build_weights(table, data_config):
             y_indices = np.clip(
                 np.digitize(rwgt_y_vals, y_bins) - 1, a_min=0, a_max=len(y_bins) - 2
             )
-            wgt[pos] = hist[x_indices, y_indices]
+            wgt[np.squeeze(pos)] = hist[x_indices, y_indices]
             sum_evts += pos.sum()
         if sum_evts != len(table[x_var]):
             warn_once(
