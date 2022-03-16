@@ -39,7 +39,7 @@ test_time_selection:
           (fj_isQCDcc==1) |
           (fj_isQCDlep == 1) |
           (fj_isQCDothers == 1) ) &
-        (fj_genRes_mass<0) ) |
+        (fj_genRes_mass<=0) ) |
       ( (fj_H_VV_4q==1) &
         # (fj_maxdR_HVV_daus<2.0) &
         (fj_nprongs>1) &
