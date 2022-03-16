@@ -18,8 +18,8 @@ selection:
           (fj_isQCDc==1) |
           (fj_isQCDcc==1) |
           (fj_isQCDlep == 1) |
-          (fj_isQCDothers == 1) ) &
-        (fj_genRes_mass<0) ) |
+          (fj_isQCDothers == True) ) &
+        (fj_genRes_mass<=0) ) |
       ( (fj_H_VV_4q==1) &
         # (fj_maxdR_HVV_daus<2.5) &
         (fj_nprongs>1) &
