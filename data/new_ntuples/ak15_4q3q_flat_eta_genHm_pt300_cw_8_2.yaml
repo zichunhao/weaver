@@ -25,31 +25,29 @@ selection:
         (fj_nprongs>1) &
         (fj_genRes_mass>0) ) )
 
-test_time_selection:
-    ### selection to apply at test time (i.e., when running w/ --predict)
-    >
-    (fj_pt>300) &
-    (fj_pt<2500) &
-    (np.absolute(fj_eta)<2.4) &
-    (fj_msoftdrop>=30) &
-    (fj_msoftdrop<320) &
-    ( ( ( (fj_isQCDb==1) |
-          (fj_isQCDbb==1) |
-          (fj_isQCDc==1) |
-          (fj_isQCDcc==1) |
-          (fj_isQCDlep == 1) |
-          (fj_isQCDothers == 1) ) &
-        (fj_genRes_mass<=0) ) |
-      ( (fj_H_VV_4q==1) &
-        # (fj_maxdR_HVV_daus<2.0) &
-        (fj_nprongs>1) &
-        (fj_genRes_mass>0) ) )
+# test_time_selection:
+#     ### selection to apply at test time (i.e., when running w/ --predict)
+#     >
+#     (fj_pt>300) &
+#     (fj_pt<2500) &
+#     (np.absolute(fj_eta)<2.4) &
+#     (fj_msoftdrop>=30) &
+#     (fj_msoftdrop<320) &
+#     ( ( ( (fj_isQCDb==1) |
+#           (fj_isQCDbb==1) |
+#           (fj_isQCDc==1) |
+#           (fj_isQCDcc==1) |
+#           (fj_isQCDlep == 1) |
+#           (fj_isQCDothers == 1) ) &
+#         (fj_genRes_mass<=0) ) |
+#       ( (fj_H_VV_4q==1) &
+#         # (fj_maxdR_HVV_daus<2.0) &
+#         (fj_nprongs>1) &
+#         (fj_genRes_mass>0) ) )
 
 new_variables:
     ### [format] name: formula
     ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-    pfcand_mask: (pfcand_pt_log_nopuppi!=0)
-    sv_mask: (sv_pt_log!=0)
     target_mass: np.maximum(1, np.where(fj_genRes_mass>0, fj_genRes_mass, fj_msoftdrop))
     # Background (Top)
     # fj_isTop_merged: (fj_isTop==1) & (fj_nprongs==3)
@@ -157,8 +155,8 @@ observers:
    - fj_phi
    - fj_mass
    - fj_msoftdrop
-   - fj_deepTagMD_H4qvsQCD
-   - fj_deepTag_HvsQCD
+   # - fj_deepTagMD_H4qvsQCD
+   # - fj_deepTag_HvsQCD
    - fj_dR_V
    - fj_dR_Vstar
    - fj_PN_H4qvsQCD
