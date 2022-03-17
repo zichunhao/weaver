@@ -22,7 +22,6 @@ parser.add_argument(
 )
 parser.add_argument(
     "--model-path",
-    dest="val_loss",
     type=str,
     default="models/dnn/ak8_dnn_classification_hwwVSQCD_coli",
     help="validation loss txt file",
