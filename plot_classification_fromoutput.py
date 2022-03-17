@@ -215,7 +215,7 @@ def get_branches(args, bkg, siglabel, bkglabel):
         )
         if args.mbranch:
             mask += (
-                f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)) & ({mass}<0)) | "
+                f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)) & ({mass}<=0)) | "
                 f"(({siglabel}==1) & ({mass}>0)) )"
             )
     elif bkg == "qcd_dnn":
@@ -312,6 +312,7 @@ def main(args):
 
         fp_tp = {}
         fp_tp[score] = get_roc(events, score, siglabel, bkglabel, roc_mask=roc_mask)
+
         # fp_tp['PNnonMD'] = get_roc(events, oldpn, siglabel, bkglabel, roc_mask=roc_mask)
         # fp_tp['PNnonMD-ratio'] = get_roc(events, oldpn, siglabel, bkglabel, ratio=True, mask_num=roc_mask_num, mask_den=roc_mask_den)
         # fp_tp['PNnonMD-nomass'] = get_roc(events, oldpn, siglabel, bkglabel, roc_mask=roc_mask_den)
