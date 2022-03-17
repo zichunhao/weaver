@@ -11,7 +11,7 @@ from tqdm import tqdm
 from matplotlib import colors
 from PyPDF2 import PdfFileMerger
 
-plot_dir = "../plots/sample_checks/new_ntupler/Mar15_2D_reweight/"
+plot_dir = "../plots/sample_checks/new_ntupler/Mar15_2D_reweight_pt_eta/"
 sample_dir = "../sample_data/tagger_input_outs/"
 
 # plot_dir = "/hwwtaggervol/plots/sample_checks/Mar11_HWW/"
@@ -49,8 +49,8 @@ for sample, (dir, sel) in samples.items():
         events_dict[sample] = uproot.concatenate(f"{sample_dir}/{dir}/{sel}*.root:{branch}")
 
 
-# sample = "JHU_HHbbWW"
-# events_dict[sample].fields
+sample = "JHU_HHbbWW"
+events_dict[sample].fields
 #
 # file = uproot.open("/hwwtaggervol/training/ak15_Feb14/test//jhu_HHbbWW_DNN/miniaod_20ul_51.root")
 # file["deepntuplizer/tree"].keys()
@@ -123,7 +123,7 @@ reweight_vars_2d = {
 
 num_bins = 15
 
-for var2d, vars in reweight_vars.items():
+for var2d, vars in reweight_vars_2d.items():
     var1 = vars[0][0]
     bins1 = vars[0][1]
     var2 = vars[1][0]
@@ -152,46 +152,19 @@ for var2d, vars in reweight_vars.items():
         events_dict["JHU_HH4W"][var1], events_dict["JHU_HH4W"][var2]
     )
 
+bulkG_weights
 
-num_bins = 15
-
-bbVV_pt = (
-    Hist.new.Reg(num_bins, *reweight_vars["fj_pt"], name="fj_pt", label="$p_T (GeV)$")
-    .Reg(num_bins, *reweight_vars["fj_genRes_pt"], name="fj_genRes_pt", label="$p_T (GeV)$")
-    .Double()
-).fill(
-    fj_pt=ak.flatten(events_dict["HHbbVV"]["fj_pt"][masks["HHbbVV"]]),
-    fj_genRes_pt=ak.flatten(events_dict["HHbbVV"]["fj_genRes_pt"][masks["HHbbVV"]]),
-)
-
-bulkG_pt = (
-    Hist.new.Reg(num_bins, *reweight_vars["fj_pt"], name="fj_pt", label="$p_T (GeV)$")
-    .Reg(num_bins, *reweight_vars["fj_genRes_pt"], name="fj_genRes_pt", label="$p_T (GeV)$")
-    .Double()
-).fill(
-    fj_pt=ak.flatten(events_dict["JHU_HH4W"]["fj_pt"][masks["JHU_HH4W"]]),
-    fj_genRes_pt=ak.flatten(events_dict["JHU_HH4W"]["fj_genRes_pt"][masks["JHU_HH4W"]]),
-)
-
-pt_weights = bbVV_pt.view(flow=False) / bulkG_pt.view(flow=False)
-pt_weights_lookup = dense_lookup(
-    np.nan_to_num(pt_weights, nan=0, posinf=0), np.squeeze(bbVV_pt.axes.edges)
-)
-
-bulkG_weights["2d"] = pt_weights_lookup(
-    events_dict["JHU_HH4W"]["fj_pt"], events_dict["JHU_HH4W"]["fj_genRes_pt"]
-)
 
 #####################
 # Plot features
 #####################
 
-reweight_var = "2d"
+reweight_var = "2d_pt_eta"
 
 # features to plot and plot ranges
 features = {
-    "npfcands": [20, 120],
-    "nsvs": [0, 10],
+    # "npfcands": [20, 120],
+    # "nsvs": [0, 10],
     "pfcand_pt_log_nopuppi": [-2, 5],
     "pfcand_e_log_nopuppi": [-2, 5],
     "pfcand_etarel": [-3.5, 3.5],
@@ -327,6 +300,19 @@ merger_gens.write(f"{plot_dir}/gen_feature_plots.pdf")
 merger_gens.close()
 
 
+qcd_labels = ["b", "bb", "c", "cc", "lep", "others"]
+
+events_dict["QCD"][f"fj_isQCDb"]
+
+for label in qcd_labels:
+    _ = plt.hist(ak.flatten(events_dict["QCD"][f"fj_isQCD{label}"]), label=label, histtype="step")
+
+plt.legend()
+
+
+plt.hist(ak.flatten(events_dict["QCD"]["fj_isQCDbb"]))
+
+
 # jet images
 
 average_images = {}
@@ -449,3 +435,19 @@ for j, sample in enumerate(samples.keys()):
 # fig.tight_layout()
 plt.savefig(f"{plot_dir}/jet_images_qcd.pdf", bbox_inches="tight")
 plt.show()
+
+
+branches = list(features.keys())
+branches
+
+
+import pandas as pd
+
+df = pd.read_parquet(
+    "../sample_data/new_ntuples/BulkGravitonToHHTo4W_JHUGen_MX-600to6000_MH-15to250_v2/out_0.parquet"
+)
+
+len(df)
+df["fj_eta"].values.shape
+
+df

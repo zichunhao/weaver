@@ -166,8 +166,8 @@ observers:
    - fj_genVstar_mass
    - fj_genV_pt
    - fj_genVstar_pt
-   - fj_genV_decay
-   - fj_genVstar_decay
+   # - fj_genV_decay
+   # - fj_genVstar_decay
    - fj_nprongs
    - fj_H_VV_4q
    - target_mass
