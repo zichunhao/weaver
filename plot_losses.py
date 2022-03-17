@@ -45,8 +45,8 @@ args = parser.parse_args()
 # training_losses = np.loadtxt(args.train_loss)
 # validation_losses = np.loadtxt(args.val_loss)
 
-training_losses = np.loadtxt(f"{args.train_loss}_training_losses.txt")
-validation_losses = np.loadtxt(f"{args.train_loss}_validation_losses.txt")
+training_losses = np.loadtxt(f"{args.model_path}_training_losses.txt")
+validation_losses = np.loadtxt(f"{args.model_path}_validation_losses.txt")
 
 plt.plot(training_losses, label="Training Loss")
 plt.plot(validation_losses, label="Validation Loss")
