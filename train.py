@@ -700,15 +700,15 @@ def save_root(args, output_path, data_config, scores, labels, observers):
     for k, v in labels.items():
         if k == data_config.label_names[0]:
             continue
-        if v.ndim > 1:
+        if np.squeeze(v).ndim > 1:
             _logger.warning("Ignoring %s, not a 1d array.", k)
             continue
-        output[k] = v
+        output[k] = np.squeeze(v)
     for k, v in observers.items():
-        if v.ndim > 1:
+        if np.squeeze(v).ndim > 1:
             _logger.warning("Ignoring %s, not a 1d array.", k)
             continue
-        output[k] = v
+        output[k] = np.squeeze(v)
     _write_root(output_path, output)
 
 
