@@ -159,7 +159,7 @@ observers:
    # - fj_deepTag_HvsQCD
    - fj_dR_V
    - fj_dR_Vstar
-   - fj_PN_H4qvsQCD
+   # - fj_PN_H4qvsQCD
    # - fj_mindR_HVV_daus
    # - fj_maxdR_HVV_daus
    - fj_genRes_mass
