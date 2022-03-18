@@ -6,9 +6,11 @@ label_dict = {
     "top_merged": {"legend": "Top merged", "label": "fj_isTop_merged"},
     "top_semimerged": {"legend": "Top semi-merged", "label": "fj_isTop_semimerged"},
     "top_lepmerged": {"legend": "Top merged lepton", "label": "fj_isToplep_merged"},
+
     "hww_4q": {"legend": "H(VV) all-had", "label": "fj_H_VV_4q"},
     "hww_4q_merged": {"legend": "H(VV) 4q", "label": "fj_H_VV_4q_4q"},
     "hww_3q_merged": {"legend": "H(VV) 3q", "label": "fj_H_VV_4q_3q"},
+    
     "hbb": {"legend": "H(bb)", "label": "fj_H_bb"},
     "hww_elenuqq": {"legend": "H(VV) ele", "label": "fj_H_VV_elenuqq"},
     "hww_munuqq": {"legend": "H(VV) mu", "label": "fj_H_VV_munuqq"},

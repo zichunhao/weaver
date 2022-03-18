@@ -109,13 +109,20 @@ def plot_roc(odir, label_sig, label_bkg,
     # draw intersections at 1% mis-tag rate
     ik = 0
     markers = ['v','^','o','s','p','P','h']
+    ratiomethod = False
     for k,it in fp_tp.items():
         if pkeys and k not in pkeys:
             continue
         leg = k.replace('_score','')
+        if 'ratio' in leg:
+            ratiomethod = True
+        leg = leg.replace('-ratio','')
         fp = it[0]
         tp = it[1]
-        axs.plot(tp, fp, lw=3, label=r"{}, AUC = {:.1f}%".format(leg,auc(fp,tp)*100))
+        if ratiomethod:
+            axs.plot(tp, fp, lw=3, label=r"{}".format(leg))
+        else:
+            axs.plot(tp, fp, lw=3, label=r"{}, AUC = {:.1f}%".format(leg,auc(fp,tp)*100))
         y_eff = 0.01
         x_eff = get_intersections(tp, fp, y_eff)
         axs.hlines(
@@ -127,7 +134,7 @@ def plot_roc(odir, label_sig, label_bkg,
         ik+=1
 
     axs.legend(loc='lower right',fontsize=40)
-    axs.grid(which='minor', alpha=0.2)
+    axs.grid(which='minor', alpha=0.5)
     axs.grid(which='major', alpha=0.5)
     axs.set_xlabel(r'Tagging efficiency %s'%label_sig, fontsize=40)
     axs.set_ylabel(r'Mistagging rate %s'%label_bkg, fontsize=40)
@@ -136,78 +143,21 @@ def plot_roc(odir, label_sig, label_bkg,
     axs.set_yscale('log')
     if ptcut: axs.text(0.05, 0.5, ptcut, fontsize=30)
     if msdcut: axs.text(0.05, 0.3, msdcut, fontsize=30)
+    if ratiomethod: axs.text(0.45, 0.005, r'Rescaled by pass $m_{SD}&p_T$/pass $p_T$', fontsize=32)
     axs.set_title(title, fontsize=40)
-
+    
     plt.tight_layout()
 
     fig.savefig("%s/roc_%s_ylog.pdf"%(odir,label))
     fig.savefig("%s/roc_%s_ylog.png"%(odir,label))
 
     # also save version down to 10^-5
-    axs.set_ylim(0.00001,1)
-    axs.set_xlim(0.0001,1)
-    fig.savefig("%s/roc_%s_ylogm5.pdf"%(odir,label))
-    fig.savefig("%s/roc_%s_ylogm5.png"%(odir,label))
+    # axs.set_ylim(0.00001,1)
+    # axs.set_xlim(0.0001,1)
+    # fig.savefig("%s/roc_%s_ylogm5.pdf"%(odir,label))
+    # fig.savefig("%s/roc_%s_ylogm5.png"%(odir,label))
     
     axs.set_yscale('linear')
-
-def plot_roc_by_var(odir,vars_to_corr,
-                    bin_ranges,bin_widths,
-                    events,score_name,sig,bkg,
-                    label,title,
-                    sig_mask=None):
-    """
-    Plot ROC for different cuts on variable var
-    Arguments:
-    - odir: output directory
-    - vars_to_corr: variables used to make a selection (usually pT and mSD)
-    - bin_ranges: bin ranges that define upper and lower boundaries for cuts on that variable
-    - bin_widths: widths that define cuts on that variable
-    - events: table with vars_to_corr
-    - score_name: name of discriminator
-    - sig: dictionary with label and legend for signal
-    - bkg: dictionary with label and legend for background
-    - label: label of plot
-    - sig_mask: extra mask on signal e.g. to select on mH=125
-    """
-    i = 0
-    fig, axs = plt.subplots(1,len(vars_to_corr.keys()),figsize=(8*len(vars_to_corr.keys()),8))
-    for var,varname in vars_to_corr.items():
-        fprs = {}; tprs = {}
-        legends = []
-        for j,b in enumerate(bin_ranges[i]):
-            bi = b
-            bf = b+bin_widths[i]
-            tag = "%i"%bi
-            signal_mask = (events[varname]>=bi) & (events[varname]<=bf)
-            bkgnd_mask = (events[varname]>=bi) & (events[varname]<=bf)
-            if sig_mask is not None:
-                signal_mask = signal_mask & sig_mask
-            fprs[tag], tprs[tag] = get_roc(events, score_name, sig['label'], bkg['label'], sig_mask=signal_mask, bkg_mask=bkgnd_mask)
-            legends.append('%s:%i-%i GeV'%(var,bi,bf))
-
-        if(len(vars_to_corr.keys())==1):
-            axs_1 = axs
-        else:
-            axs_1 = axs[i]
-
-        ik=0
-        for k,it in fprs.items():
-            axs_1.plot(tprs[k], fprs[k], lw=2.5, label=r"{}, AUC = {:.1f}%".format(legends[ik],auc(fprs[k],tprs[k])*100))
-            ik+=1
-        axs_1.legend(loc='upper left',fontsize=20)
-        axs_1.grid(which='minor', alpha=0.2)
-        axs_1.grid(which='major', alpha=0.6)
-        axs_1.set_xlabel(r'Tagging efficiency %s'%sig['legend'], fontsize=25)
-        axs_1.set_ylabel(r'Mistagging rate %s'%bkg['legend'], fontsize=25)
-        axs_1.set_yscale('log')
-        axs_1.set_title(title, fontsize=20)
-        axs_1.set_ylim(0.0001,1)
-        i+=1
-    plt.tight_layout()
-
-    fig.savefig("%s/rocs_by_var_%s_ylog.pdf"%(odir,label))
-    fig.savefig("%s/rocs_by_var_%s_ylog.png"%(odir,label))
 
 def plot_1d(odir,hist_val,vars_to_plot,label):
     """
