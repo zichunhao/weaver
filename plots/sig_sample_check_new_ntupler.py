@@ -152,7 +152,36 @@ for var2d, vars in reweight_vars_2d.items():
         events_dict["JHU_HH4W"][var1], events_dict["JHU_HH4W"][var2]
     )
 
-bulkG_weights
+
+#####################
+# cos theta *
+#####################
+
+for sample, events in events_dict.items():
+    if sample == "QCD":
+        continue
+    hvecs = ak.zip(
+        {
+            "pt": np.squeeze(events["fj_genRes_pt"]),
+            "eta": np.squeeze(events["fj_genRes_eta"]),
+            "phi": np.squeeze(events["fj_genRes_phi"]),
+            "mass": np.squeeze(events["fj_genRes_mass"]),
+        },
+        with_name="PtEtaPhiMLorentzVector",
+    )
+
+    hvvecs = ak.zip(
+        {
+            "pt": np.squeeze(events["fj_genV_pt"]),
+            "eta": np.squeeze(events["fj_genV_eta"]),
+            "phi": np.squeeze(events["fj_genV_phi"]),
+            "mass": np.squeeze(events["fj_genV_mass"]),
+        },
+        with_name="PtEtaPhiMLorentzVector",
+    )
+
+    v_inH = hvvecs.boost(-hvecs.boostvec)
+    events["fj_gencosthetastar"] = np.abs(np.cos(v_inH.theta))
 
 
 #####################
@@ -165,37 +194,37 @@ reweight_var = "2d_pt_eta"
 features = {
     # "npfcands": [20, 120],
     # "nsvs": [0, 10],
-    "pfcand_pt_log_nopuppi": [-2, 5],
-    "pfcand_e_log_nopuppi": [-2, 5],
-    "pfcand_etarel": [-3.5, 3.5],
-    "pfcand_phirel": [-3.5, 3.5],
-    "pfcand_isEl": [0, 1],
-    "pfcand_isMu": [0, 1],
-    "pfcand_isGamma": [0, 1],
-    "pfcand_isChargedHad": [0, 1],
-    "pfcand_isNeutralHad": [0, 1],
-    "pfcand_abseta": [0, 2.5],
-    "pfcand_charge": [-1, 1],
-    "pfcand_VTX_ass": [0, 7],
-    "pfcand_lostInnerHits": [-1, 2],
-    "pfcand_normchi2": [0, 10],
-    "pfcand_quality": [0, 5],
-    "pfcand_dz": [-5, 5],
-    "pfcand_dzsig": [-20, 20],
-    "pfcand_dxy": [-1, 1],
-    "pfcand_dxysig": [-10, 10],
-    "sv_pt_log": [-1, 4],
-    "sv_mass": [0, 4],
-    "sv_etarel": [-0.8, 0.8],
-    "sv_phirel": [-0.8, 0.8],
-    "sv_abseta": [0, 3],
-    "sv_ntracks": [0, 7],
-    "sv_normchi2": [0, 10],
-    "sv_dxy": [0, 7],
-    "sv_dxysig": [0, 30],
-    "sv_d3d": [0, 5],
-    "sv_d3dsig": [0, 20],
-    "fj_dR_V": [0, 1.0],
+    # "pfcand_pt_log_nopuppi": [-2, 5],
+    # "pfcand_e_log_nopuppi": [-2, 5],
+    # "pfcand_etarel": [-3.5, 3.5],
+    # "pfcand_phirel": [-3.5, 3.5],
+    # "pfcand_isEl": [0, 1],
+    # "pfcand_isMu": [0, 1],
+    # "pfcand_isGamma": [0, 1],
+    # "pfcand_isChargedHad": [0, 1],
+    # "pfcand_isNeutralHad": [0, 1],
+    # "pfcand_abseta": [0, 2.5],
+    # "pfcand_charge": [-1, 1],
+    # "pfcand_VTX_ass": [0, 7],
+    # "pfcand_lostInnerHits": [-1, 2],
+    # "pfcand_normchi2": [0, 10],
+    # "pfcand_quality": [0, 5],
+    # "pfcand_dz": [-5, 5],
+    # "pfcand_dzsig": [-20, 20],
+    # "pfcand_dxy": [-1, 1],
+    # "pfcand_dxysig": [-10, 10],
+    # "sv_pt_log": [-1, 4],
+    # "sv_mass": [0, 4],
+    # "sv_etarel": [-0.8, 0.8],
+    # "sv_phirel": [-0.8, 0.8],
+    # "sv_abseta": [0, 3],
+    # "sv_ntracks": [0, 7],
+    # "sv_normchi2": [0, 10],
+    # "sv_dxy": [0, 7],
+    # "sv_dxysig": [0, 30],
+    # "sv_d3d": [0, 5],
+    # "sv_d3dsig": [0, 20],
+    # "fj_dR_V": [0, 1.0],
     "fj_genV_pt": [0, 500],
     "fj_genV_eta": [-3.5, 3.5],
     "fj_genV_phi": [-3.5, 3.5],
@@ -205,6 +234,7 @@ features = {
     "fj_genVstar_eta": [-3.5, 3.5],
     "fj_genVstar_phi": [-3.5, 3.5],
     "fj_genVstar_mass": [0, 80],
+    "fj_gencosthetastar": [0, 1],
     # "fj_mindR_HVV_daus": [0, 4],
     # "fj_maxdR_HWW_daus": [0, 4],
     # "fj_maxdR_Hbb_daus": [0, 4],
@@ -216,11 +246,11 @@ features = {
     "fj_genX_eta": [-3.5, 3.5],
     "fj_genX_phi": [-3.5, 3.5],
     "fj_genX_mass": [0, 3000],
-    "fj_pt": [250, 750],
-    "fj_eta": [-3.5, 3.5],
-    "fj_phi": [-3.5, 3.5],
-    "fj_mass": [50, 400],
-    "fj_msoftdrop": [0, 400],
+    # "fj_pt": [250, 750],
+    # "fj_eta": [-3.5, 3.5],
+    # "fj_phi": [-3.5, 3.5],
+    # "fj_mass": [50, 400],
+    # "fj_msoftdrop": [0, 400],
 }
 
 # with open("../models/pyg_ef_ul_cw_8_2_preprocess.json") as f:
