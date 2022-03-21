@@ -4,7 +4,6 @@ import os
 import argparse
 import numpy as np
 import uproot
-import hist
 import awkward as ak
 
 from sklearn.metrics import roc_curve, auc
@@ -29,7 +28,13 @@ def get_rocs(p,args,jsig=0,signame=""):
         fp_tp['PNnonMD'] = p.roc(args.oldpn)
         fp_tp['PNnonMD-ratio'] = p.roc(args.oldpn,"ratio")
         fp_tp['PNnonMD-nomasscut'] = p.roc(args.oldpn,"nomass")
-
+    # add pt ranges
+    for key,ptmask in p.ptmasks.items():
+        fp_tp[score+signame+key] = p.roc(score,"norocmask",ptmask)
+    # add v/v* rocs
+    fp_tp[score+signame+'_V_closer_Jet'] = p.roc(score,"sigmask",p.mask_vcloser)
+    fp_tp[score+signame+'_V*_closer_Jet'] = p.roc(score,"sigmask",p.mask_vscloser)
+        
     if args.mbranch:
         # for flat sample
         if ak.any(p.mask_flat):
@@ -38,11 +43,14 @@ def get_rocs(p,args,jsig=0,signame=""):
                 fp_tp[r"$m_H$ flat $\times p_T^SM$"] = p.roc(score,"ptweight",p.mask_flat)
             if args.oldpn:
                 fp_tp[r"$m_H$ flat PNnonMD"] = p.roc(args.oldpn,"ptweight",p.mask_flat)
+            # add mh ranges
+            for key,mhmask in p.mhmasks.items():
+                fp_tp[score+signame+key] = p.roc(score,"norocmask",mhmask)
         if ak.any(p.mask_proc_mh120130) and ak.any(p.mask_proc_sigmh125):
             fp_tp[r"$m_H:[120,130]$ GeV $\times p_T^SM$"] = p.roc(score,"ptweight",p.mask_proc_mh120130)
         if args.nprongs:
             fp_tp[r"$m_H$ flat 3prongs"] = p.roc(score,"sigmask",(p.mask_flat & p.mask3p))
-            fp_tp[r"$m_H$ flat 4prongs"] = p.roc(score,"sigmask",(p.mask_flat & p.mask4p))
+            fp_tp[r"$m_H$ flat 4prongs"] = p.roc(score,"sigmask",(p.mask_flat & p.mask4p))            
         # for mh125
         if ak.any(p.mask_mh125):
             fp_tp[r"$m_H$:125"] = p.roc(score,"sigmask",p.mask_mh125)
@@ -89,9 +97,14 @@ def main(args):
             sigfiles = [None]
             
         fp_tp_sigfiles = {}
-        keys_sigfiles = []
-        keys_ratio = []
-        fillmh = False
+        plot_keys = {"sigfiles": [],
+                     "ratio": [],
+                     "pt":  [],
+                     "mh": [],
+                     "closer": [],
+                     }
+        fillmh = False; fillmhbin=False;
+        
         for j, sigfile in enumerate(sigfiles):
             p = PlotOutput(
                 args.ifile,
@@ -118,36 +131,57 @@ def main(args):
                 for key,item in fp_tp.items():
                     fp_tp_sigfiles[key+signame] = item
                     if key==p.score:
-                        keys_sigfiles.append(key+signame)
-                        if j==0:
-                            fp_tp_all[sig] = [p.score]
+                        plot_keys["sigfiles"].append(key+signame)
+                        if j==0: fp_tp_all[sig] = [key]
                     elif key==p.score+"-ratio":
-                        keys_ratio.append(key+signame)
+                        plot_keys["ratio"].append(key+signame)
+                    elif "closer" in key:
+                        plot_keys["closer"].append(key+signame)
+                    elif "-pt" in key:
+                        if j==0: plot_keys["pt"].append(key+signame)
+                    elif "-mh" in key and p.mbranch and not fillmhbin:
+                        plot_keys["mh"].append(key+signame)
+                        fillmhbin = True
                     elif "m_H" in key and p.mbranch and not fillmh:
-                        keys_sigfiles.append(key+signame)
+                        # only do this for the first sample that has a range of mh
+                        plot_keys["sigfiles"].append(key+signame)
                         fillmh = True
                     else:
                         print('not plotting ',key)
             else:
                 fp_tp_sigfiles = fp_tp
-                keys_sigfiles = [p.score]
-                keys_ratio = [p.score+"-ratio"]
                 fp_tp_all[sig] = [p.score]
-                if p.mbranch:
-                    keys_sigfiles += [r"$m_H$ flat",r"$m_H$:125"]
-                if args.oldpn:
-                    keys_sigfiles += ["PNnonMD"]
+                for key,item in fp_tp.items():
+                    if key==p.score:
+                        plot_keys["sigfiles"].append(key)
+                    elif key==p.score+"-ratio":
+                        plot_keys["ratio"].append(key)
+                    elif "closer" in key:
+                        plot_keys["closer"].append(key)
+                    elif "-pt" in key:
+                        plot_keys["pt"].append(key)
+                    elif "-mh" in key and p.mbranch:
+                        plot_keys["mh"].append(key)
+                    elif p.mbranch:
+                        plot_keys["sigfiles"].extend([r"$m_H$ flat",r"$m_H$:125"])
+                    elif args.oldpn:
+                        plot_keys["sigfiles"] += ["PNnonMD"]
 
         if args.verbose:
             print(fp_tp_sigfiles.keys())
             
-        # plot
-        p.plot(fp_tp_sigfiles, "summary", keys_sigfiles)
-        p.plot(fp_tp_sigfiles, "ratio", keys_ratio)
-
-        # plot mass decorrelation
-
+        # ROCS
+        p.plot(fp_tp_sigfiles, "summary", plot_keys["sigfiles"])
+        p.plot(fp_tp_sigfiles, "ratio", plot_keys["ratio"])
+        
         # plot for different mH and pT cuts
+        p.plot(fp_tp_sigfiles, "pt", plot_keys["pt"], [300,1500], [30,320])
+        if len(plot_keys["mh"])>0: p.plot(fp_tp_sigfiles, "mh", plot_keys["mh"], [400,600], [30,320])
+        
+        # plot ROCs for different W/W* distance
+        p.plot(fp_tp_sigfiles, "closeVVstar", plot_keys["closer"])
+
+        # Mass decorrelation
         
     if len(signals)>1:
         # plot summary ROC for all signal classes and first isig file

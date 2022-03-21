@@ -72,6 +72,8 @@ class PlotOutput:
             branches.append(self.mbranch)
         if self.nprongs:
             branches.append(self.nprongs)
+        branches.append("fj_dR_V")
+        branches.append("fj_dR_Vstar")
             
         # score for signal
         branches.append(self.siglabel)
@@ -172,6 +174,19 @@ class PlotOutput:
         return events
 
     def get_masks(self):
+        def build_range(bins,var,mask,events,branch):
+            rangemask = {}
+            for i,ibin in enumerate(bins):
+                if i==len(bins)-1: continue
+                bin_low = bins[i]; bin_high = bins[i+1];
+                bin_tag = f"-{var}{bin_low}-{bin_high}"
+                bin_mask = mask & (events[branch] > bin_low) & (events[branch] < bin_high)
+                if ak.any(bin_mask):
+                    rangemask[bin_tag] = bin_mask
+                else:
+                    print(f'No events for mask {bin_tag}')
+            return rangemask
+        
         self.roc_mask_nomass = (
             (self.events[self.pt] > self.ptrange[0])
             & (self.events[self.pt] < self.ptrange[1])
@@ -186,18 +201,29 @@ class PlotOutput:
             )
             self.mask_proc_sigmh125 = (self.events[self.siglabel]==1) & self.mask_mh125
             self.mask_proc_sig = (self.events[self.siglabel]==1) & self.mask_flat
+            self.mhmasks = build_range(list(range(20, 240, 20)),"mh",self.roc_mask_nomass,self.events,self.mbranch)
         else:
-            print('masks for no mbranch')
+            print('No mbranch present')
             self.mask_flat =  np.zeros(len(self.events), dtype='bool')
             self.mask_mh125 = np.zeros(len(self.events), dtype='bool')
             self.mask_proc_mh120130 = np.zeros(len(self.events), dtype='bool')
             self.mask_proc_sigmh125 = np.zeros(len(self.events), dtype='bool')
             self.mask_proc_sig = np.zeros(len(self.events), dtype='bool')
             
+        self.mask_vcloser = (self.events["fj_dR_V"] >self.events["fj_dR_Vstar"])
+        self.mask_vscloser = ~self.mask_vcloser
+        if not ak.any(self.mask_vcloser):
+            print('Vstar is always closer than V')
+        if not ak.any(self.mask_vscloser):
+            print('V is always closer than Vstar')
+            
         if self.nprongs:
             self.mask3p = self.events[self.nprongs] == 3
             self.mask4p = self.events[self.nprongs] == 4
-            
+
+        # should we add the msD mask here?
+        self.ptmasks = build_range(list(range(200, 1200, 200)),"pt",(abs(self.events[self.eta]) < 2.4),self.events,self.pt)
+
     def get_weights(self):
         # log bins as: np.round(np.exp(np.linspace(np.log(MIN), np.log(MAX), NUM_BINS))).astype('int').tolist()
         ptbins = [200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]
@@ -229,6 +255,8 @@ class PlotOutput:
             roc = get_roc(self.events, score, self.siglabel, self.bkglabel, roc_mask=self.roc_mask_nomass)
         elif option=="sigmask":
             roc = get_roc(self.events, score, self.siglabel, self.bkglabel, roc_mask=self.roc_mask, sig_mask=sigmask)
+        elif option=="norocmask":
+            roc = get_roc(self.events, score, self.siglabel, self.bkglabel, roc_mask=None, sig_mask=sigmask)
         elif option=="ptweight":
             if self.mbranch and ak.any(self.mask_proc_sigmh125):
                 pthist,ptbins,weight_sig = self.get_weights()
@@ -237,11 +265,15 @@ class PlotOutput:
             roc = get_roc(self.events, score, self.siglabel, self.bkglabel, roc_mask=self.roc_mask)
         return roc
 
-    def plot(self, fp_tp, tag, keys):
+    def plot(self, fp_tp, tag, keys, ptcuts=None,msdcuts=None):
+        if not ptcuts:
+            ptcuts = [self.ptrange[0],self.ptrange[1]]
+        if not msdcuts:
+            msdcuts=[self.msdrange[0],self.msdrange[1]]
         title = r"%s vs %s"%(self.siglegend,self.bkglegend)
         label = f"{self.siglabel}vs{self.bkglabel}"
-        ptcut = r"%s $p_T$:[%s-%s] GeV, $|\eta|<2.4$"%(self.jet,self.ptrange[0],self.ptrange[1])
-        msdcut = r"%s $m_{SD}$:[%s-%s] GeV" %(self.jet,self.msdrange[0],self.msdrange[1])
+        ptcut = r"%s $p_T$:[%s-%s] GeV, $|\eta|<2.4$"%(self.jet,ptcuts[0],ptcuts[1])
+        msdcut = r"%s $m_{SD}$:[%s-%s] GeV" %(self.jet,msdcuts[0],msdcuts[1])
         plot_roc(self.odir,self.siglegend,self.bkglegend,fp_tp,
                  label=label+"_"+tag,
                  title=title,

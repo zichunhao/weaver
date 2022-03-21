@@ -18,7 +18,7 @@ python plot_classification_fromoutput.py \
 python plot_classification_fromoutput.py \
        --ifile ../output/03_15_pyg_ef_nn_cw_8_2_sep_samples/qcd.root \
        --odir plots/03_15_pyg_ef_nn_cw_8_2_samples/ \
-       --name PNef \
+       --name PNpyg \
        --mbranch fj_genRes_mass \
        --jet AK15 \
        --signals hww_4q_merged \
