@@ -246,223 +246,223 @@ def plot_images(plot_dir, events_dict, samples):
 
 
 plot_images(plot_dir, jet_feats, samples)
-
-
-from coffea.nanoevents.methods.nanoaod import FatJetArray, GenParticleArray
-from typing import Union
-
-from coffea.nanoevents.methods import vector
-
-from energyflow import EFPSet
-
-ak.behavior.update(vector.behavior)
-
-
-B_PDGID = 5
-Z_PDGID = 23
-W_PDGID = 24
-HIGGS_PDGID = 25
-ELE_PDGID = 11
-MU_PDGID = 13
-TAU_PDGID = 15
-B_PDGID = 5
-
-GEN_FLAGS = ["fromHardProcess", "isLastCopy"]
-
-
-def get_pid_mask(
-    genparts: GenParticleArray,
-    pdgids: Union[int, list],
-    ax: int = 2,
-    byall: bool = True,
-    use_abs: bool = True,
-) -> ak.Array:
-    """
-    Get selection mask for gen particles matching any of the pdgIds in ``pdgids``.
-    If ``byall``, checks all particles along axis ``ax`` match.
-    """
-    if use_abs:
-        gen_pdgids = abs(genparts.pdgId)
-    else:
-        gen_pdgids = genparts.pdgId
-
-    if type(pdgids) == list:
-        mask = gen_pdgids == pdgids[0]
-        for pdgid in pdgids[1:]:
-            mask = mask | (gen_pdgids == pdgid)
-    else:
-        mask = gen_pdgids == pdgids
-
-    return ak.all(mask, axis=ax) if byall else mask
-
-
-sample = "JHU_HHbbWW"
-events = events_dict[sample]
-
-events.fields
-
-genparts = events.GenPart
-
-
-higgs = genparts[get_pid_mask(genparts, HIGGS_PDGID, byall=False) * genparts.hasFlags(GEN_FLAGS)]
-
-children_mask = get_pid_mask(higgs.children, [W_PDGID, Z_PDGID], byall=False, use_abs=False)
-higgs_children_mask = get_pid_mask(higgs.children, [W_PDGID, Z_PDGID], ax=2, byall=True)
-
-
-higgs_children = higgs.children[children_mask]
-
-higgs = ak.flatten(higgs[higgs_children_mask])
-higgs_vs = ak.flatten(ak.flatten(higgs_children, axis=2))
-
-
-hvecs = ak.zip(
-    {
-        "pt": higgs.pt,
-        "eta": higgs.eta,
-        "phi": higgs.phi,
-        "mass": higgs.mass,
-    },
-    with_name="PtEtaPhiMLorentzVector",
-)
-
-hvecs.boostvec
-
-hvvecs = ak.zip(
-    {
-        "pt": higgs_vs.pt,
-        "eta": higgs_vs.eta,
-        "phi": higgs_vs.phi,
-        "mass": higgs_vs.mass,
-    },
-    with_name="PtEtaPhiMLorentzVector",
-)
-
-hvecs.boost(-hvvecs.boostvec)
-
-costhetastar = np.cos(self.tvector(v1_inH.x, v1_inH.y, v1_inH.z).theta)
-out["hvv_costhetastar"] = pad_val(costhetastar, -10)
-
-
-
-
-higgs_vs.phi
-
-higgs_vs.boost(higgs)
-
-
-hcboost = higgs_children.boost(higgs)
-
-
-v = higgs_children[0][1][0]
-h = higgs[0][1]
-v.boost(h)
-
-hcboost[1]
-
-[0][0]
-
-
-higgs_children
-
-
-children_mass = matched_higgs_children.mass
-
-if "VV" in decays:
-    # select only VV children
-
-    # select lower mass child as V* and higher as V
-    v_star = ak.firsts(matched_higgs_children[ak.argmin(children_mass, axis=2, keepdims=True)])
-    v = ak.firsts(matched_higgs_children[ak.argmax(children_mass, axis=2, keepdims=True)])
-
-    genVars["fj_dR_V"] = fatjets.delta_r(v)
-    genVars["fj_dR_Vstar"] = fatjets.delta_r(v_star)
-
-    # select event only if VV are within jet radius
-    matched_Vs_mask = ak.any(fatjets.delta_r(v) < jet_dR, axis=1) & ak.any(
-        fatjets.delta_r(v_star) < jet_dR, axis=1
-    )
-
-    # I think this will find all VV daughters - not just the ones from the Higgs matched to the fatjet? (e.g. for HH4W it'll find all 8 daughters?)
-    # daughter_mask = get_pid_mask(genparts.distinctParent, [W_PDGID, Z_PDGID], ax=1, byall=False)
-    # daughters = genparts[daughter_mask & genparts.hasFlags(GEN_FLAGS)]
-
-    # get VV daughters
-    daughters = ak.flatten(ak.flatten(matched_higgs_children.distinctChildren, axis=2), axis=2)
-    daughters = daughters[daughters.hasFlags(GEN_FLAGS)]
-    daughters_pdgId = abs(daughters.pdgId)
-
-    nprongs = ak.sum(fatjets.delta_r(daughters) < jet_dR, axis=1)
-
-    # why checking pT > 0?
-    decay = (
-        # 2 quarks * 1
-        (ak.sum(daughters_pdgId <= B_PDGID, axis=1) == 2) * 1
-        # 1 electron * 3
-        + (ak.sum(daughters_pdgId == ELE_PDGID, axis=1) == 1) * 3
-        # 1 muon * 5
-        + (ak.sum(daughters_pdgId == MU_PDGID, axis=1) == 1) * 5
-        # 1 tau * 7
-        + (ak.sum(daughters_pdgId == TAU_PDGID, axis=1) == 1) * 7
-        # 4 quarks * 11
-        + (ak.sum(daughters_pdgId <= B_PDGID, axis=1) == 4) * 11
-    )
-
-    matched_mask = matched_higgs_mask & matched_Vs_mask
-
-    genVVars = {f"fj_genV_{key}": ak.fill_none(v[var], -99999) for (var, key) in P4.items()}
-    genVstarVars = {
-        f"fj_genVstar_{key}": ak.fill_none(v_star[var], -99999) for (var, key) in P4.items()
-    }
-    genLabelVars = {
-        "fj_nprongs": nprongs,
-        "fj_H_VV_4q": to_label(decay == 11),
-        "fj_H_VV_elenuqq": to_label(decay == 4),
-        "fj_H_VV_munuqq": to_label(decay == 6),
-        "fj_H_VV_taunuqq": to_label(decay == 8),
-        "fj_H_VV_unmatched": to_label(~matched_mask),
-    }
-    genVars = {**genVars, **genVVars, **genVstarVars, **genLabelVars}
-
-
-hvv_vec = self.cvector(hboson_vv.pt, hboson_vv.eta, hboson_vv.phi, hboson_vv.mass)
-v1_vec = self.cvector(
-    vboson_onshell.pt, vboson_onshell.eta, vboson_onshell.phi, vboson_onshell.mass
-)
-v2_vec = self.cvector(
-    vboson_offshell.pt, vboson_offshell.eta, vboson_offshell.phi, vboson_offshell.mass
-)
-
-v1_vec_1 = self.cvector(
-    vboson_onshell.children[:, 0].pt,
-    vboson_onshell.children[:, 0].eta,
-    vboson_onshell.children[:, 0].phi,
-    vboson_onshell.children[:, 0].mass,
-)
-v1_vec_2 = self.cvector(
-    vboson_onshell.children[:, 1].pt,
-    vboson_onshell.children[:, 1].eta,
-    vboson_onshell.children[:, 1].phi,
-    vboson_onshell.children[:, 1].mass,
-)
-v2_vec_1 = self.cvector(
-    vboson_offshell.children[:, 0].pt,
-    vboson_offshell.children[:, 0].eta,
-    vboson_offshell.children[:, 0].phi,
-    vboson_offshell.children[:, 0].mass,
-)
-v2_vec_2 = self.cvector(
-    vboson_offshell.children[:, 1].pt,
-    vboson_offshell.children[:, 1].eta,
-    vboson_offshell.children[:, 1].phi,
-    vboson_offshell.children[:, 1].mass,
-)
-
-# angles
-# cos theta* (Angle between H and W)
-# phi1, costheta1, costheta2, phi
-boostH = -(hvv_vec.boostvec)
-v1_inH = v1_vec.boost(boostH)[:, 0]
-v2_inH = v2_vec.boost(boostH)[:, 0]
-costhetastar = np.cos(self.tvector(v1_inH.x, v1_inH.y, v1_inH.z).theta)
-out["hvv_costhetastar"] = pad_val(costhetastar, -10)
+#
+#
+# from coffea.nanoevents.methods.nanoaod import FatJetArray, GenParticleArray
+# from typing import Union
+#
+# from coffea.nanoevents.methods import vector
+#
+# from energyflow import EFPSet
+#
+# ak.behavior.update(vector.behavior)
+#
+#
+# B_PDGID = 5
+# Z_PDGID = 23
+# W_PDGID = 24
+# HIGGS_PDGID = 25
+# ELE_PDGID = 11
+# MU_PDGID = 13
+# TAU_PDGID = 15
+# B_PDGID = 5
+#
+# GEN_FLAGS = ["fromHardProcess", "isLastCopy"]
+#
+#
+# def get_pid_mask(
+#     genparts: GenParticleArray,
+#     pdgids: Union[int, list],
+#     ax: int = 2,
+#     byall: bool = True,
+#     use_abs: bool = True,
+# ) -> ak.Array:
+#     """
+#     Get selection mask for gen particles matching any of the pdgIds in ``pdgids``.
+#     If ``byall``, checks all particles along axis ``ax`` match.
+#     """
+#     if use_abs:
+#         gen_pdgids = abs(genparts.pdgId)
+#     else:
+#         gen_pdgids = genparts.pdgId
+#
+#     if type(pdgids) == list:
+#         mask = gen_pdgids == pdgids[0]
+#         for pdgid in pdgids[1:]:
+#             mask = mask | (gen_pdgids == pdgid)
+#     else:
+#         mask = gen_pdgids == pdgids
+#
+#     return ak.all(mask, axis=ax) if byall else mask
+#
+#
+# sample = "JHU_HHbbWW"
+# events = events_dict[sample]
+#
+# events.fields
+#
+# genparts = events.GenPart
+#
+#
+# higgs = genparts[get_pid_mask(genparts, HIGGS_PDGID, byall=False) * genparts.hasFlags(GEN_FLAGS)]
+#
+# children_mask = get_pid_mask(higgs.children, [W_PDGID, Z_PDGID], byall=False, use_abs=False)
+# higgs_children_mask = get_pid_mask(higgs.children, [W_PDGID, Z_PDGID], ax=2, byall=True)
+#
+#
+# higgs_children = higgs.children[children_mask]
+#
+# higgs = ak.flatten(higgs[higgs_children_mask])
+# higgs_vs = ak.flatten(ak.flatten(higgs_children, axis=2))
+#
+#
+# hvecs = ak.zip(
+#     {
+#         "pt": higgs.pt,
+#         "eta": higgs.eta,
+#         "phi": higgs.phi,
+#         "mass": higgs.mass,
+#     },
+#     with_name="PtEtaPhiMLorentzVector",
+# )
+#
+# hvecs.boostvec
+#
+# hvvecs = ak.zip(
+#     {
+#         "pt": higgs_vs.pt,
+#         "eta": higgs_vs.eta,
+#         "phi": higgs_vs.phi,
+#         "mass": higgs_vs.mass,
+#     },
+#     with_name="PtEtaPhiMLorentzVector",
+# )
+#
+# hvecs.boost(-hvvecs.boostvec)
+#
+# costhetastar = np.cos(self.tvector(v1_inH.x, v1_inH.y, v1_inH.z).theta)
+# out["hvv_costhetastar"] = pad_val(costhetastar, -10)
+#
+#
+#
+#
+# higgs_vs.phi
+#
+# higgs_vs.boost(higgs)
+#
+#
+# hcboost = higgs_children.boost(higgs)
+#
+#
+# v = higgs_children[0][1][0]
+# h = higgs[0][1]
+# v.boost(h)
+#
+# hcboost[1]
+#
+# [0][0]
+#
+#
+# higgs_children
+#
+#
+# children_mass = matched_higgs_children.mass
+#
+# if "VV" in decays:
+#     # select only VV children
+#
+#     # select lower mass child as V* and higher as V
+#     v_star = ak.firsts(matched_higgs_children[ak.argmin(children_mass, axis=2, keepdims=True)])
+#     v = ak.firsts(matched_higgs_children[ak.argmax(children_mass, axis=2, keepdims=True)])
+#
+#     genVars["fj_dR_V"] = fatjets.delta_r(v)
+#     genVars["fj_dR_Vstar"] = fatjets.delta_r(v_star)
+#
+#     # select event only if VV are within jet radius
+#     matched_Vs_mask = ak.any(fatjets.delta_r(v) < jet_dR, axis=1) & ak.any(
+#         fatjets.delta_r(v_star) < jet_dR, axis=1
+#     )
+#
+#     # I think this will find all VV daughters - not just the ones from the Higgs matched to the fatjet? (e.g. for HH4W it'll find all 8 daughters?)
+#     # daughter_mask = get_pid_mask(genparts.distinctParent, [W_PDGID, Z_PDGID], ax=1, byall=False)
+#     # daughters = genparts[daughter_mask & genparts.hasFlags(GEN_FLAGS)]
+#
+#     # get VV daughters
+#     daughters = ak.flatten(ak.flatten(matched_higgs_children.distinctChildren, axis=2), axis=2)
+#     daughters = daughters[daughters.hasFlags(GEN_FLAGS)]
+#     daughters_pdgId = abs(daughters.pdgId)
+#
+#     nprongs = ak.sum(fatjets.delta_r(daughters) < jet_dR, axis=1)
+#
+#     # why checking pT > 0?
+#     decay = (
+#         # 2 quarks * 1
+#         (ak.sum(daughters_pdgId <= B_PDGID, axis=1) == 2) * 1
+#         # 1 electron * 3
+#         + (ak.sum(daughters_pdgId == ELE_PDGID, axis=1) == 1) * 3
+#         # 1 muon * 5
+#         + (ak.sum(daughters_pdgId == MU_PDGID, axis=1) == 1) * 5
+#         # 1 tau * 7
+#         + (ak.sum(daughters_pdgId == TAU_PDGID, axis=1) == 1) * 7
+#         # 4 quarks * 11
+#         + (ak.sum(daughters_pdgId <= B_PDGID, axis=1) == 4) * 11
+#     )
+#
+#     matched_mask = matched_higgs_mask & matched_Vs_mask
+#
+#     genVVars = {f"fj_genV_{key}": ak.fill_none(v[var], -99999) for (var, key) in P4.items()}
+#     genVstarVars = {
+#         f"fj_genVstar_{key}": ak.fill_none(v_star[var], -99999) for (var, key) in P4.items()
+#     }
+#     genLabelVars = {
+#         "fj_nprongs": nprongs,
+#         "fj_H_VV_4q": to_label(decay == 11),
+#         "fj_H_VV_elenuqq": to_label(decay == 4),
+#         "fj_H_VV_munuqq": to_label(decay == 6),
+#         "fj_H_VV_taunuqq": to_label(decay == 8),
+#         "fj_H_VV_unmatched": to_label(~matched_mask),
+#     }
+#     genVars = {**genVars, **genVVars, **genVstarVars, **genLabelVars}
+#
+#
+# hvv_vec = self.cvector(hboson_vv.pt, hboson_vv.eta, hboson_vv.phi, hboson_vv.mass)
+# v1_vec = self.cvector(
+#     vboson_onshell.pt, vboson_onshell.eta, vboson_onshell.phi, vboson_onshell.mass
+# )
+# v2_vec = self.cvector(
+#     vboson_offshell.pt, vboson_offshell.eta, vboson_offshell.phi, vboson_offshell.mass
+# )
+#
+# v1_vec_1 = self.cvector(
+#     vboson_onshell.children[:, 0].pt,
+#     vboson_onshell.children[:, 0].eta,
+#     vboson_onshell.children[:, 0].phi,
+#     vboson_onshell.children[:, 0].mass,
+# )
+# v1_vec_2 = self.cvector(
+#     vboson_onshell.children[:, 1].pt,
+#     vboson_onshell.children[:, 1].eta,
+#     vboson_onshell.children[:, 1].phi,
+#     vboson_onshell.children[:, 1].mass,
+# )
+# v2_vec_1 = self.cvector(
+#     vboson_offshell.children[:, 0].pt,
+#     vboson_offshell.children[:, 0].eta,
+#     vboson_offshell.children[:, 0].phi,
+#     vboson_offshell.children[:, 0].mass,
+# )
+# v2_vec_2 = self.cvector(
+#     vboson_offshell.children[:, 1].pt,
+#     vboson_offshell.children[:, 1].eta,
+#     vboson_offshell.children[:, 1].phi,
+#     vboson_offshell.children[:, 1].mass,
+# )
+#
+# # angles
+# # cos theta* (Angle between H and W)
+# # phi1, costheta1, costheta2, phi
+# boostH = -(hvv_vec.boostvec)
+# v1_inH = v1_vec.boost(boostH)[:, 0]
+# v2_inH = v2_vec.boost(boostH)[:, 0]
+# costhetastar = np.cos(self.tvector(v1_inH.x, v1_inH.y, v1_inH.z).theta)
+# out["hvv_costhetastar"] = pad_val(costhetastar, -10)
