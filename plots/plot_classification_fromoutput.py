@@ -131,7 +131,7 @@ def main(args):
                     if key == p.score:
                         plot_keys["sigfiles"].append(key + signame)
                         if j == 0:
-                            fp_tp_all[sig] = [key]
+                            fp_tp_all[sig] = p.get_roc(p.score)
                     elif key == p.score + "-ratio":
                         plot_keys["ratio"].append(key + signame)
                     elif "closer" in key:
@@ -150,7 +150,7 @@ def main(args):
                         print("not plotting ", key)
             else:
                 fp_tp_sigfiles = fp_tp
-                fp_tp_all[sig] = [p.score]
+                fp_tp_all[sig] = p.get_roc(p.score)
                 for key, item in fp_tp.items():
                     if key == p.score:
                         plot_keys["sigfiles"].append(key)
