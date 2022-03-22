@@ -151,21 +151,21 @@ def plot_roc(
 
     # draw intersections at 1% mis-tag rate
     ik = 0
-    markers = ['v','^','o','s','p','P','h']
+    markers = ["v", "^", "o", "s", "p", "P", "h"]
     ratiomethod = False
-    for k,it in fp_tp.items():
+    for k, it in fp_tp.items():
         if pkeys and k not in pkeys:
             continue
-        leg = k.replace('_score','')
-        if 'ratio' in leg:
+        leg = k.replace("_score", "")
+        if "ratio" in leg:
             ratiomethod = True
-        leg = leg.replace('-ratio','')
+        leg = leg.replace("-ratio", "")
         fp = it[0]
         tp = it[1]
         if ratiomethod:
             axs.plot(tp, fp, lw=3, label=r"{}".format(leg))
         else:
-            axs.plot(tp, fp, lw=3, label=r"{}, AUC = {:.1f}%".format(leg,auc(fp,tp)*100))
+            axs.plot(tp, fp, lw=3, label=r"{}, AUC = {:.1f}%".format(leg, auc(fp, tp) * 100))
         y_eff = 0.01
         x_eff = get_intersections(tp, fp, y_eff)
         axs.hlines(
@@ -174,21 +174,24 @@ def plot_roc(
         axs.vlines(
             x=x_eff, ymin=0.00001, ymax=y_eff, linewidth=1.3, color="dimgrey", linestyle="dashed"
         )
-        ik+=1
+        ik += 1
 
-    axs.legend(loc='lower right',fontsize=40)
-    axs.grid(which='minor', alpha=0.5)
-    axs.grid(which='major', alpha=0.5)
-    axs.set_xlabel(r'Tagging efficiency %s'%label_sig, fontsize=40)
-    axs.set_ylabel(r'Mistagging rate %s'%label_bkg, fontsize=40)
-    axs.set_ylim(0.0001,1)
-    axs.set_xlim(0.0001,1)
-    axs.set_yscale('log')
-    if ptcut: axs.text(0.05, 0.5, ptcut, fontsize=30)
-    if msdcut: axs.text(0.05, 0.3, msdcut, fontsize=30)
-    if ratiomethod: axs.text(0.45, 0.005, r'Rescaled by pass $m_{SD}&p_T$/pass $p_T$', fontsize=32)
+    axs.legend(loc="lower right", fontsize=40)
+    axs.grid(which="minor", alpha=0.5)
+    axs.grid(which="major", alpha=0.5)
+    axs.set_xlabel(r"Tagging efficiency %s" % label_sig, fontsize=40)
+    axs.set_ylabel(r"Mistagging rate %s" % label_bkg, fontsize=40)
+    axs.set_ylim(0.0001, 1)
+    axs.set_xlim(0.0001, 1)
+    axs.set_yscale("log")
+    if ptcut:
+        axs.text(0.05, 0.5, ptcut, fontsize=30)
+    if msdcut:
+        axs.text(0.05, 0.3, msdcut, fontsize=30)
+    if ratiomethod:
+        axs.text(0.45, 0.005, r"Rescaled by pass $m_{SD}&p_T$/pass $p_T$", fontsize=32)
     axs.set_title(title, fontsize=40)
-    
+
     plt.tight_layout()
 
     fig.savefig("%s/roc_%s_ylog.pdf" % (odir, label))
@@ -199,10 +202,11 @@ def plot_roc(
     # axs.set_xlim(0.0001,1)
     # fig.savefig("%s/roc_%s_ylogm5.pdf"%(odir,label))
     # fig.savefig("%s/roc_%s_ylogm5.png"%(odir,label))
-    
-    axs.set_yscale('linear')
 
-def plot_1d(odir,hist_val,vars_to_plot,label):
+    axs.set_yscale("linear")
+
+
+def plot_1d(odir, hist_val, vars_to_plot, label):
     """
     Plot 1d histograms for validation
     Arguments:
@@ -247,45 +251,48 @@ def computePercentiles(data, percentiles):
         perc.append(x)
     return perc, tmpl
 
-def plot_var_aftercut(odir, hists_to_plot,labels,xlabel,tag,ptcut):
+
+def plot_var_aftercut(odir, hists_to_plot, labels, xlabel, tag, ptcut):
     # get histogram divided by integral so that we can get the correct ratio
     hscales = []
     for h in hists_to_plot:
         s = np.sum(h.values())
-        y = h*(1/s)
+        y = h * (1 / s)
         hscales.append(y.values())
     ratio = []
-    for i,h in enumerate(hscales):
-        ratio.append(hscales[i]/hscales[0])
-        
-    fig, axs  = plt.subplots(
+    for i, h in enumerate(hscales):
+        ratio.append(hscales[i] / hscales[0])
+
+    fig, axs = plt.subplots(
         nrows=2,
         ncols=1,
         figsize=(8, 8),
         gridspec_kw={"height_ratios": (3, 1)},
         sharex=True,
     )
-    axs_1 = axs[0]; raxs_1 = axs[1];
+    axs_1 = axs[0]
+    raxs_1 = axs[1]
     fig.subplots_adjust(hspace=0.07)
-    colors = ['k','r','g','b']
+    colors = ["k", "r", "g", "b"]
     error_opts = {
         "linestyle": "none",
         "marker": ".",
         "markersize": 10.0,
         "elinewidth": 1,
     }
-    hep.histplot(hists_to_plot,
-                 ax=axs_1,
-                 xerr=True,
-                 density=True,
-                 #binwnorm=1,
-                 color=colors,
-                 yerr=True,
-                 label=labels,
-                 histtype='errorbar',
-                 **error_opts
-                 )
-    major_ticks = np.arange(25, 275, 25) 
+    hep.histplot(
+        hists_to_plot,
+        ax=axs_1,
+        xerr=True,
+        density=True,
+        # binwnorm=1,
+        color=colors,
+        yerr=True,
+        label=labels,
+        histtype="errorbar",
+        **error_opts,
+    )
+    major_ticks = np.arange(25, 275, 25)
     minor_ticks = np.arange(25, 275, 10)
     major_ticks[0] = 30
     minor_ticks[0] = 30
@@ -294,20 +301,23 @@ def plot_var_aftercut(odir, hists_to_plot,labels,xlabel,tag,ptcut):
     axs_1.set_xticks(major_ticks)
     axs_1.set_xticks(minor_ticks, minor=True)
     axs_1.grid(which="major", alpha=0.6)
-    #axs_1.grid(which="minor", alpha=0.6)
+    # axs_1.grid(which="minor", alpha=0.6)
     axs_1.set_ylabel("A.U.")
-    axs_1.set_xlim(30,250)
-    raxs_1.set_xlim(30,250)
-    for i,r in enumerate(ratio):
-        if i==0: fmt='-'
-        else: fmt='o'
-        raxs_1.errorbar(x=hists_to_plot[0].axes[0].centers,
-                        y=r,
-                        xerr=hists_to_plot[0].axes[0].widths/2,
-                        #yerr=np.sqrt(r),
-                        color=colors[i],
-                        fmt=fmt,
-                        )
+    axs_1.set_xlim(30, 250)
+    raxs_1.set_xlim(30, 250)
+    for i, r in enumerate(ratio):
+        if i == 0:
+            fmt = "-"
+        else:
+            fmt = "o"
+        raxs_1.errorbar(
+            x=hists_to_plot[0].axes[0].centers,
+            y=r,
+            xerr=hists_to_plot[0].axes[0].widths / 2,
+            # yerr=np.sqrt(r),
+            color=colors[i],
+            fmt=fmt,
+        )
     raxs_1.set_xticks(major_ticks)
     raxs_1.set_xticks(minor_ticks, minor=True)
     raxs_1.grid(which="major", alpha=0.6)

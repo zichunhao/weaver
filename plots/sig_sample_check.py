@@ -51,6 +51,9 @@ sample = "JHU_HHbbWW"
 events_dict[sample].fields
 
 file = uproot.open("/hwwtaggervol/training/ak15_Feb14/test//jhu_HHbbWW_DNN/miniaod_20ul_51.root")
+file = uproot.open("../sample_data/jhu_HHbbWW/miniaod_20ul_5001_Skim.root:Events")
+file.keys()
+
 file["deepntuplizer/tree"].keys()
 
 pfcand_masks = {}
