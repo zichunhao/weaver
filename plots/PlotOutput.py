@@ -165,9 +165,7 @@ class PlotOutput:
 
         # bkg label
         events["fj_QCD_label"] = (
-            np.sum([events[qcdlabel].reshape(-1, 1) for qcdlabel in qcdlabels], axis=1)
-            .astype(bool)
-            .squeeze()
+            np.sum([events[qcdlabel] for qcdlabel in qcdlabels], axis=0).astype(bool).squeeze()
         )
 
         if self.verbose:
@@ -182,9 +180,7 @@ class PlotOutput:
         if self.bkg == "qcd" or self.bkg == "qcdnolep" or self.bkg == "qcd_dnn":
             score_branch = events[f"score_{self.siglabel}"] / (
                 events[f"score_{self.siglabel}"]
-                + np.sum(
-                    [events[f"score_{qcdlabel}"].reshape(-1, 1) for qcdlabel in qcdlabels], axis=1
-                ).squeeze()
+                + np.sum([events[f"score_{qcdlabel}"] for qcdlabel in qcdlabels], axis=0).squeeze()
             )
         else:
             print(
