@@ -206,7 +206,7 @@ def main(args):
             "QCD",
             fp_tp_all,
             label="allsig_summary",
-            title=f"HWW vs {bkglegend}",
+            title=f"HWW vs QCD",
             ptcut="",
             msdcut="",
         )
