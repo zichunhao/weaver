@@ -135,10 +135,16 @@ class PlotOutput:
         # pt mask
         mask = f"({self.pt}>200) & ({self.pt}<1500)"
         if self.mbranch:
-            mask += (
-                f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)) & ({self.mbranch}<=0)) | "
-                f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
-            )
+            if self.bkg == "qcdnolep":
+                mask += (
+                    f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)) & ({self.mbranch}<=0)) | "
+                    f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
+                )
+            else:
+                mask += (
+                    f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)) & ({self.mbranch}<=0)) | "
+                    f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
+                )
 
         # open file
         if self.sigfile:
