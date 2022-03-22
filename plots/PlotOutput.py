@@ -62,8 +62,12 @@ class PlotOutput:
 
         self.events = self.get_events()
         self.get_masks()
+        self.percentiles, self.cuts = computePercentiles(
+            self.events[self.score][(self.events[self.bkglabel] == 1)].to_numpy(),
+            [0.97, 0.99, 0.995]
+        ) if "qcd" in self.bkg else None
         self.hists = self.fill_hists()
-
+        
     def get_events(self):
         branches = [self.pt, self.msd, self.eta]
         if self.oldpn:
@@ -170,7 +174,8 @@ class PlotOutput:
         events[self.score] = score_branch
         if self.verbose:
             print(self.score,events[self.score])
-            
+
+
         return events
 
     def get_masks(self):
@@ -286,9 +291,10 @@ class PlotOutput:
         hists = {}
         hists["features"] = hist2.Hist(
             hist2.axis.StrCategory([], name='process', growth=True),
-            hist2.axis.Regular(40, 30, 260, name='msd', label=r'fj msoftdrop [GeV]'),
+            hist2.axis.StrCategory([], name='cat', growth=True),
+            hist2.axis.Regular(23, 30, 260, name='msd', label=r'fj msoftdrop [GeV]'), # bins of 10 gev
             hist2.axis.Regular(50, 200, 1200, name='pt', label=r'fj $p_T$ [GeV]'),
-            hist2.axis.Regular(100, 0, 1, name='score', label=r'Tagger score'),
+            hist2.axis.Regular(1000, 0, 1, name='score', label=r'Tagger score'),
         )
         if self.mbranch:
             hists["genmass"] = hist2.Hist(
@@ -325,13 +331,18 @@ class PlotOutput:
                 continue
         
             # fill histogram
-            hists["features"].fill(
-                process=proc,
-                msd=self.events[self.msd][mask_proc],
-                pt=self.events[self.pt][mask_proc],
-                score=self.events[self.score][mask_proc],
-            )
-            if self.sig in proc and "genmass" in hists.keys():
+            for i,cat in enumerate(self.percentiles):
+                # print(cat,self.cuts[i])
+                mask_cat = mask_proc & (self.events[self.score] >= self.cuts[i]) & self.roc_mask_nomass
+                hists["features"].fill(
+                    process=proc,
+                    cat=str(cat),
+                    msd=self.events[self.msd][mask_cat],
+                    pt=self.events[self.pt][mask_cat],
+                    score=self.events[self.score][mask_cat],
+                )
+
+            if self.sig in proc and "genmass" in hists.keys() and self.mbranch:
                 hists["genmass"].fill(
                     process=proc,
                     mh=self.events[self.mbranch][mask_proc],

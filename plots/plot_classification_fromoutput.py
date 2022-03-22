@@ -67,15 +67,6 @@ def get_rocs(p,args,jsig=0,signame=""):
             
     return fp_tp
 
-def get_rocs_by_var(odir,mbranch,sigmask=None):
-    vars_to_corr = {r"$p_T$": "fj_pt"}
-    bin_ranges = [list(range(200, 1000, 200))]
-    bin_widths = [200] * len(bin_ranges)
-    if mbranch:
-        vars_to_corr[r"$m_H$"] = args.mbranch
-        bin_ranges += [list(range(60, 240, 20))]
-        bin_widths = [10] * len(bin_ranges)
-    
 def main(args):
     signals = args.signals.split(",")
     backgrounds = args.bkgs.split(",")
@@ -120,8 +111,8 @@ def main(args):
                 args.mbranch,
                 args.nprongs,
             )                        
-            
-            # ROCS
+
+            # keys of ROCS to plot
             signame = ""
             if args.isig:
                 signame = " "+args.isignames.split(',')[j]
@@ -170,7 +161,7 @@ def main(args):
         if args.verbose:
             print(fp_tp_sigfiles.keys())
             
-        # ROCS
+        # plot ROCs
         p.plot(fp_tp_sigfiles, "summary", plot_keys["sigfiles"])
         p.plot(fp_tp_sigfiles, "ratio", plot_keys["ratio"])
         
@@ -181,7 +172,18 @@ def main(args):
         # plot ROCs for different W/W* distance
         p.plot(fp_tp_sigfiles, "closeVVstar", plot_keys["closer"])
 
-        # Mass decorrelation
+        # mass decorrelation
+        hists_to_plot = []; labels_to_plot=[]
+        for i,cat in enumerate(p.percentiles):
+            hists_to_plot.append(p.hists["features"][{"process":bkg,"cat":str(cat)}].project("msd"))
+            if cat==0:
+                labels_to_plot.append('Inclusive')
+            else:
+                per = round((1-cat)*100,2)
+                tag = f'$\epsilon_B={per} \%$'
+                labels_to_plot.append(r'%s'%tag)
+        ptcut = r"%s $p_T$:[%s-%s] GeV, $|\eta|<2.4$"%(p.jet,p.ptrange[0],p.ptrange[1])
+        plot_var_aftercut(odir,hists_to_plot,labels_to_plot,r"m$_{SD}$ [GeV]","msd",ptcut)
         
     if len(signals)>1:
         # plot summary ROC for all signal classes and first isig file
@@ -195,7 +197,6 @@ def main(args):
             ptcut="",
             msdcut="",
         )
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

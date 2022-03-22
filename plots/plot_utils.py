@@ -247,107 +247,78 @@ def computePercentiles(data, percentiles):
         perc.append(x)
     return perc, tmpl
 
+def plot_var_aftercut(odir, hists_to_plot,labels,xlabel,tag,ptcut):
+    # get histogram divided by integral so that we can get the correct ratio
+    hscales = []
+    for h in hists_to_plot:
+        s = np.sum(h.values())
+        y = h*(1/s)
+        hscales.append(y.values())
+    ratio = []
+    for i,h in enumerate(hscales):
+        ratio.append(hscales[i]/hscales[0])
+        
+    fig, axs  = plt.subplots(
+        nrows=2,
+        ncols=1,
+        figsize=(8, 8),
+        gridspec_kw={"height_ratios": (3, 1)},
+        sharex=True,
+    )
+    axs_1 = axs[0]; raxs_1 = axs[1];
+    fig.subplots_adjust(hspace=0.07)
+    colors = ['k','r','g','b']
+    error_opts = {
+        "linestyle": "none",
+        "marker": ".",
+        "markersize": 10.0,
+        "elinewidth": 1,
+    }
+    hep.histplot(hists_to_plot,
+                 ax=axs_1,
+                 xerr=True,
+                 density=True,
+                 #binwnorm=1,
+                 color=colors,
+                 yerr=True,
+                 label=labels,
+                 histtype='errorbar',
+                 **error_opts
+                 )
+    major_ticks = np.arange(25, 275, 25) 
+    minor_ticks = np.arange(25, 275, 10)
+    major_ticks[0] = 30
+    minor_ticks[0] = 30
+    major_ticks[-1] = 250
+    minor_ticks[-1] = 250
+    axs_1.set_xticks(major_ticks)
+    axs_1.set_xticks(minor_ticks, minor=True)
+    axs_1.grid(which="major", alpha=0.6)
+    #axs_1.grid(which="minor", alpha=0.6)
+    axs_1.set_ylabel("A.U.")
+    axs_1.set_xlim(30,250)
+    raxs_1.set_xlim(30,250)
+    for i,r in enumerate(ratio):
+        if i==0: fmt='-'
+        else: fmt='o'
+        raxs_1.errorbar(x=hists_to_plot[0].axes[0].centers,
+                        y=r,
+                        xerr=hists_to_plot[0].axes[0].widths/2,
+                        #yerr=np.sqrt(r),
+                        color=colors[i],
+                        fmt=fmt,
+                        )
+    raxs_1.set_xticks(major_ticks)
+    raxs_1.set_xticks(minor_ticks, minor=True)
+    raxs_1.grid(which="major", alpha=0.6)
+    raxs_1.set_ylabel(r"$\frac{\epsilon_B}{Inclusive}$")
+    raxs_1.set_ylim(0.5, 1.5)
 
-def plot_score_aftercut(odir, hist_val, vars_to_corr, bin_ranges, bin_widths, processes, label):
-    density = True
-    for proc in processes:
-        fig, axs = plt.subplots(1, len(vars_to_corr), figsize=(len(vars_to_corr) * 8, 8))
-        for i, m in enumerate(vars_to_corr):
-            if len(vars_to_corr) == 1:
-                axs_1 = axs
-            else:
-                axs_1 = axs[i]
-            x = hist_val.sum(
-                *[ax for ax in hist_val.axes() if ax.name not in {"process", "score", m}]
-            ).integrate("process", proc)
-            legends = []
-            for j, b in enumerate(bin_ranges[i]):
-                y = x.integrate(m, slice(b, b + bin_widths[i]))
-                legends.append("%s %i-%i GeV" % (m, b, b + bin_widths[i]))
-                if j == 0:
-                    hist.plot1d(y, ax=axs_1, density=True)
-                else:
-                    hist.plot1d(y, ax=axs_1, density=True, clear=False)
-            axs_1.set_ylabel("Jets")
-            axs_1.legend(legends, title=m)
-        fig.tight_layout()
-        fig.savefig("%s/%s_scores_%s_density.pdf" % (odir, proc, label))
-        fig.savefig("%s/%s_scores_%s_density.png" % (odir, proc, label))
-
-
-def plot_var_aftercut(odir, hist_val, vars_to_plot, processes, label, cuts, percentiles):
-    for proc in processes:
-        fig, axs = plt.subplots(
-            nrows=2,
-            ncols=len(vars_to_plot),
-            figsize=(len(vars_to_plot) * 8, 8),
-            gridspec_kw={"height_ratios": (4, 1)},
-            sharex=True,
-        )
-        fig.subplots_adjust(hspace=0.07)
-        for i, var in enumerate(vars_to_plot):
-            if len(vars_to_plot) == 1:
-                axs_1 = axs[0]
-                raxs_1 = axs[1]
-            else:
-                axs_1 = axs[0, i]
-                raxs_1 = raxs[1, i]
-            x = hist_val.sum(
-                *[ax for ax in hist_val.axes() if ax.name not in {"process", var, "score"}]
-            )
-            x = x.integrate("process", proc)
-
-            legends = []
-            hists = []
-            hscales = []
-            for i, cut in enumerate(cuts):
-                cut = round(cut, 2)
-                y = x.integrate("score", slice(cut, 1))
-                hists.append(y)
-                if i == 0:
-                    legends.append(r"Inclusive")
-                else:
-                    legends.append(r"$\epsilon_B=$%.1f" % ((1 - percentiles[i]) * 100) + " %")
-                hist.plot1d(y, ax=axs_1, density=True, clear=False)
-
-                val, _ = y.values(sumw2=True, overflow="none")[()]
-                s = np.sum(y.values(sumw2=True, overflow="none")[()])
-                y.scale(1 / s)
-                hscales.append(y)
-
-            # x = hist_val.sum(*[ax for ax in hist_val.axes() if ax.name not in {'process',var,'pn_score'}])
-            # x = x.integrate('process',proc)
-            # y = x.integrate('pn_score',slice(cut,0.98))
-            # hist.plot1d(y,ax=axs_1,density=True,clear=False)
-            # legends.append(r'Old PN $\epsilon_B=2%$')
-
-            axs_1.grid()
-            axs_1.set_ylabel("A.U.")
-
-            error_opts = {
-                "linestyle": "none",
-                "marker": ".",
-                "markersize": 10.0,
-                "elinewidth": 1,
-            }
-            for i, h in enumerate(hscales):
-                hist.plotratio(
-                    num=h,
-                    denom=hscales[0],
-                    error_opts=error_opts,
-                    ax=raxs_1,
-                    unc="num",
-                    clear=False,
-                )
-            raxs_1.grid(which="minor", alpha=0.4)
-            raxs_1.grid(which="major", alpha=0.6)
-            raxs_1.set_ylabel("Ratio")
-            raxs_1.set_ylim(0.5, 1.5)
-
-            axs_1.set_xlabel("")
-            axs_1.legend(legends)
-            axs_1.get_shared_x_axes().join(axs_1, raxs_1)
-            axs_1.set_title("Mass of QCD jets after tagging", fontsize=25)
-        fig.tight_layout()
-        fig.savefig("%s/%s_scoresculpting.pdf" % (odir, label))
-        fig.savefig("%s/%s_scoresculpting.png" % (odir, label))
+    raxs_1.set_xlabel(xlabel)
+    axs_1.set_xlabel("")
+    axs_1.text(50, 0.01, ptcut, fontsize=15)
+    axs_1.legend()
+    axs_1.get_shared_x_axes().join(axs_1, raxs_1)
+    fig.tight_layout()
+    fig.savefig("%s/%s_scoresculpting.pdf" % (odir, tag))
+    fig.savefig("%s/%s_scoresculpting.png" % (odir, tag))
