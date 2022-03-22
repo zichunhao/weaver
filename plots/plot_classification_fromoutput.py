@@ -82,7 +82,7 @@ def main(args):
     fp_tp_all = {}
     for i, sig in enumerate(signals):
         bkg = backgrounds[i]
-
+        bkglegend = label_dict[bkg]["legend"]
         odir = args.odir + sig
         os.system(f"mkdir -p {odir}")
 
@@ -126,14 +126,14 @@ def main(args):
 
             fp_tp = get_rocs(p, args, signame)
             if args.isig:
-                for key, item in fp_tp.items():
-                    fp_tp_sigfiles[key + signame] = item
-                    if key == p.score:
-                        plot_keys["sigfiles"].append(key + signame)
-                        if j == 0:
-                            fp_tp_all[sig] = p.roc(p.score)
-                    elif key == p.score + "-ratio":
-                        plot_keys["ratio"].append(key + signame)
+                for key,item in fp_tp.items():
+                    fp_tp_sigfiles[key+signame] = item
+                    if key==p.score:
+                        plot_keys["sigfiles"].append(key+signame)
+                        if j==0:
+                            fp_tp_all[sig] = item
+                    elif key==p.score+"-ratio":
+                        plot_keys["ratio"].append(key+signame)
                     elif "closer" in key:
                         plot_keys["closer"].append(key + signame)
                     elif "-pt" in key:
@@ -150,9 +150,9 @@ def main(args):
                         print("not plotting ", key)
             else:
                 fp_tp_sigfiles = fp_tp
-                fp_tp_all[sig] = p.roc(p.score)
-                for key, item in fp_tp.items():
-                    if key == p.score:
+                fp_tp_all[sig] = fp_tp[p.score]
+                for key,item in fp_tp.items():
+                    if key==p.score:
                         plot_keys["sigfiles"].append(key)
                     elif key == p.score + "-ratio":
                         plot_keys["ratio"].append(key)
@@ -206,7 +206,7 @@ def main(args):
             "QCD",
             fp_tp_all,
             label="allsig_summary",
-            title=f"HWW vs QCD",
+            title=f"HWW vs {bkglegend}",
             ptcut="",
             msdcut="",
         )
