@@ -20,15 +20,17 @@ for sample, (dir, sel) in samples.items():
     for tdir in ["train","test"]:
         print(f"{sample_dir}/{tdir}/{dir}*/{sel}*.root:{branch}")
         try:
-            events = uproot.iterate(f"{sample_dir}/{tdir}/{dir}*/{sel}*.root:{branch}",["fj_pt","fj_H_VV_4q","fj_nProngs"])
+            events = uproot.iterate(f"{sample_dir}/{tdir}/{dir}*/{sel}*.root:{branch}",["fj_pt","fj_H_VV_4q"])
+            print(events)
             for ev in events:
-                masks["all"] = (events["fj_pt"] > 0)
+                masks["all"] = (ev["fj_pt"] > 0)
                 if "all" in nums.keys():
                     nums["all"] += ak.sum(masks["all"])
                 else:
                     nums["all"] = ak.sum(masks["all"])
         except:
-            print("No files in {tdir} for {sample}")
+            print(f"No files in {tdir} for {sample}")
 
-    num = nums['all']
-    print(f"{sample}: num events {num}")
+    if "all" in nums.keys():
+        num = nums['all']
+        print(f"{sample}: num events {num}")
