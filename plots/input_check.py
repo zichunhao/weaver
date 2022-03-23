@@ -17,7 +17,7 @@ os.system(f"mkdir -p {plot_dir}")
 branches = [
     "fj_pt",
     "fj_H_VV_4q",
-    "fj_nProngs",
+    "fj_nprongs",
     "fj_isQCDb",
     "fj_isQCDbb",
     "fj_isQCDc",
@@ -31,14 +31,13 @@ for sample, (dir, sel) in samples.items():
         print(f"{sample_dir}/{tdir}/{dir}*/{sel}*.root:{branch}")
         try:
             events = uproot.iterate(f"{sample_dir}/{tdir}/{dir}*/{sel}*.root:{branch}",branches)
-            print(events)
             for ev in events:
                 masks = {}
                 masks["all"] = (ev["fj_pt"] > 0)
                 if "HH" in sample:
                     masks["4q_all"] = masks["all"] & (ev["fj_H_VV_4q"] == 1)
-                    masks["4q"] = masks["4q_all"] & (ev["fj_nProngs"] == 4)
-                    masks["3q"] = masks["3q_all"] & (ev["fj_nProngs"] == 3)
+                    masks["4q"] = masks["4q_all"] & (ev["fj_nprongs"] == 4)
+                    masks["3q"] = masks["3q_all"] & (ev["fj_nprongs"] == 3)
                 if "QCD" in sample:
                     masks["qcdb"] = masks["all"] & (ev["fj_isQCDb"]==1)
                     masks["qcdbb"] = masks["all"] & (ev["fj_isQCDbb"]==1)
@@ -47,7 +46,6 @@ for sample, (dir, sel) in samples.items():
                     masks["qcdlep"] = masks["all"] & (ev["fj_isQCDlep"]==1)
                     masks["qcdoth"] = masks["all"] & (ev["fj_isQCDothers"]==1)
                     masks["all_tagged"] =  masks["qcdb"] | masks["qcdbb"] | masks["qcdc"] | masks["qcdcc"] | masks["qcdlep"] | masks["qcdoth"]
-                print(masks)
                 for m,mask in masks.items():
                     print(m,ak.sum(mask))
                     if m in nums.keys():
