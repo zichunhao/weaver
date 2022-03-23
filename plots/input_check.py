@@ -14,23 +14,22 @@ samples = {
 }
 os.system(f"mkdir -p {plot_dir}")
 
-branches = [
-    "fj_pt",
-    "fj_H_VV_4q",
-    "fj_nprongs",
-    "fj_isQCDb",
-    "fj_isQCDbb",
-    "fj_isQCDc",
-    "fj_isQCDcc",
-    "fj_isQCDlep",
-    "fj_isQCDothers",
-]
 for sample, (dir, sel) in samples.items():
     nums = {}
     for tdir in ["train","test"]:
         print(f"{sample_dir}/{tdir}/{dir}*/{sel}*.root:{branch}")
+        ibranches = ["fj_pt"]
+        if "HH" in sample:
+            ibranches += ["fj_H_VV_4q","fj_nprongs"]
+        if "QCD" in sample:
+            ibranches += ["fj_isQCDb",
+                          "fj_isQCDbb",
+                          "fj_isQCDc",
+                          "fj_isQCDcc",
+                          "fj_isQCDlep",
+                          "fj_isQCDothers"]
         try:
-            events = uproot.iterate(f"{sample_dir}/{tdir}/{dir}*/{sel}*.root:{branch}",branches)
+            events = uproot.iterate(f"{sample_dir}/{tdir}/{dir}*/{sel}*.root:{branch}",ibranches)
             for ev in events:
                 masks = {}
                 masks["all"] = (ev["fj_pt"] > 0)
