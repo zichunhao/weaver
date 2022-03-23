@@ -8,9 +8,9 @@ branch = "Events"
 samples = {
     # label     : [name,         selector to get subset of files (~20 each)]
     "JHU_HHbbWW": ["jhu_HHbbWW", ""],
-    "JHU_HH4W": ["GluGluToBulkGravitonToHHTo4W_JHUGen_M-2500_narrow", ""],
-    "HHbbVV": ["GluGluToHHTobbVV_node_cHHH1", ""],
-    "QCD": ["QCD", ""],
+    #"JHU_HH4W": ["GluGluToBulkGravitonToHHTo4W_JHUGen_M-2500_narrow", ""],
+    #"HHbbVV": ["GluGluToHHTobbVV_node_cHHH1", ""],
+    #"QCD": ["QCD", ""],
 }
 os.system(f"mkdir -p {plot_dir}")
 
@@ -31,6 +31,7 @@ for sample, (dir, sel) in samples.items():
         print(f"{sample_dir}/{tdir}/{dir}*/{sel}*.root:{branch}")
         try:
             events = uproot.iterate(f"{sample_dir}/{tdir}/{dir}*/{sel}*.root:{branch}",branches)
+            print(events)
             for ev in events:
                 masks = {}
                 masks["all"] = (ev["fj_pt"] > 0)
