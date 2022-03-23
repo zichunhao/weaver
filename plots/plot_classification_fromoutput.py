@@ -132,9 +132,9 @@ def main(args):
                         plot_keys["closer"].append(key+signame)
                     elif "-pt" in key:
                         if j==0: plot_keys["pt"].append(key+signame)
-                    elif "-mh" in key and p.mbranch and not fillmhbin:
-                        plot_keys["mh"].append(key+signame)
-                        fillmhbin = True
+                    elif "-mh" in key and p.mbranch:
+                        if key+signame not in plot_keys["mh"]:
+                            plot_keys["mh"].append(key+signame)
                     elif "m_H" in key and p.mbranch and not fillmh:
                         # only do this for the first sample that has a range of mh
                         plot_keys["sigfiles"].append(key+signame)
