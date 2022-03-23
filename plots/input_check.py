@@ -33,10 +33,12 @@ for sample, (dir, sel) in samples.items():
             for ev in events:
                 masks = {}
                 masks["all"] = (ev["fj_pt"] > 0)
+                print(masks)
                 if "HH" in sample:
                     masks["4q_all"] = masks["all"] & (ev["fj_H_VV_4q"] == 1)
                     masks["4q"] = masks["4q_all"] & (ev["fj_nprongs"] == 4)
                     masks["3q"] = masks["3q_all"] & (ev["fj_nprongs"] == 3)
+                print(masks)
                 if "QCD" in sample:
                     masks["qcdb"] = masks["all"] & (ev["fj_isQCDb"]==1)
                     masks["qcdbb"] = masks["all"] & (ev["fj_isQCDbb"]==1)
