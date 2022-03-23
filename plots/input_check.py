@@ -44,7 +44,7 @@ for sample, (dir, sel) in samples.items():
                     masks["qcdc"] = masks["all"] & (ev["fj_isQCDc"]==1)
                     masks["qcdcc"] = masks["all"] & (ev["fj_isQCDcc"]==1)
                     masks["qcdlep"] = masks["all"] & (ev["fj_isQCDlep"]==1)
-                    masks["qcdoth"] = masks["all"] & (ev["fj_isQCDo"]==1)
+                    masks["qcdoth"] = masks["all"] & (ev["fj_isQCDothers"]==1)
                     masks["all_tagged"] =  masks["qcdb"] | masks["qcdbb"] | masks["qcdc"] | masks["qcdcc"] | masks["qcdlep"] | masks["qcdoth"]
                 for m,mask in masks.items():
                     if m in nums.keys():
