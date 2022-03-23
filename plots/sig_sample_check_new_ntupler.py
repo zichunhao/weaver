@@ -320,11 +320,11 @@ for var, bins in features.items():
     else:
         merger_inputs.append(f"{plot_dir}/{var}.pdf")
 
-merger_inputs.write(f"{plot_dir}/input_feature_plots.pdf")
-merger_inputs.close()
-
-merger_jet_kins.write(f"{plot_dir}/jet_kins.pdf")
-merger_jet_kins.close()
+# merger_inputs.write(f"{plot_dir}/input_feature_plots.pdf")
+# merger_inputs.close()
+#
+# merger_jet_kins.write(f"{plot_dir}/jet_kins.pdf")
+# merger_jet_kins.close()
 
 merger_gens.write(f"{plot_dir}/gen_feature_plots.pdf")
 merger_gens.close()
