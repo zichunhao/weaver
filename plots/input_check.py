@@ -17,6 +17,7 @@ os.system(f"mkdir -p {plot_dir}")
 for sample, (dir, sel) in samples.items():
     masks = {}
     nums = {}
+    print(f"{sample_dir}/*/{sel}*.root:{branch}")
     events = uproot.iterate(f"{sample_dir}/*/{sel}*.root:{branch}",["fj_pt","fj_H_VV_4q","fj_nProngs"])
     for ev in events:
         masks["all"] = (events["fj_pt"] > 0)
