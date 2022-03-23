@@ -47,7 +47,9 @@ for sample, (dir, sel) in samples.items():
                     masks["qcdlep"] = masks["all"] & (ev["fj_isQCDlep"]==1)
                     masks["qcdoth"] = masks["all"] & (ev["fj_isQCDothers"]==1)
                     masks["all_tagged"] =  masks["qcdb"] | masks["qcdbb"] | masks["qcdc"] | masks["qcdcc"] | masks["qcdlep"] | masks["qcdoth"]
+                print(masks)
                 for m,mask in masks.items():
+                    print(m,ak.sum(mask))
                     if m in nums.keys():
                         nums[m] += ak.sum(mask)
                     else:
