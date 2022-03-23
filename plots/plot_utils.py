@@ -176,7 +176,7 @@ def plot_roc(
         )
         ik += 1
 
-    axs.legend(loc="lower right", fontsize=40)
+    axs.legend(loc="lower right", fontsize=25)
     axs.grid(which="minor", alpha=0.5)
     axs.grid(which="major", alpha=0.5)
     axs.set_xlabel(r"Tagging efficiency %s" % label_sig, fontsize=40)
