@@ -30,6 +30,8 @@ for sample, (dir, sel) in samples.items():
                           "fj_isQCDothers"]
         try:
             events = uproot.iterate(f"{sample_dir}/{tdir}/{dir}*/{sel}*.root:{branch}",ibranches)
+            for ev in events:
+                break
         except:
             print(f"No files in {tdir} for {sample}")
             continue
@@ -37,7 +39,6 @@ for sample, (dir, sel) in samples.items():
         for ev in events:
             masks = {}
             masks["all"] = (ev["fj_pt"] > 0)
-            print(masks)
             if "HH" in sample:
                 masks["4q_all"] = masks["all"] & (ev["fj_H_VV_4q"] == 1)
                 masks["4q"] = masks["4q_all"] & (ev["fj_nprongs"] == 4)
@@ -51,12 +52,10 @@ for sample, (dir, sel) in samples.items():
                 masks["qcdoth"] = masks["all"] & (ev["fj_isQCDothers"]==1)
                 masks["all_tagged"] =  masks["qcdb"] | masks["qcdbb"] | masks["qcdc"] | masks["qcdcc"] | masks["qcdlep"] | masks["qcdoth"]
             for m,mask in masks.items():
-                print(m,ak.sum(mask))
                 if m in nums.keys():
                     nums[m] += ak.sum(mask)
                 else:
                     nums[m] = ak.sum(mask)
 
-    if "all" in nums.keys():
-        num = nums['all']
-        print(f"{sample}: num events {num}")
+    for key,item in nums.keys():
+        print(f"{sample}: num events {num}: {item}")
