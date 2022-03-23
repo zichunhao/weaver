@@ -181,7 +181,7 @@ weights:
    reweight_method: flat
    reweight_vars:
       fj_pt: [300, 398, 501, 630, 793, 997, 1255, 1579]
-      # target_mass: [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260]
+      fj_msoftdrop: [0, 1000]
    reweight_classes:
        [
        fj_isQCDb, fj_isQCDbb, fj_isQCDc, fj_isQCDcc, fj_isQCDothers,
