@@ -1,9 +1,8 @@
 import torch
-from utils.nn.model.ParticleNetPyG import ParticleNetTaggerPyG
-from utils.nn.model.ParticleNetPyGJittable import ParticleNetTaggerPyGJittable
+from utils.nn.model.ParticleNet import ParticleNetTaggerNoSV
 
 
-def get_model(data_config, jittable=False, **kwargs):
+def get_model(data_config, **kwargs):
     conv_params = [
         (16, (64, 64, 64)),
         (16, (128, 128, 128)),
@@ -16,10 +15,7 @@ def get_model(data_config, jittable=False, **kwargs):
     pf_features_dims = len(data_config.input_dicts["pf_features"])
     sv_features_dims = len(data_config.input_dicts["sv_features"])
     num_classes = len(data_config.label_value)
-
-    pnet_model = ParticleNetTaggerPyGJittable if jittable else ParticleNetTaggerPyG
-
-    model = pnet_model(
+    model = ParticleNetTaggerNoSV(
         pf_features_dims,
         sv_features_dims,
         num_classes,
@@ -28,10 +24,9 @@ def get_model(data_config, jittable=False, **kwargs):
         use_fusion=use_fusion,
         use_fts_bn=kwargs.get("use_fts_bn", False),
         use_counts=kwargs.get("use_counts", True),
-        pf_input_dropout=kwargs.get("pf_input_dropout", 0.0),
-        sv_input_dropout=kwargs.get("sv_input_dropout", 0.0),
+        pf_input_dropout=kwargs.get("pf_input_dropout", None),
+        sv_input_dropout=kwargs.get("sv_input_dropout", None),
         for_inference=kwargs.get("for_inference", False),
-        use_edge_feats=True,
     )
 
     model_info = {
