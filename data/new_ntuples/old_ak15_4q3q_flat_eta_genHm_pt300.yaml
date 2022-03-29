@@ -41,7 +41,7 @@ test_time_selection:
           (fj_isQCDothers == 1) ) &
         (fj_genRes_mass<=0) ) |
       ( (fj_H_VV_4q==1) &
-        (fj_maxdR_HVV_daus<2.0) &
+        # (fj_maxdR_HVV_daus<2.0) &
         (fj_nprongs>1) &
         (fj_genRes_mass>0) ) )
 
@@ -158,8 +158,8 @@ observers:
    - fj_dR_V
    - fj_dR_Vstar
    # - fj_PN_H4qvsQCD
-   - fj_mindR_HVV_daus
-   - fj_maxdR_HVV_daus
+   # - fj_mindR_HVV_daus
+   # - fj_maxdR_HVV_daus
    - fj_genRes_mass
    - fj_genVstar_mass
    - fj_genV_pt
