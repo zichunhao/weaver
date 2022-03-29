@@ -22,7 +22,7 @@ selection:
         (fj_genRes_mass<=0) ) |
       ( (fj_H_VV_4q==1) &
         (fj_maxdR_HVV_daus<2.5) &
-        (fj_nProngs>1) &
+        (fj_nprongs>1) &
         (fj_genRes_mass>0) ) )
 
 test_time_selection:
@@ -42,7 +42,7 @@ test_time_selection:
         (fj_genRes_mass<=0) ) |
       ( (fj_H_VV_4q==1) &
         (fj_maxdR_HVV_daus<2.0) &
-        (fj_nProngs>1) &
+        (fj_nprongs>1) &
         (fj_genRes_mass>0) ) )
 
 new_variables:
@@ -52,19 +52,19 @@ new_variables:
     # sv_mask: (sv_pt_log!=0)
     target_mass: np.maximum(1, np.where(fj_genRes_mass>0, fj_genRes_mass, fj_msoftdrop))
     # Background (Top)
-    # fj_isTop_merged: (fj_isTop==1) & (fj_nProngs==3)
-    # fj_isTop_semimerged: (fj_isTop==1) & (fj_nProngs==2)
-    # fj_isToplep_merged: (fj_isToplep==1) & (fj_nProngs>=2)  # so that you have at least the lepton and the b merged in the leptonic case
+    # fj_isTop_merged: (fj_isTop==1) & (fj_nprongs==3)
+    # fj_isTop_semimerged: (fj_isTop==1) & (fj_nprongs==2)
+    # fj_isToplep_merged: (fj_isToplep==1) & (fj_nprongs>=2)  # so that you have at least the lepton and the b merged in the leptonic case
     fj_QCD_label: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)
     # Signal (HVV)
-    fj_isHVV_elenuqq_merged: (fj_H_VV_elenuqq==1) & (fj_nProngs==4)
-    fj_isHVV_elenuqq_semimerged: (fj_H_VV_elenuqq==1) & (fj_nProngs==3)
-    fj_isHVV_munuqq_merged: (fj_H_VV_munuqq==1) & (fj_nProngs==4)
-    fj_isHVV_munuqq_semimerged: (fj_H_VV_munuqq==1) & (fj_nProngs==3)
-    # fj_isHVV_taunuqq_merged: (fj_H_VV_taunuqq==1) & (fj_nProngs==4)
-    # fj_isHVV_taunuqq_semimerged: (fj_H_VV_taunuqq==1) & (fj_nProngs==3)
-    fj_H_VV_4q_3q: (fj_H_VV_4q==1) & (fj_nProngs==3)
-    fj_H_VV_4q_4q: (fj_H_VV_4q==1) & (fj_nProngs==4)
+    fj_isHVV_elenuqq_merged: (fj_H_VV_elenuqq==1) & (fj_nprongs==4)
+    fj_isHVV_elenuqq_semimerged: (fj_H_VV_elenuqq==1) & (fj_nprongs==3)
+    fj_isHVV_munuqq_merged: (fj_H_VV_munuqq==1) & (fj_nprongs==4)
+    fj_isHVV_munuqq_semimerged: (fj_H_VV_munuqq==1) & (fj_nprongs==3)
+    # fj_isHVV_taunuqq_merged: (fj_H_VV_taunuqq==1) & (fj_nprongs==4)
+    # fj_isHVV_taunuqq_semimerged: (fj_H_VV_taunuqq==1) & (fj_nprongs==3)
+    fj_H_VV_4q_3q: (fj_H_VV_4q==1) & (fj_nprongs==3)
+    fj_H_VV_4q_4q: (fj_H_VV_4q==1) & (fj_nprongs==4)
 
 
 preprocess:
@@ -166,7 +166,7 @@ observers:
    - fj_genVstar_pt
    # - fj_genV_decay
    # - fj_genVstar_decay
-   - fj_nProngs
+   - fj_nprongs
    - fj_H_VV_4q
    - target_mass
 
