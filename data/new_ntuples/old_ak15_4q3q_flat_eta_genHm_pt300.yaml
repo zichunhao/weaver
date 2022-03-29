@@ -28,7 +28,7 @@ selection:
 test_time_selection:
     ### selection to apply at test time (i.e., when running w/ --predict)
     >
-    (fj_pt>300) &
+    np.squeeze((fj_pt>300) &
     (fj_pt<2500) &
     (np.absolute(fj_eta)<2.4) &
     (fj_msoftdrop>=30) &
@@ -43,7 +43,7 @@ test_time_selection:
       ( (fj_H_VV_4q==1) &
         # (fj_maxdR_HVV_daus<2.0) &
         (fj_nprongs>1) &
-        (fj_genRes_mass>0) ) )
+        (fj_genRes_mass>0) ) ))
 
 new_variables:
     ### [format] name: formula
