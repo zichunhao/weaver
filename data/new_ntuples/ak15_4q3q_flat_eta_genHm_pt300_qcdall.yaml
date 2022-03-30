@@ -102,7 +102,7 @@ inputs:
         - pfcand_isGamma
         - pfcand_isChargedHad
         - pfcand_isNeutralHad
-        # - [pfcand_abseta, 0.6, 1.6]
+        - [pfcand_abseta, 0.6, 1.6]
         - pfcand_charge
         - [pfcand_VTX_ass, 4, 0.3]
         - pfcand_lostInnerHits
