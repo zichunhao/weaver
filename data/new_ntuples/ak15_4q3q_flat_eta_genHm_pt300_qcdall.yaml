@@ -17,7 +17,7 @@ selection:
           (fj_isQCDbb==1) |
           (fj_isQCDc==1) |
           (fj_isQCDcc==1) |
-          # (fj_isQCDlep == 1) |
+          (fj_isQCDlep == 1) |
           (fj_isQCDothers == True) ) &
         (fj_genRes_mass<=0) ) |
       ( (fj_H_VV_4q==1) &
@@ -48,12 +48,13 @@ selection:
 new_variables:
     ### [format] name: formula
     ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-    # target_mass: np.maximum(1, np.where(fj_genRes_mass>0, fj_genRes_mass, fj_msoftdrop))
+    target_mass: np.maximum(1, np.where(fj_genRes_mass>0, fj_genRes_mass, fj_msoftdrop))
     # Background (Top)
     # fj_isTop_merged: (fj_isTop==1) & (fj_nprongs==3)
     # fj_isTop_semimerged: (fj_isTop==1) & (fj_nprongs==2)
     # fj_isToplep_merged: (fj_isToplep==1) & (fj_nprongs>=2)  # so that you have at least the lepton and the b merged in the leptonic case
-    fj_QCD_label: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)
+    fj_QCD_label: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)
+    fj_isQCD: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)
     # Signal (HVV)
     fj_isHVV_elenuqq_merged: (fj_H_VV_elenuqq==1) & (fj_nprongs==4)
     fj_isHVV_elenuqq_semimerged: (fj_H_VV_elenuqq==1) & (fj_nprongs==3)
@@ -145,7 +146,7 @@ labels:
     ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
     type: simple
     value: [
-        fj_isQCDb, fj_isQCDbb, fj_isQCDc, fj_isQCDcc, fj_isQCDothers,
+        fj_isQCD,
         fj_H_VV_4q_3q, fj_H_VV_4q_4q
     ]
 
@@ -170,7 +171,7 @@ observers:
    # - fj_genVstar_decay
    - fj_nprongs
    - fj_H_VV_4q
-   # - target_mass
+   - target_mass
 
 weights:
    ### [option 1] use precomputed weights stored in the input files
@@ -180,16 +181,16 @@ weights:
    use_precomputed_weights: false
    reweight_method: flat
    reweight_vars:
-      fj_pt: [300, 398, 501, 630, 793, 997, 1255, 1579]
-      fj_msoftdrop: [0, 1000]
+      fj_pt: [300, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500]
+      target_mass: [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260]
    reweight_classes:
        [
-       fj_isQCDb, fj_isQCDbb, fj_isQCDc, fj_isQCDcc, fj_isQCDothers,
+       fj_isQCD,
        fj_H_VV_4q_3q, fj_H_VV_4q_4q,
        ]
    class_weights:
        [
-       0.2, 0.2, 0.2, 0.2, 0.2,
+       1.0,
        0.2, 0.8,
        ]
    reweight_hists:
