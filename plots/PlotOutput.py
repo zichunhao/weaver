@@ -173,7 +173,7 @@ class PlotOutput:
         events["fj_QCD_label"] = (
             (np.sum([events[qcdlabel] for qcdlabel in qcdlabels], axis=0).astype(bool).squeeze())
             if len(qcdlabels) > 1
-            else events[qcdlabels[0]].astype(bool)
+            else np.array(events[qcdlabels[0]]).astype(bool)
         )
 
         if self.verbose:
