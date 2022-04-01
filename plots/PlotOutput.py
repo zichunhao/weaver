@@ -126,6 +126,7 @@ class PlotOutput:
             branches.extend(qcdlabels)
             branches.extend([f"score_{qcdlabel}" for qcdlabel in qcdlabels])
         else:
+            qcdlabels = ["fj_isQCD"]
             branches.append(self.bkglabel)
             branches.extend([f"score_{self.bkglabel}"])
 
@@ -170,7 +171,9 @@ class PlotOutput:
 
         # bkg label
         events["fj_QCD_label"] = (
-            np.sum([events[qcdlabel] for qcdlabel in qcdlabels], axis=0).astype(bool).squeeze()
+            (np.sum([events[qcdlabel] for qcdlabel in qcdlabels], axis=0).astype(bool).squeeze())
+            if len(qcdlabels) > 1
+            else events[qcdlabels[0]].astype(bool)
         )
 
         if self.verbose:
