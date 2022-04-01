@@ -154,6 +154,14 @@ observers:
    - fj_eta
    - fj_phi
    - fj_mass
+   - fj_subjet1_pt
+   - fj_subjet1_eta
+   - fj_subjet1_phi
+   - fj_subjet1_mass
+   - fj_subjet2_pt
+   - fj_subjet2_eta
+   - fj_subjet2_phi
+   - fj_subjet2_mass
    - fj_msoftdrop
    # - fj_deepTagMD_H4qvsQCD
    # - fj_deepTag_HvsQCD
