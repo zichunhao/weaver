@@ -8,7 +8,7 @@ from importlib import import_module
 
 
 def main(args):
-    data_config = SimpleIterDataset([], args.data_config_name, for_training=False).config
+    data_config = SimpleIterDataset([], args.data_config, for_training=False).config
     data_config.export_json(f"{args.model_prefix}.json")
 
     network_module = import_module(args.network_config.replace(".py", "").replace("/", "."))
