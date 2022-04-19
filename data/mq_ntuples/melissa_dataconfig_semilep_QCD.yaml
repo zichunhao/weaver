@@ -23,7 +23,6 @@ selection:
         (fj_nprongs>1) &
         (fj_genRes_mass>0) ) ))
 
-
 new_variables:
     ### [format] name: formula
     ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
@@ -114,7 +113,7 @@ labels:
     ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
     type: simple
     value: [
-	fj_QCD_label
+        fj_QCD_label,
         fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
     ]
 
@@ -164,6 +163,6 @@ weights:
    class_weights:
        [
         1.0
-       	0.1666, 0.1666, 0.1666, 0.1666, 0.1666, 0.1666
+        0.1666, 0.1666, 0.1666, 0.1666, 0.1666, 0.1666
        ]
    reweight_hists:
