@@ -86,7 +86,7 @@ for j in range(2):
     plt.ylabel("# Jets (GeV)")
     plt.savefig(f"{plot_dir}/{sig}_fj_subjet{j+1}_mass_by_mh.pdf")
 
-plt.hist(events["fj_genRes_mass"], np.linspace(0, 250, 100), histtype="step")
+# plt.hist(events["fj_genRes_mass"], np.linspace(0, 250, 100), histtype="step")
 
 
 sig = "HHbbVV"
