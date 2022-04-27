@@ -278,6 +278,7 @@ if __name__ == "__main__":
     parser.add_argument('--data-dir', required=True, help='directory for train and test data files')
     parser.add_argument('--odir', required=True, help="output dir")
     parser.add_argument('--config', default=None, help="data config")
+    parser.add_argument('--reweight-threshold', type=float, default=0.1, help="reweight threshold")
     args = parser.parse_args()
 
     import os
@@ -385,7 +386,7 @@ if __name__ == "__main__":
                              [-10000, 10000])
             reweight_classes = ["fj_isQCDb", "fj_isQCDbb", "fj_isQCDc", "fj_isQCDcc", "fj_isQCDlep", "fj_isQCDothers", "fj_H_WW_4q", "fj_H_WW_elenuqq", "fj_H_WW_munuqq", "fj_H_WW_taunuqq"]
             class_weights = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-            reweight_threshold = 0.1
+            reweight_threshold = args.reweight_threshold
             reweight_method = "flat"
             
             # reweight_bins = ([200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500],
@@ -393,7 +394,7 @@ if __name__ == "__main__":
             # reweight_threshold = 15
 
         else:
-            reweight_branches = ["fj_pt","fj_msoftdrop"]
+            reweight_branches = ["fj_pt", "fj_msoftdrop"]
             reweight_bins = ([200, 251, 316, 398, 501, 630, 793, 997, 1255, 1579, 1987, 2500],
                              [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260])
             reweight_classes = ["fj_QCD_label",
