@@ -20,17 +20,14 @@ selection:
           (fj_isQCDcc==1) |
           (fj_isQCDothers == True) ) &
         (fj_genRes_mass<=0) ) |
-    ( ( ( (fj_Top_bmerged==1) |
-          (fj_Top_2q==1) |
+    ( ( ( (fj_Top_2q==1) |
           (fj_Top_elenu==1) |
           (fj_Top_munu==1) |
-          (fj_Top_taunu == True) ) &
-        (fj_genRes_mass<=0) ) |
+          (fj_Top_taunu==1) ) &
     ( ( ( (fj_W_2q==1) |
           (fj_W_elenu==1) |
           (fj_W_munu==1) |
           (fj_W_taunu==1) ) &
-        (fj_genRes_mass<=0) ) |
       ( ((fj_H_VV_elenuqq==1) | (fj_H_VV_munuqq==1) | (fj_H_VV_taunuqq==1)) &
         (fj_nprongs>1) &
         (fj_genRes_mass>0) ) ))
@@ -42,7 +39,8 @@ new_variables:
     fj_QCD_label: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)
     # ttbar and wjets
     ## QUESTION:SPLIT INTO PRONGS/SEMIMERGED MERGED???
-    fj_ttbar_label: ((fj_Top_bmerged==1) | (fj_Top_2q==1) | (fj_Top_elenu==1) | (fj_Top_munu==1) | (fj_Top_taunu==1))
+    fj_ttbar_bmerged: (fj_Top_bmerged==1) & ((fj_Top_2q==1) | (fj_Top_elenu==1) | (fj_Top_munu==1) | (fj_Top_taunu==1))
+    fj_ttbar_bsplit: (fj_Top_bmerged!=1) & ((fj_Top_2q==1) | (fj_Top_elenu==1) | (fj_Top_munu==1) | (fj_Top_taunu==1))
     fj_wjets_label: ((fj_W_2q==1) | (fj_W_elenu==1) | (fj_W_munu==1) | (fj_W_taunu==1))
     # Signal (HVV)
     fj_isHVV_elenuqq_merged: (fj_H_VV_elenuqq==1) & (fj_nprongs==4)
@@ -128,7 +126,7 @@ labels:
     ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
     type: simple
     value: [
-        fj_QCD_label, fj_ttbar_label, fj_wjets_label,
+        fj_QCD_label, fj_ttbar_bmerged, fj_ttbar_bsplit, fj_wjets_label,
         fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
     ]
 
@@ -172,12 +170,12 @@ weights:
       target_mass: [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260]
    reweight_classes:
        [
-        fj_QCD_label, fj_ttbar_label, fj_wjets_label,
+        fj_QCD_label, fj_ttbar_bmerged, fj_ttbar_bsplit, fj_wjets_label,
         fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
        ]
    class_weights:
        [
-        0.3, 0.3, 0.3,
+        0.25, 0.25, 0.25, 0.25,
         0.27, 0.05, 0.29, 0.05, 0.30, 0.04
        ]
    reweight_hists:
