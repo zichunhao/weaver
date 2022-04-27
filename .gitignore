@@ -136,4 +136,6 @@ dmypy.json
 test.py
 *~
 
+*.pkl
+
 .DS_Store

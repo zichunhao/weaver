@@ -45,8 +45,8 @@ parser.add_argument(
     default=[],
     help="testing files; supported syntax:"
     " (a) plain list, `--data-test /path/to/a/* /path/to/b/*`;"
-    " (b) keyword-based, `--data-test: a:/path/to/a/* b:/path/to/b/*`, will produce output_a, output_b;"
-    " (c) split output per N input files, `--data-test: a%10:/path/to/a/*`, will split per 10 input files",
+    " (b) keyword-based, `--data-test a:/path/to/a/* b:/path/to/b/*`, will produce output_a, output_b;"
+    " (c) split output per N input files, `--data-test a%10:/path/to/a/*`, will split per 10 input files",
 )
 parser.add_argument(
     "--data-fraction",
@@ -140,19 +140,35 @@ parser.add_argument(
     "--steps-per-epoch",
     type=int,
     default=None,
-    help="number of steps (iterations) per epochs; if not set, each epoch will run over all loaded samples",
+    help="number of steps (iterations) per epochs; "
+    "if neither of `--steps-per-epoch` or `--samples-per-epoch` is set, each epoch will run over all loaded samples",
 )
 parser.add_argument(
     "--steps-per-epoch-val",
     type=int,
     default=None,
-    help="number of steps (iterations) per epochs for validation; if not set, each epoch will run over all loaded samples",
+    help="number of steps (iterations) per epochs for validation; "
+    "if neither of `--steps-per-epoch-val` or `--samples-per-epoch-val` is set, each epoch will run over all loaded samples",
+)
+parser.add_argument(
+    "--samples-per-epoch",
+    type=int,
+    default=None,
+    help="number of samples per epochs; "
+    "if neither of `--steps-per-epoch` or `--samples-per-epoch` is set, each epoch will run over all loaded samples",
+)
+parser.add_argument(
+    "--samples-per-epoch-val",
+    type=int,
+    default=None,
+    help="number of samples per epochs for validation; "
+    "if neither of `--steps-per-epoch-val` or `--samples-per-epoch-val` is set, each epoch will run over all loaded samples",
 )
 parser.add_argument(
     "--optimizer",
     type=str,
     default="ranger",
-    choices=["adam", "adamW", "ranger"],  # TODO: add more
+    choices=["adam", "adamW", "radam", "ranger"],  # TODO: add more
     help="optimizer for the training",
 )
 parser.add_argument(
@@ -170,6 +186,12 @@ parser.add_argument(
     help="learning rate scheduler",
 )
 parser.add_argument(
+    "--warmup-steps",
+    type=int,
+    default=0,
+    help="number of warm-up steps, only valid for `flat+linear` and `flat+cos` lr schedulers",
+)
+parser.add_argument(
     "--load-epoch",
     type=int,
     default=None,
@@ -178,10 +200,7 @@ parser.add_argument(
 parser.add_argument("--start-lr", type=float, default=5e-3, help="start learning rate")
 parser.add_argument("--batch-size", type=int, default=128, help="batch size")
 parser.add_argument(
-    "--use-amp",
-    action="store_true",
-    default=False,
-    help="use mixed precision training (fp16); NOT WORKING YET",
+    "--use-amp", action="store_true", default=False, help="use mixed precision training (fp16)"
 )
 parser.add_argument(
     "--gpus",
@@ -230,6 +249,12 @@ parser.add_argument(
     action="store_true",
     default=False,
     help="do not run training/prediction but only print model information, e.g., FLOPs and number of parameters of a model",
+)
+parser.add_argument(
+    "--l1-lambda",
+    type=int,
+    default=0,
+    help="L1 regularization weight. If 0, not used",
 )
 parser.add_argument("--profile", action="store_true", default=False, help="run the profiler")
 
@@ -521,6 +546,8 @@ def optim(args, model, device):
         opt = torch.optim.Adam(model.parameters(), lr=args.start_lr, **optimizer_options)
     elif args.optimizer == "adamW":
         opt = torch.optim.AdamW(model.parameters(), lr=args.start_lr, **optimizer_options)
+    elif args.optimizer == "radam":
+        opt = torch.optim.RAdam(model.parameters(), lr=args.start_lr, **optimizer_options)
 
     # load previous training and resume if `--load-epoch` is set
     if args.load_epoch is not None:
@@ -555,6 +582,7 @@ def optim(args, model, device):
             )
         elif args.lr_scheduler == "flat+linear" or args.lr_scheduler == "flat+cos":
             total_steps = args.num_epochs * args.steps_per_epoch
+            warmup_steps = args.warmup_steps
             flat_steps = total_steps * 0.7 - 1
             min_factor = 0.001
 
@@ -565,6 +593,8 @@ def optim(args, model, device):
                             step_num + 1, total_steps
                         )
                     )
+                if step_num < warmup_steps:
+                    return 1.0 * step_num / warmup_steps
                 if step_num <= flat_steps:
                     return 1.0
                 pct = (step_num - flat_steps) / (total_steps - flat_steps)
@@ -670,15 +700,15 @@ def save_root(args, output_path, data_config, scores, labels, observers):
     for k, v in labels.items():
         if k == data_config.label_names[0]:
             continue
-        if v.ndim > 1:
+        if np.squeeze(v).ndim > 1:
             _logger.warning("Ignoring %s, not a 1d array.", k)
             continue
-        output[k] = v
+        output[k] = np.squeeze(v)
     for k, v in observers.items():
-        if v.ndim > 1:
+        if np.squeeze(v).ndim > 1:
             _logger.warning("Ignoring %s, not a 1d array.", k)
             continue
-        output[k] = v
+        output[k] = np.squeeze(v)
     _write_root(output_path, output)
 
 
@@ -828,11 +858,16 @@ def main(args):
             scaler = None
 
         # training loop
-        training_losses = []
-        validation_losses = []
+        if args.load_epoch is not None and args.load_epoch > 0:
+            training_losses = list(np.loadtxt(args.model_prefix + "_training_losses.txt"))
+            validation_losses = list(np.loadtxt(args.model_prefix + "_validation_losses.txt"))
+        else:
+            training_losses = []
+            validation_losses = []
 
         best_valid_metric = np.inf if args.regression_mode else 0
         best_epoch = None if args.regression_mode else 0
+        grad_scaler = torch.cuda.amp.GradScaler() if args.use_amp else None
         for epoch in range(args.num_epochs):
             if args.load_epoch is not None:
                 if epoch <= args.load_epoch:
@@ -851,6 +886,7 @@ def main(args):
                     steps_per_epoch=args.steps_per_epoch,
                     grad_scaler=scaler,
                     tb_helper=tb,
+                    l1_lambda=args.l1_lambda,
                 )
             )
             if args.model_prefix:
@@ -962,6 +998,22 @@ def main(args):
 
 if __name__ == "__main__":
     args = parser.parse_args()
+
+    if args.samples_per_epoch is not None:
+        if args.steps_per_epoch is None:
+            args.steps_per_epoch = args.samples_per_epoch // args.batch_size
+        else:
+            raise RuntimeError(
+                "Please use either `--steps-per-epoch` or `--samples-per-epoch`, but not both!"
+            )
+
+    if args.samples_per_epoch_val is not None:
+        if args.steps_per_epoch_val is None:
+            args.steps_per_epoch_val = args.samples_per_epoch_val // args.batch_size
+        else:
+            raise RuntimeError(
+                "Please use either `--steps-per-epoch-val` or `--samples-per-epoch-val`, but not both!"
+            )
 
     if args.steps_per_epoch_val is None and args.steps_per_epoch is not None:
         args.steps_per_epoch_val = round(

@@ -40,6 +40,8 @@ def train_classification(
     steps_per_epoch=None,
     grad_scaler=None,
     tb_helper=None,
+    l1_lambda=0,
+    l2_lambda=0,
 ):
     model.train()
 
@@ -73,6 +75,11 @@ def train_classification(
 
             logits = _flatten_preds(model_output, label_mask)
             loss = loss_func(logits, label)
+
+            if l1_lambda > 0:
+                l1_norm = sum(p.abs().sum() for p in model.parameters())
+                loss += l1_lambda * l1_norm
+
             if grad_scaler is None:
                 loss.backward()
                 opt.step()
@@ -201,7 +208,7 @@ def evaluate_classification(
                 label_counter.update(label.cpu().numpy())
                 label = label.to(dev)
                 model_output = model(*inputs)
-                logits = _flatten_preds(model_output, label_mask)
+                logits = _flatten_preds(model_output, label_mask).float()
 
                 scores.append(torch.softmax(logits, dim=1).detach().cpu().numpy())
                 for k, v in y.items():
@@ -386,9 +393,10 @@ def train_regression(
             num_examples = label.shape[0]
             label = label.to(dev)
             opt.zero_grad()
-            model_output = model(*inputs)
-            preds = model_output.squeeze()
-            loss = loss_func(preds, label)
+            with torch.cuda.amp.autocast(enabled=grad_scaler is not None):
+                model_output = model(*inputs)
+                preds = model_output.squeeze()
+                loss = loss_func(preds, label)
             if grad_scaler is None:
                 loss.backward()
                 opt.step()
@@ -520,7 +528,7 @@ def evaluate_regression(
                 num_examples = label.shape[0]
                 label = label.to(dev)
                 model_output = model(*inputs)
-                preds = model_output.squeeze()
+                preds = model_output.squeeze().float()
 
                 scores.append(preds.detach().cpu().numpy())
                 for k, v in y.items():
