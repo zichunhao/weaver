@@ -115,6 +115,16 @@ class PlotOutput:
             ]
             branches.extend(qcdlabels)
             branches.extend([f"score_{qcdlabel}" for qcdlabel in qcdlabels])
+        if self.bkg == "qcd1lep":
+            qcdlabels = [
+                "fj_isQCDb",
+                "fj_isQCDbb",
+                "fj_isQCDc",
+                "fj_isQCDcc",
+                "fj_isQCDothers",
+            ]
+            branches.extend(qcdlabels)
+            branches.extend([f"score_{qcdlabel}" for qcdlabel in qcdlabels])
         elif self.bkg == "qcd_dnn":
             qcdlabels = [
                 "label_QCD_b",
