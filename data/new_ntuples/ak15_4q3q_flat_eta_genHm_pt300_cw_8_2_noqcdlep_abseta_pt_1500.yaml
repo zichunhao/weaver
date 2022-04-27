@@ -48,7 +48,7 @@ selection:
 new_variables:
     ### [format] name: formula
     ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-    # target_mass: np.maximum(1, np.where(fj_genRes_mass>0, fj_genRes_mass, fj_msoftdrop))
+    target_mass: np.maximum(1, np.where(fj_genRes_mass>0, fj_genRes_mass, fj_msoftdrop))
     # Background (Top)
     # fj_isTop_merged: (fj_isTop==1) & (fj_nprongs==3)
     # fj_isTop_semimerged: (fj_isTop==1) & (fj_nprongs==2)
@@ -170,7 +170,7 @@ observers:
    # - fj_genVstar_decay
    - fj_nprongs
    - fj_H_VV_4q
-   # - target_mass
+   - target_mass
 
 weights:
    ### [option 1] use precomputed weights stored in the input files
@@ -180,8 +180,9 @@ weights:
    use_precomputed_weights: false
    reweight_method: flat
    reweight_vars:
-      fj_pt: [300, 398, 501, 630, 793, 997, 1255, 1579]
-      fj_msoftdrop: [0, 1000]
+     # log bins as: np.round(np.exp(np.linspace(np.log(MIN), np.log(MAX), NUM_BINS))).astype('int').tolist()
+      fj_pt: [300, 359, 429, 513, 613, 734, 877, 1049, 1254, 1500]
+      target_mass: [30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260]
    reweight_classes:
        [
        fj_isQCDb, fj_isQCDbb, fj_isQCDc, fj_isQCDcc, fj_isQCDothers,

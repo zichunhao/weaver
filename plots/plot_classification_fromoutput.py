@@ -203,7 +203,7 @@ def main(args):
         plot_roc(
             args.odir,
             "HWW",
-            "QCD",
+            "Bkg",
             fp_tp_all,
             label="allsig_summary",
             title=f"HWW vs {bkglegend}",
