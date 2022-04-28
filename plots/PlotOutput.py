@@ -117,11 +117,7 @@ class PlotOutput:
             branches.extend([f"score_{qcdlabel}" for qcdlabel in qcdlabels])
         if self.bkg == "qcd1lep":
             qcdlabels = [
-                "fj_isQCDb",
-                "fj_isQCDbb",
-                "fj_isQCDc",
-                "fj_isQCDcc",
-                "fj_isQCDothers",
+                "fj_QCD_label",
             ]
             branches.extend(qcdlabels)
             branches.extend([f"score_{qcdlabel}" for qcdlabel in qcdlabels])
@@ -148,6 +144,11 @@ class PlotOutput:
             if self.bkg == "qcdnolep":
                 mask += (
                     f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)) & ({self.mbranch}<=0)) | "
+                    f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
+                )
+            elif self.bkg == "qcd1lep":
+                mask += (
+                    f"& ( ((fj_QCD_label==1) & ({self.mbranch}<=0)) | "
                     f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
                 )
             else:
