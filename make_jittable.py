@@ -17,6 +17,7 @@ def main(args):
         torch.load(f"{args.model_prefix}_best_epoch_state.pt", map_location=torch.device("cpu")),
         strict=False,
     )
+    _ = model.eval()
     jit_model = torch.jit.script(model)
     jit_model.save(f"{args.model_prefix}_jitted.pt")
 

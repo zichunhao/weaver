@@ -95,12 +95,17 @@ _ = plt.hist(
 }
 """
 
+pt_key = "pt"
+msd_key = "msoftdrop"
+
 all_cuts = [
-    {"pt": [300, 1500], "msoftdrop": [20, 320]},
-    {"pt": [400, 600], "msoftdrop": [60, 150]},
+    {pt_key: [300, 1500], msd_key: [20, 320]},
+    {pt_key: [400, 600], msd_key: [60, 150]},
+    {pt_key: [300, 1500], msd_key: [110, 140]},
 ]
 
-var_labels = {"pt": "pT", "msoftdrop": "mSD"}
+var_labels = {pt_key: "pT", msd_key: "mSD"}
+
 
 cuts_dict = {}
 cut_labels = {}  # labels for plot titles, formatted as "var1label: [min, max] var2label..."
@@ -142,8 +147,12 @@ plot_vars = {
     },
 }
 
+hists = {}
+
 for t, pvars in plot_vars.items():
+    hists[t] = {}
     for cutstr in cut_labels:
+        hists[t][cutstr] = {}
         plt.figure(figsize=(16, 12))
         plt.suptitle(f"HVV FatJet {pvars['title']} Scores", y=0.95)
         plt.title(cut_labels[cutstr], fontsize=20)
@@ -160,6 +169,13 @@ for t, pvars in plot_vars.items():
                 weights=events_dict[sample]["weight"][cuts_dict[sample][cutstr]],
             )
 
+            hists[t][cutstr][sample] = np.histogram(
+                events_dict[sample][pvars["score_label"]][cuts_dict[sample][cutstr]],
+                bins=np.linspace(0, 1, 101),
+                weights=events_dict[sample]["weight"][cuts_dict[sample][cutstr]],
+                density=True,
+            )
+
         plt.ylabel("Normalized # Jets")
         plt.xlabel(f"PNet {pvars['title']} score")
         plt.legend()
@@ -167,6 +183,11 @@ for t, pvars in plot_vars.items():
             f"{plot_dir}/{t}_hist_{cutstr}.pdf",
             bbox_inches="tight",
         )
+
+import pickle
+
+with open(f"{plot_dir}/hists.pkl", "wb") as f:
+    pickle.dump(hists, f)
 
 
 ##############################################
