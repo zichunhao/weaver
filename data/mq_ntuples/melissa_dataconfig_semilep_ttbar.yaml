@@ -165,7 +165,7 @@ weights:
        ]
    class_weights:
        [
-        0.67, 0.33,
+        0.7, 0.3,
         0.27, 0.05, 0.29, 0.05, 0.30, 0.04
        ]
    reweight_hists:
