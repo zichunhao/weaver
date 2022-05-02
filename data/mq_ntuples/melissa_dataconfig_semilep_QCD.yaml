@@ -35,6 +35,9 @@ new_variables:
     fj_isHVV_munuqq_semimerged: (fj_H_VV_munuqq==1) & (fj_nprongs==3)
     fj_isHVV_taunuqq_merged: (fj_H_VV_taunuqq==1) & (fj_nprongs==4)
     fj_isHVV_taunuqq_semimerged: (fj_H_VV_taunuqq==1) & (fj_nprongs==3)
+    fj_isHVV_elenuqq: (fj_H_VV_elenuqq==1)
+    fj_isHVV_munuqq: (fj_H_VV_munuqq==1)
+    fj_isHVV_taunuqq: (fj_H_VV_taunuqq==1)
 
 preprocess:
     ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -113,7 +116,7 @@ labels:
     type: simple
     value: [
         fj_QCD_label,
-        fj_H_VV_elenuqq, fj_H_VV_munuqq, fj_H_VV_taunuqq
+        fj_isHVV_elenuqq, fj_isHVV_munuqq, fj_isHVV_taunuqq
         # fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
     ]
 
@@ -139,9 +142,9 @@ observers:
    - fj_genV_pt
    - fj_genVstar_pt
    - fj_nprongs
-   # - fj_H_VV_elenuqq
-   # - fj_H_VV_munuqq
-   # - fj_H_VV_taunuqq
+   - fj_H_VV_elenuqq
+   - fj_H_VV_munuqq
+   - fj_H_VV_taunuqq
    - fj_isHVV_elenuqq_merged
    - fj_isHVV_elenuqq_semimerged
    - fj_isHVV_munuqq_merged
@@ -164,7 +167,7 @@ weights:
    reweight_classes:
        [
         fj_QCD_label,
-        fj_H_VV_elenuqq, fj_H_VV_munuqq, fj_H_VV_taunuqq
+        fj_isHVV_elenuqq, fj_isHVV_munuqq, fj_isHVV_taunuqq
         # fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
        ]
    class_weights:
