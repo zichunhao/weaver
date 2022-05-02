@@ -142,13 +142,13 @@ observers:
    # - fj_H_VV_elenuqq
    # - fj_H_VV_munuqq
    # - fj_H_VV_taunuqq
-     - fj_isHVV_elenuqq_merged
-     - fj_isHVV_elenuqq_semimerged
-     - fj_isHVV_munuqq_merged
-     - fj_isHVV_munuqq_semimerged
-     - fj_isHVV_taunuqq_merged
-     - fj_isHVV_taunuqq_semimerged
-     - target_mass
+   - fj_isHVV_elenuqq_merged
+   - fj_isHVV_elenuqq_semimerged
+   - fj_isHVV_munuqq_merged
+   - fj_isHVV_munuqq_semimerged
+   - fj_isHVV_taunuqq_merged
+   - fj_isHVV_taunuqq_semimerged
+   - target_mass
 
 weights:
    ### [option 1] use precomputed weights stored in the input files
