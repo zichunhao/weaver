@@ -29,13 +29,12 @@ new_variables:
     target_mass: np.maximum(1, np.where(fj_genRes_mass>0, fj_genRes_mass, fj_msoftdrop))
     fj_QCD_label: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)
     # Signal (HVV)
-    fj_isHVV_elenuqq_merged: (fj_H_VV_elenuqq==1) & (fj_nprongs==3)
-    fj_isHVV_elenuqq_semimerged: (fj_H_VV_elenuqq==1) & (fj_nprongs==2)
-    fj_isHVV_munuqq_merged: (fj_H_VV_munuqq==1) & (fj_nprongs==3)
-    fj_isHVV_munuqq_semimerged: (fj_H_VV_munuqq==1) & (fj_nprongs==2)
-    fj_isHVV_taunuqq_merged: (fj_H_VV_taunuqq==1) & (fj_nprongs==3)
-    fj_isHVV_taunuqq_semimerged: (fj_H_VV_taunuqq==1) & (fj_nprongs==2)
-
+    fj_isHVV_elenuqq_merged: (fj_H_VV_elenuqq==1) & (fj_nprongs==4)
+    fj_isHVV_elenuqq_semimerged: (fj_H_VV_elenuqq==1) & (fj_nprongs==3)
+    fj_isHVV_munuqq_merged: (fj_H_VV_munuqq==1) & (fj_nprongs==4)
+    fj_isHVV_munuqq_semimerged: (fj_H_VV_munuqq==1) & (fj_nprongs==3)
+    fj_isHVV_taunuqq_merged: (fj_H_VV_taunuqq==1) & (fj_nprongs==4)
+    fj_isHVV_taunuqq_semimerged: (fj_H_VV_taunuqq==1) & (fj_nprongs==3)
 
 preprocess:
     ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -114,7 +113,8 @@ labels:
     type: simple
     value: [
         fj_QCD_label,
-        fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
+        fj_H_VV_elenuqq, fj_H_VV_munuqq, fj_H_VV_taunuqq
+        # fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
     ]
 
 observers:
@@ -139,10 +139,16 @@ observers:
    - fj_genV_pt
    - fj_genVstar_pt
    - fj_nprongs
-   - fj_H_VV_elenuqq
-   - fj_H_VV_munuqq
-   - fj_H_VV_taunuqq
-   - target_mass
+   # - fj_H_VV_elenuqq
+   # - fj_H_VV_munuqq
+   # - fj_H_VV_taunuqq
+     - fj_isHVV_elenuqq_merged
+     - fj_isHVV_elenuqq_semimerged
+     - fj_isHVV_munuqq_merged
+     - fj_isHVV_munuqq_semimerged
+     - fj_isHVV_taunuqq_merged
+     - fj_isHVV_taunuqq_semimerged
+     - target_mass
 
 weights:
    ### [option 1] use precomputed weights stored in the input files
@@ -158,12 +164,13 @@ weights:
    reweight_classes:
        [
         fj_QCD_label,
-        fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
+        fj_H_VV_elenuqq, fj_H_VV_munuqq, fj_H_VV_taunuqq
+        # fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
        ]
    class_weights:
        [
         1.0,
+        0.3, 0.3, 0.3
         # 0.27, 0.05, 0.29, 0.05, 0.30, 0.04
-        0.16, 0.16, 0.16, 0.16, 0.16, 0.16
        ]
    reweight_hists:
