@@ -36,9 +36,9 @@ new_variables:
     fj_isHVV_taunuqq_merged: (fj_H_VV_taunuqq==1) & (fj_nprongs==3)
     fj_isHVV_taunuqq_semimerged: (fj_H_VV_taunuqq==1) & (fj_nprongs==2)
     fj_sig_label: ((fj_H_VV_elenuqq==1) | (fj_H_VV_munuqq==1) | (fj_H_VV_taunuqq==1))
-    # fj_isHVV_elenuqq: (fj_H_VV_elenuqq==1)
-    # fj_isHVV_munuqq: (fj_H_VV_munuqq==1)
-    # fj_isHVV_taunuqq: (fj_H_VV_taunuqq==1)
+    fj_isHVV_elenuqq: (fj_H_VV_elenuqq==1)
+    fj_isHVV_munuqq: (fj_H_VV_munuqq==1)
+    fj_isHVV_taunuqq: (fj_H_VV_taunuqq==1)
 
 preprocess:
     ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -114,10 +114,11 @@ inputs:
 labels:
     ### type can be `simple`, `custom`
     ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
+    #fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
     type: simple
     value: [
         fj_QCD_label,
-        fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
+        fj_isHVV_elenuqq, fj_isHVV_munuqq, fj_isHVV_taunuqq
     ]
 
 observers:
@@ -145,12 +146,12 @@ observers:
    - fj_H_VV_elenuqq
    - fj_H_VV_munuqq
    - fj_H_VV_taunuqq
-   # - fj_isHVV_elenuqq_merged
-   # - fj_isHVV_elenuqq_semimerged
-   # - fj_isHVV_munuqq_merged
-   # - fj_isHVV_munuqq_semimerged
-   # - fj_isHVV_taunuqq_merged
-   # - fj_isHVV_taunuqq_semimerged
+   - fj_isHVV_elenuqq_merged
+   - fj_isHVV_elenuqq_semimerged
+   - fj_isHVV_munuqq_merged
+   - fj_isHVV_munuqq_semimerged
+   - fj_isHVV_taunuqq_merged
+   - fj_isHVV_taunuqq_semimerged
    - target_mass
 
 weights:

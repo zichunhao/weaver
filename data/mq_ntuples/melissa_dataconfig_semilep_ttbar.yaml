@@ -31,7 +31,6 @@ new_variables:
     ## QUESTION:SPLIT INTO PRONGS/SEMIMERGED MERGED???
     fj_ttbar_bmerged: (fj_Top_bmerged==1) & ((fj_Top_2q==1) | (fj_Top_elenu==1) | (fj_Top_munu==1) | (fj_Top_taunu==1))
     fj_ttbar_bsplit: (fj_Top_bmerged!=1) & ((fj_Top_2q==1) | (fj_Top_elenu==1) | (fj_Top_munu==1) | (fj_Top_taunu==1))
-    # fj_wjets_label: ((fj_W_2q==1) | (fj_W_elenu==1) | (fj_W_munu==1) | (fj_W_taunu==1))
     fj_ttbar_label: ((fj_Top_2q==1) | (fj_Top_elenu==1) | (fj_Top_munu==1) | (fj_Top_taunu==1))
     # Signal (HVV)
     fj_isHVV_elenuqq_merged: (fj_H_VV_elenuqq==1) & (fj_nprongs==3)
@@ -40,6 +39,9 @@ new_variables:
     fj_isHVV_munuqq_semimerged: (fj_H_VV_munuqq==1) & (fj_nprongs==2)
     fj_isHVV_taunuqq_merged: (fj_H_VV_taunuqq==1) & (fj_nprongs==3)
     fj_isHVV_taunuqq_semimerged: (fj_H_VV_taunuqq==1) & (fj_nprongs==2)
+    fj_isHVV_elenuqq: (fj_H_VV_elenuqq==1)
+    fj_isHVV_munuqq: (fj_H_VV_munuqq==1)
+    fj_isHVV_taunuqq: (fj_H_VV_taunuqq==1)
     fj_sig_label: ((fj_H_VV_elenuqq==1) | (fj_H_VV_munuqq==1) | (fj_H_VV_taunuqq==1))
 preprocess:
     ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
@@ -114,10 +116,11 @@ inputs:
 labels:
     ### type can be `simple`, `custom`
     ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
+    #  fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
     type: simple
     value: [
         fj_ttbar_bmerged, fj_ttbar_bsplit,
-        fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
+        fj_isHVV_elenuqq, fj_isHVV_munuqq, fj_isHVV_taunuqq
     ]
 
 observers:
@@ -146,6 +149,12 @@ observers:
    - fj_H_VV_munuqq
    - fj_H_VV_taunuqq
    - target_mass
+   - fj_isHVV_elenuqq_merged
+   - fj_isHVV_elenuqq_semimerged
+   - fj_isHVV_munuqq_merged
+   - fj_isHVV_munuqq_semimerged
+   - fj_isHVV_taunuqq_merged
+   - fj_isHVV_taunuqq_semimerged
 
 weights:
    ### [option 1] use precomputed weights stored in the input files
