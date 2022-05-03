@@ -111,7 +111,6 @@ inputs:
         vars:
         - sv_mask
 
-
 labels:
     ### type can be `simple`, `custom`
     ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
@@ -164,7 +163,13 @@ weights:
         fj_ttbar_label,
         fj_sig_label
        ]
-       # [
+   class_weights:
+       [
+        1.0,
+        1.0
+       ]
+   #reweight_classes:
+     # [
        #  fj_ttbar_bmerged, fj_ttbar_bsplit,
        #  fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
        # ]
@@ -173,9 +178,4 @@ weights:
    #      0.7, 0.3,
    #      0.27, 0.05, 0.29, 0.05, 0.30, 0.04
    #     ]
-   class_weights:
-       [
-        1.0,
-        1.0
-       ]
    reweight_hists:
