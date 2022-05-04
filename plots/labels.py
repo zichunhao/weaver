@@ -13,6 +13,7 @@ label_dict = {
     "top_bmerged": {"legend": "Top merged b", "label": "fj_ttbar_bmerged"},
     
     "wjets": {"legend": "W+Jets", "label": "fj_wjets_label"},
+    "fj_bkgd_label": {"legend": "W+Jets and ttbar", "label": "fj_bkgd_label"},
     
     "hww_4q": {"legend": "H(VV) all-had", "label": "fj_H_VV_4q"},
     "hww_4q_merged": {"legend": "H(VV) 4q", "label": "fj_H_VV_4q_4q"},
