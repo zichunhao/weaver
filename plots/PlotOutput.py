@@ -213,6 +213,12 @@ class PlotOutput:
         events["fj_QCD_label"] = (
             np.sum([events[qcdlabel] for qcdlabel in qcdlabels], axis=0).astype(bool).squeeze()
         )
+        events["fj_ttbar_label"] = (
+            np.sum([events[qcdlabel] for qcdlabel in qcdlabels], axis=0).astype(bool).squeeze()
+        )
+        events["fj_bkgd_label"] = (
+            np.sum([events[qcdlabel] for qcdlabel in qcdlabels], axis=0).astype(bool).squeeze()
+        )
 
         if self.verbose:
             print(f"Bkg any {self.bkglabel}: ", ak.any(events[self.bkglabel] == 1))
