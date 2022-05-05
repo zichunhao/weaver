@@ -218,7 +218,7 @@ class PlotOutput:
         score_signal_1 + score_signal_2 + score_background_1 = 1
         Then nn_signal_1 = score_signal_1 / (score_signal_1 + score_background_1) = score_signal_1 / (1 - score_signal_2)
         """
-        if self.bkg == "qcd" or self.bkg == "qcdnolep" or self.bkg == "qcd_dnn" or self.bkg=="ttbar" or self.bkg=="ttbarwjets":
+        if self.bkg == "qcd" or self.bkg == "qcdnolep" or self.bkg == "qcd_dnn" or self.bkg=="ttbar" or self.bkg=="ttbarwjets" or self.bkg=="wjets":
             score_branch = events[f"score_{self.siglabel}"] / (
                 events[f"score_{self.siglabel}"]
                 + np.sum([events[f"score_{qcdlabel}"] for qcdlabel in qcdlabels], axis=0).squeeze()
