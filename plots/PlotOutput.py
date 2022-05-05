@@ -163,12 +163,17 @@ class PlotOutput:
                 )
             elif self.bkg == "ttbar":
                 mask += (
-                    f"& ( ((fj_ttbar_label==1) & ({self.mbranch}<=0)) | "
+                    f"& ( ((fj_ttbar_bmerged==1) | (fj_ttbar_bsplit==1) & ({self.mbranch}<=0)) | "
                     f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
                 )
             elif self.bkg == "ttbarwjets":
                 mask += (
-                    f"& ( ((fj_bkgd_label==1) & ({self.mbranch}<=0)) | "
+                    f"& ( ((fj_ttbar_bmerged==1) | (fj_ttbar_bsplit==1) | (fj_wjets_label==1) & ({self.mbranch}<=0)) | "
+                    f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
+                )
+            elif self.bkg == "wjets":
+                mask += (
+                    f"& ( ((fj_ttbar_bmerged==1) | (fj_ttbar_bsplit==1) | (fj_wjets_label==1) & ({self.mbranch}<=0)) | "
                     f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
                 )
             elif self.bkg == "qcd1lep":
