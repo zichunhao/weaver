@@ -163,12 +163,17 @@ class PlotOutput:
                 )
             elif self.bkg == "ttbar":
                 mask += (
-                    f"& ( ((fj_ttbar_label==1) & ({self.mbranch}<=0)) | "
+                    f"& ( ((fj_ttbar_bmerged==1) | (fj_ttbar_bsplit==1) & ({self.mbranch}<=0)) | "
                     f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
                 )
             elif self.bkg == "ttbarwjets":
                 mask += (
-                    f"& ( ((fj_bkgd_label==1) & ({self.mbranch}<=0)) | "
+                    f"& ( ((fj_ttbar_bmerged==1) | (fj_ttbar_bsplit==1) | (fj_wjets_label==1) & ({self.mbranch}<=0)) | "
+                    f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
+                )
+            elif self.bkg == "wjets":
+                mask += (
+                    f"& ( ((fj_ttbar_bmerged==1) | (fj_ttbar_bsplit==1) | (fj_wjets_label==1) & ({self.mbranch}<=0)) | "
                     f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
                 )
             elif self.bkg == "qcd1lep":
@@ -213,7 +218,7 @@ class PlotOutput:
         score_signal_1 + score_signal_2 + score_background_1 = 1
         Then nn_signal_1 = score_signal_1 / (score_signal_1 + score_background_1) = score_signal_1 / (1 - score_signal_2)
         """
-        if self.bkg == "qcd" or self.bkg == "qcdnolep" or self.bkg == "qcd_dnn" or self.bkg=="ttbar" or self.bkg=="ttbarwjets":
+        if self.bkg == "qcd" or self.bkg == "qcdnolep" or self.bkg == "qcd_dnn" or self.bkg=="ttbar" or self.bkg=="ttbarwjets" or self.bkg=="wjets":
             score_branch = events[f"score_{self.siglabel}"] / (
                 events[f"score_{self.siglabel}"]
                 + np.sum([events[f"score_{qcdlabel}"] for qcdlabel in qcdlabels], axis=0).squeeze()
