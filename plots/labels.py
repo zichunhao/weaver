@@ -8,13 +8,23 @@ label_dict = {
     "top_lep": {"legend": "Top lep", "label": "fj_isToplep"},
     "top_merged": {"legend": "Top merged", "label": "fj_isTop_merged"},
     "top_semimerged": {"legend": "Top semi-merged", "label": "fj_isTop_semimerged"},
-    "top_lepmerged": {"legend": "Top merged lepton", "label": "fj_isToplep_merged"},
+    "top_lepmerged": {"legend": "Top merged lepton", "label": "fj_isToplep_merged"},   
+    "top_bsplit": {"legend": "Top unmerged b", "label": "fj_ttbar_bsplit"},
+    "top_bmerged": {"legend": "Top merged b", "label": "fj_ttbar_bmerged"},
+    "ttbar": {"legend": "ttbar", "label": "fj_ttbar_label"},
+    
+    "wjets": {"legend": "W+Jets", "label": "fj_wjets_label"},
+    "ttbarwjets": {"legend": "W+Jets and ttbar", "label": "fj_bkgd_label"},
     
     "hww_4q": {"legend": "H(VV) all-had", "label": "fj_H_VV_4q"},
     "hww_4q_merged": {"legend": "H(VV) 4q", "label": "fj_H_VV_4q_4q"},
     "hww_3q_merged": {"legend": "H(VV) 3q", "label": "fj_H_VV_4q_3q"},
     
     "hbb": {"legend": "H(bb)", "label": "fj_H_bb"},
+    
+    "hww_ele": {"legend": "H(VV) ele", "label": "fj_isHVV_elenuqq"},
+    "hww_mu": {"legend": "H(VV) mu", "label": "fj_isHVV_munuqq"},
+    "hww_tau": {"legend": "H(VV) tau", "label": "fj_isHVV_taunuqq"},
     
     "hww_elenuqq": {"legend": "H(VV) ele", "label": "fj_H_VV_elenuqq"},
     "hww_munuqq": {"legend": "H(VV) mu", "label": "fj_H_VV_munuqq"},
