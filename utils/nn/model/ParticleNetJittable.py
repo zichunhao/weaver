@@ -2,10 +2,14 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from torch import Tensor
+
+from typing import Optional
+
 """Based on https://github.com/WangYueFt/dgcnn/blob/master/pytorch/model.py."""
 
 
-def knn(x, k):
+def knn(x: Tensor, k: int):
     inner = -2 * torch.matmul(x.transpose(2, 1), x)
     xx = torch.sum(x ** 2, dim=1, keepdim=True)
     pairwise_distance = -xx - inner - xx.transpose(2, 1)
@@ -14,7 +18,7 @@ def knn(x, k):
 
 
 # v1 is faster on GPU
-def get_graph_feature_v1(x, k, idx):
+def get_graph_feature_v1(x: Tensor, k: int, idx):
     batch_size, num_dims, num_points = x.size()
 
     idx_base = torch.arange(0, batch_size, device=x.device).view(-1, 1, 1) * num_points
@@ -34,7 +38,7 @@ def get_graph_feature_v1(x, k, idx):
 
 
 # v2 is faster on CPU
-def get_graph_feature_v2(x, k, idx):
+def get_graph_feature_v2(x: Tensor, k: int, idx):
     batch_size, num_dims, num_points = x.size()
 
     idx_base = torch.arange(0, batch_size, device=x.device).view(-1, 1, 1) * num_points
@@ -103,10 +107,12 @@ class EdgeConvBlock(nn.Module):
                 self.acts.append(nn.ReLU())
 
         if in_feat == out_feats[-1]:
-            self.sc = None
+            self.use_sc = False
         else:
-            self.sc = nn.Conv1d(in_feat, out_feats[-1], kernel_size=1, bias=False)
-            self.sc_bn = nn.BatchNorm1d(out_feats[-1])
+            self.use_sc = True
+
+        self.sc = nn.Conv1d(in_feat, out_feats[-1], kernel_size=1, bias=False)
+        self.sc_bn = nn.BatchNorm1d(out_feats[-1])
 
         if activation:
             self.sc_act = nn.ReLU()
@@ -118,15 +124,15 @@ class EdgeConvBlock(nn.Module):
 
         for conv, bn, act in zip(self.convs, self.bns, self.acts):
             x = conv(x)  # (N, C', P, K)
-            if bn:
+            if self.batch_norm:
                 x = bn(x)
-            if act:
+            if self.activation:
                 x = act(x)
 
         fts = x.mean(dim=-1)  # (N, C, P)
 
         # shortcut
-        if self.sc:
+        if self.use_sc:
             sc = self.sc(features)  # (N, C_out, P)
             sc = self.sc_bn(sc)
         else:
@@ -152,8 +158,7 @@ class ParticleNet(nn.Module):
         super(ParticleNet, self).__init__(**kwargs)
 
         self.use_fts_bn = use_fts_bn
-        if self.use_fts_bn:
-            self.bn_fts = nn.BatchNorm1d(input_dims)
+        self.bn_fts = nn.BatchNorm1d(input_dims)
 
         self.use_counts = use_counts
 
@@ -166,14 +171,14 @@ class ParticleNet(nn.Module):
             )
 
         self.use_fusion = use_fusion
-        if self.use_fusion:
-            in_chn = sum(x[-1] for _, x in conv_params)
-            out_chn = np.clip((in_chn // 128) * 128, 128, 1024)
-            self.fusion_block = nn.Sequential(
-                nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False),
-                nn.BatchNorm1d(out_chn),
-                nn.ReLU(),
-            )
+
+        in_chn = sum(x[-1] for _, x in conv_params)
+        out_chn = int(np.clip((in_chn // 128) * 128, 128, 1024))
+        self.fusion_block = nn.Sequential(
+            nn.Conv1d(in_chn, out_chn, kernel_size=1, bias=False),
+            nn.BatchNorm1d(out_chn),
+            nn.ReLU(),
+        )
 
         self.for_segmentation = for_segmentation
 
@@ -205,7 +210,7 @@ class ParticleNet(nn.Module):
 
         self.for_inference = for_inference
 
-    def forward(self, points, features, mask=None):
+    def forward(self, points, features, mask: Optional[Tensor] = None):
         #         print('points:\n', points)
         #         print('features:\n', features)
         if mask is None:
@@ -213,14 +218,14 @@ class ParticleNet(nn.Module):
         points *= mask
         features *= mask
         coord_shift = (mask == 0) * 1e9
-        if self.use_counts:
-            counts = mask.float().sum(dim=-1)
-            counts = torch.max(counts, torch.ones_like(counts))  # >=1
+        counts = mask.float().sum(dim=-1)
+        counts = torch.max(counts, torch.ones_like(counts))  # >=1
 
         if self.use_fts_bn:
             fts = self.bn_fts(features) * mask
         else:
             fts = features
+
         outputs = []
         for idx, conv in enumerate(self.edge_convs):
             pts = (points if idx == 0 else fts) + coord_shift
@@ -229,8 +234,6 @@ class ParticleNet(nn.Module):
                 outputs.append(fts)
         if self.use_fusion:
             fts = self.fusion_block(torch.cat(outputs, dim=1)) * mask
-
-        #         assert(((fts.abs().sum(dim=1, keepdim=True) != 0).float() - mask.float()).abs().sum().item() == 0)
 
         if self.for_segmentation:
             x = fts
@@ -261,7 +264,7 @@ class FeatureConv(nn.Module):
         return self.conv(x)
 
 
-class ParticleNetTagger(nn.Module):
+class ParticleNetTaggerJittable(nn.Module):
     def __init__(
         self,
         pf_features_dims,
@@ -272,14 +275,18 @@ class ParticleNetTagger(nn.Module):
         use_fusion=True,
         use_fts_bn=True,
         use_counts=True,
-        pf_input_dropout=None,
-        sv_input_dropout=None,
+        pf_input_dropout: float = 0.0,
+        sv_input_dropout: float = 0.0,
         for_inference=False,
         **kwargs
     ):
-        super(ParticleNetTagger, self).__init__(**kwargs)
-        self.pf_input_dropout = nn.Dropout(pf_input_dropout) if pf_input_dropout else None
-        self.sv_input_dropout = nn.Dropout(sv_input_dropout) if sv_input_dropout else None
+        super(ParticleNetTaggerJittable, self).__init__(**kwargs)
+        self.pf_input_dropout = pf_input_dropout > 0
+        self.sv_input_dropout = sv_input_dropout > 0
+
+        self.pf_input_dropout_func = nn.Dropout(pf_input_dropout)
+        self.sv_input_dropout_func = nn.Dropout(sv_input_dropout)
+
         self.pf_conv = FeatureConv(pf_features_dims, 32)
         self.sv_conv = FeatureConv(sv_features_dims, 32)
         self.pn = ParticleNet(
@@ -295,11 +302,12 @@ class ParticleNetTagger(nn.Module):
 
     def forward(self, pf_points, pf_features, pf_mask, sv_points, sv_features, sv_mask):
         if self.pf_input_dropout:
-            pf_mask = (self.pf_input_dropout(pf_mask) != 0).float()
+            pf_mask = (self.pf_input_dropout_func(pf_mask) != 0).float()
             pf_points *= pf_mask
             pf_features *= pf_mask
+
         if self.sv_input_dropout:
-            sv_mask = (self.sv_input_dropout(sv_mask) != 0).float()
+            sv_mask = (self.sv_input_dropout_func(sv_mask) != 0).float()
             sv_points *= sv_mask
             sv_features *= sv_mask
 
