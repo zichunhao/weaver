@@ -196,7 +196,7 @@ def main(args):
                 tag = f"$\epsilon_B={per} \%$"
                 labels_to_plot.append(r"%s" % tag)
         ptcut = r"%s $p_T$:[%s-%s] GeV, $|\eta|<2.4$" % (p.jet, p.ptrange[0], p.ptrange[1])
-        plot_var_aftercut(odir, hists_to_plot, labels_to_plot, r"m$_{SD}$ [GeV]", "msd", ptcut)
+        plot_var_aftercut(odir, hists_to_plot, labels_to_plot, r"m$_{SD}$ [GeV]", f"msd_{bkg}", ptcut)
 
     if len(signals) > 1:
         # plot summary ROC for all signal classes and first isig file
