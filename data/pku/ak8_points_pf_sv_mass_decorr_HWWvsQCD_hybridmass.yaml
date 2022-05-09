@@ -2,33 +2,25 @@
 ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
 
 ## Note: hww has fake fj_isQCD=1.. However in below selection we do not select label_H_wwunmatch in training pool
-selection:
-    ### use `&`, `|`, `~` for logical operations on numpy arrays
-    ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-    >
-    np.squeeze((fj_pt>300) &
-    (fj_pt<2500) &
-    (np.absolute(fj_eta)<2.4) &
-    (fj_msoftdrop>=30) &
-    (fj_msoftdrop<320) &
-    ( ( ( (fj_isQCDb==1) |
-          (fj_isQCDbb==1) |
-          (fj_isQCDc==1) |
-          (fj_isQCDcc==1) |
-          # (fj_isQCDlep == 1) |
-          (fj_isQCDothers == True) ) &
-        (fj_genRes_mass<=0) ) |
-      ( (fj_H_VV_4q==1) &
-        # (fj_maxdR_HVV_daus<2.5) &
-        (fj_nprongs>1) &
-        (fj_genRes_mass>0) ) ))
+selection: >-
+    (jet_tightId==1) & (jet_no<2) & (fj_pt>200) & (fj_pt<2500) & (np.where((fj_isQCD==1) & (sample_isQCD==1), fj_sdmass, fj_gen_mass)>=10) & (np.where((fj_isQCD==1) & (sample_isQCD==1), fj_sdmass, fj_gen_mass)<=250) 
+    & (((label_H_ww4q==1) | (label_H_ww3q==1) | (label_H_wwevqq==1) | (label_H_wwmvqq==1) | (label_H_wwleptauevqq==1) | (label_H_wwleptaumvqq==1) | (label_H_wwhadtauvqq==1)) 
+    | ((sample_isQCD==1) & (fj_isQCD==1) & (event_no%7!=0)))
+
+### selection to apply at test time (i.e., when running w/ --predict)
+test_time_selection: >-
+    (jet_tightId==1) & (jet_no<2) & (fj_pt>200) & (fj_pt<2500) & (np.where((fj_isQCD==1) & (sample_isQCD==1), fj_sdmass, fj_gen_mass)>=10) & (np.where((fj_isQCD==1) & (sample_isQCD==1), fj_sdmass, fj_gen_mass)<=250) 
+    & (((label_H_ww4q==1) | (label_H_ww3q==1) | (label_H_wwevqq==1) | (label_H_wwmvqq==1) | (label_H_wwleptauevqq==1) | (label_H_wwleptaumvqq==1) | (label_H_wwhadtauvqq==1)) 
+    | ((sample_isQCD==1) & (fj_isQCD==1) & (event_no%7==0)))
 
 new_variables:
     ### [format] name: formula
     ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
-    label_H_ww: (fj_H_VV_4q==1)
-    fj_isQCDreal: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)
-    target_mass: np.maximum(1, np.where(fj_genRes_mass>0, fj_genRes_mass, fj_msoftdrop))
+    pfcand_mask: awkward.JaggedArray.ones_like(pfcand_etarel)
+    sv_mask: awkward.JaggedArray.ones_like(sv_etarel)
+    label_H_ww: (label_H_ww4q==1) | (label_H_ww3q==1) | (label_H_wwevqq==1) | (label_H_wwmvqq==1) | (label_H_wwleptauevqq==1) | (label_H_wwleptaumvqq==1) | (label_H_wwhadtauvqq==1)
+    fj_isQCDreal: (fj_isQCD==1) & (sample_isQCD==1)
+    target_mass: np.where((fj_isQCD==1) & (sample_isQCD==1), fj_sdmass, fj_gen_mass)
 
 preprocess:
     ### method: [manual, auto] - whether to use manually specified parameters for variable standardization

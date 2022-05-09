@@ -66,15 +66,13 @@ class PlotOutput:
         self.bkglegend = label_dict[bkg]["legend"]
         self.siglegend = label_dict[sig]["legend"]
 
-        self.events = self.get_events()
+        self.events,bkgmask = self.get_events()
         self.get_masks()
         self.percentiles, self.cuts = (
             computePercentiles(
-                self.events[self.score][(self.events[self.bkglabel] == 1)].to_numpy(),
+                self.events[self.score][bkgmask].to_numpy(),
                 [0.97, 0.99, 0.995],
             )
-            if "qcd" in self.bkg
-            else None
         )
         self.hists = self.fill_hists()
 
@@ -95,7 +93,7 @@ class PlotOutput:
 
         # score for background
         if self.bkg == "qcd":
-            qcdlabels = [
+            bkglabels = [
                 "fj_isQCDb",
                 "fj_isQCDbb",
                 "fj_isQCDc",
@@ -103,28 +101,45 @@ class PlotOutput:
                 "fj_isQCDlep",
                 "fj_isQCDothers",
             ]
-            branches.extend(qcdlabels)
-            branches.extend([f"score_{qcdlabel}" for qcdlabel in qcdlabels])
-        if self.bkg == "qcdnolep":
-            qcdlabels = [
+        elif self.bkg == "qcdnolep":
+            bkglabels = [
                 "fj_isQCDb",
                 "fj_isQCDbb",
                 "fj_isQCDc",
                 "fj_isQCDcc",
                 "fj_isQCDothers",
             ]
-            branches.extend(qcdlabels)
-            branches.extend([f"score_{qcdlabel}" for qcdlabel in qcdlabels])
+        elif self.bkg == "qcd1lep":
+            bkglabels = [
+                "fj_QCD_label",
+            ]
+        elif self.bkg == "ttbar":
+            bkglabels = [
+                "fj_ttbar_bsplit",
+                "fj_ttbar_bmerged",
+            ]
+        elif self.bkg == "ttbarwjets":
+            bkglabels = [
+                "fj_ttbar_bsplit",
+                "fj_ttbar_bmerged",
+                "fj_wjets_label",
+            ]
+        elif self.bkg == "wjets":
+            bkglabels = ["fj_wjets_label"]
         elif self.bkg == "qcd_dnn":
-            qcdlabels = [
+            bkglabels = [
                 "label_QCD_b",
                 "label_QCD_bb",
                 "label_QCD_c",
                 "label_QCD_cc",
                 "label_QCD_others",
             ]
-            branches.extend(qcdlabels)
-            branches.extend([f"score_{qcdlabel}" for qcdlabel in qcdlabels])
+        else:
+            bkglabels = []
+
+        if len(bkglabels)>0:
+            branches.extend(bkglabels)
+            branches.extend([f"score_{label}" for label in bkglabels])
         else:
             branches.append(self.bkglabel)
             branches.extend([f"score_{self.bkglabel}"])
@@ -140,12 +155,20 @@ class PlotOutput:
                     f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)) & ({self.mbranch}<=0)) | "
                     f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
                 )
-            else:
+            elif self.bkg == "qcd_old":
                 mask += (
-                    f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDlep==1) | (fj_isQCDothers==1)) & ({self.mbranch}<=0)) | "
+                    f"& ( ((fj_isQCD==1) & ({self.mbranch}<=0)) | "
+                    f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
+                )
+            elif self.bkg == "qcd1lep":
+                mask += (
+                    f"& ( ((fj_QCD_label==1) & ({self.mbranch}<=0)) | "
                     f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
                 )
 
+        if self.verbose:
+            print(f'mask applied {mask}')
+                
         # open file
         if self.sigfile:
             events = uproot.concatenate(
@@ -164,38 +187,46 @@ class PlotOutput:
             self.mbranch = None
 
         # bkg label
-        events["fj_QCD_label"] = (
-            np.sum([events[qcdlabel] for qcdlabel in qcdlabels], axis=0).astype(bool).squeeze()
-        )
-
-        if self.verbose:
-            print(f"Bkg any {self.bkglabel}: ", ak.any(events[self.bkglabel] == 1))
-
-        # get score
+        # and score
         """
         We expect all scores to sum up to 1, e.g. given two signals in the event (signal 1 and 2) and one background process (background 1)
         score_signal_1 + score_signal_2 + score_background_1 = 1
         Then nn_signal_1 = score_signal_1 / (score_signal_1 + score_background_1) = score_signal_1 / (1 - score_signal_2)
         """
-        if self.bkg == "qcd" or self.bkg == "qcdnolep" or self.bkg == "qcd_dnn":
+        if len(bkglabels)>0:
+            events["fj_bkg_label"] = (
+                (np.sum([events[label] for label in bkglabels], axis=0).astype(bool).squeeze())
+                if len(bkglabels) > 1
+                else np.array(events[bkglabels[0]]).astype(bool)
+            )
+            if not ak.any(events["fj_bkg_label"] == 1):
+                print(f"WARNING: NO BKG WITH bkg label formed by ",bkglabels)
+                exit()
+            print(f"Score defined as score_{self.siglabel}/(score_bkglabels) with bkglabels: ", bkglabels)
             score_branch = events[f"score_{self.siglabel}"] / (
                 events[f"score_{self.siglabel}"]
-                + np.sum([events[f"score_{qcdlabel}"] for qcdlabel in qcdlabels], axis=0).squeeze()
-            )
-        else:
+	        + np.sum([events[f"score_{bkglabel}"] for bkglabel in bkglabels], axis=0).squeeze()
+	    )
+            # define bkg_mask in events for computing percentiles
+            bkgmask = (events["fj_bkg_label"]==1)
+        else:            
+            if not ak.any(events[self.bkglabel] == 1):
+                print(f"WARNING: NO BKG WITH {self.bkglabel}")
+                exit()
             print(
                 f"Score defined as score_{self.siglabel}/(score_{self.siglabel}+score_{self.bkglabel}"
             )
             score_branch = events[f"score_{self.siglabel}"] / (
                 events[f"score_{self.siglabel}"] + events[f"score_{self.bkglabel}"]
             )
+            bkgmask = (events[self.bkglabel]==1)
 
         events[self.score] = score_branch
-
+        
         if self.verbose:
             print(self.score, events[self.score])
 
-        return events
+        return events,bkgmask
 
     def get_masks(self):
         def build_range(bins, var, mask, events, branch):
