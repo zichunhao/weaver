@@ -123,11 +123,10 @@ labels:
     ### type can be `simple`, `custom`
     ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
     #  fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
-    # fj_isHVV_elenuqq, fj_isHVV_munuqq, fj_isHVV_taunuqq
     type: simple
     value: [
         fj_ttbar_bmerged, fj_ttbar_bsplit, fj_wjets_label,
-        fj_isHVV_elenuqq_merged, fj_isHVV_elenuqq_semimerged, fj_isHVV_munuqq_merged, fj_isHVV_munuqq_semimerged, fj_isHVV_taunuqq_merged, fj_isHVV_taunuqq_semimerged
+	fj_isHVV_elenuqq, fj_isHVV_munuqq, fj_isHVV_taunuqq
     ]
 
 observers:
@@ -162,6 +161,8 @@ observers:
    - fj_isHVV_munuqq_semimerged
    - fj_isHVV_taunuqq_merged
    - fj_isHVV_taunuqq_semimerged
+   - fj_ttbar_bmerged
+   - fj_ttbar_bsplit
 
 weights:
    ### [option 1] use precomputed weights stored in the input files
