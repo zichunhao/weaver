@@ -26,12 +26,13 @@ new_variables:
     ### [format] name: formula
     ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
     target_mass: np.maximum(1, np.where(fj_genRes_mass>0, fj_genRes_mass, fj_msoftdrop))
-    # fj_QCD_label: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)
+    fj_QCD_label: (fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)
     # ttbar and wjets
     ## QUESTION:SPLIT INTO PRONGS/SEMIMERGED MERGED???
     fj_ttbar_bmerged: (fj_Top_bmerged==1) & ((fj_Top_2q==1) | (fj_Top_elenu==1) | (fj_Top_munu==1) | (fj_Top_taunu==1))
     fj_ttbar_bsplit: (fj_Top_bmerged!=1) & ((fj_Top_2q==1) | (fj_Top_elenu==1) | (fj_Top_munu==1) | (fj_Top_taunu==1))
     fj_ttbar_label: ((fj_Top_2q==1) | (fj_Top_elenu==1) | (fj_Top_munu==1) | (fj_Top_taunu==1))
+    fj_wjets_label: ((fj_W_2q==1) | (fj_W_elenu==1) | (fj_W_munu==1) | (fj_W_taunu==1))
     # Signal (HVV)
     fj_isHVV_elenuqq_merged: (fj_H_VV_elenuqq==1) & (fj_nprongs==4)
     fj_isHVV_elenuqq_semimerged: (fj_H_VV_elenuqq==1) & (fj_nprongs==3)
@@ -155,6 +156,8 @@ observers:
    - fj_isHVV_munuqq_semimerged
    - fj_isHVV_taunuqq_merged
    - fj_isHVV_taunuqq_semimerged
+   - fj_wjets_label
+   - fj_QCD_label
 
 weights:
    ### [option 1] use precomputed weights stored in the input files
