@@ -127,7 +127,7 @@ labels:
     type: simple
     value: [
         fj_ttbar_bmerged, fj_ttbar_bsplit, fj_QCD_label,
-	fj_isHVV_elenuqq, fj_isHVV_munuqq, fj_isHVV_taunuqq
+        fj_isHVV_elenuqq, fj_isHVV_munuqq, fj_isHVV_taunuqq
     ]
 
 observers:

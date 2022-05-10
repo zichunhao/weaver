@@ -119,7 +119,6 @@ inputs:
         vars:
         - sv_mask
 
-
 labels:
     ### type can be `simple`, `custom`
     ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
@@ -127,7 +126,7 @@ labels:
     type: simple
     value: [
         fj_ttbar_bmerged, fj_ttbar_bsplit, fj_wjets_label, fj_QCD_label,
-	fj_isHVV_elenuqq, fj_isHVV_munuqq, fj_isHVV_taunuqq
+        fj_isHVV_elenuqq, fj_isHVV_munuqq, fj_isHVV_taunuqq
     ]
 
 observers:
