@@ -34,7 +34,7 @@ selection:
         (fj_genRes_mass > 0)
       ) |
       (
-        (fj_Top_2q==1) |	
+        (fj_Top_2q==1) |
         (fj_Top_elenu==1)|
         (fj_Top_munu==1) |
         (fj_Top_taunu==1)
