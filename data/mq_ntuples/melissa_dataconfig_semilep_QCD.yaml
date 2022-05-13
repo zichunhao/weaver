@@ -19,6 +19,14 @@ selection:
           (fj_isQCDcc==1) |
           (fj_isQCDothers == True) ) &
         (fj_genRes_mass<=0) ) |
+        ( (fj_W_2q==1) |
+          (fj_W_elenu==1) |
+          (fj_W_munu==1) |
+          (fj_W_taunu==1) ) |
+        ( (fj_Top_2q==1) |
+          (fj_Top_elenu==1) |
+          (fj_Top_munu==1) |
+          (fj_Top_taunu==1) ) |
       ( ((fj_H_VV_elenuqq==1) | (fj_H_VV_munuqq==1) | (fj_H_VV_taunuqq==1)) &
         (fj_nprongs>1) &
         (fj_genRes_mass>0) ) ))
@@ -153,6 +161,11 @@ observers:
    - fj_isHVV_taunuqq_merged
    - fj_isHVV_taunuqq_semimerged
    - target_mass
+   - fj_ttbar_bmerged
+   - fj_ttbar_bsplit
+   # - fj_QCD_label
+   - fj_ttbar_label
+   - fj_wjets_label
 
 weights:
    ### [option 1] use precomputed weights stored in the input files

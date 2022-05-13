@@ -18,6 +18,16 @@ selection:
           (fj_Top_elenu==1) |
           (fj_Top_munu==1) |
           (fj_Top_taunu==1) )  |
+        ( (fj_W_2q==1) |
+          (fj_W_elenu==1) |
+          (fj_W_munu==1) |
+          (fj_W_taunu==1) ) |
+        ( ( (fj_isQCDb==1) |
+          (fj_isQCDbb==1) |
+          (fj_isQCDc==1) |
+          (fj_isQCDcc==1) |
+          (fj_isQCDothers == True) ) &
+        (fj_genRes_mass<=0) ) |
       ( ((fj_H_VV_elenuqq==1) | (fj_H_VV_munuqq==1) | (fj_H_VV_taunuqq==1)) &
         (fj_nprongs>1) &
         (fj_genRes_mass>0) ) ))
