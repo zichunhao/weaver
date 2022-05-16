@@ -108,10 +108,16 @@ class PlotOutput:
                 "fj_isQCDc",
                 "fj_isQCDcc",
                 "fj_isQCDothers",
+		"fj_ttbar_bsplit",
+                "fj_ttbar_bmerged",
+		"fj_wjets_label",
             ]
         elif self.bkg == "qcd1lep":
             bkglabels = [
                 "fj_QCD_label",
+		"fj_ttbar_bsplit",
+                "fj_ttbar_bmerged",
+		"fj_wjets_label",
             ]
         elif self.bkg == "ttbar":
             bkglabels = [
@@ -152,7 +158,7 @@ class PlotOutput:
         if self.mbranch:
             if self.bkg == "qcdnolep":
                 mask += (
-                    f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)) & ({self.mbranch}<=0)) | "
+                    f"& ( ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)) & ({self.mbranch}<=0)) | ((fj_wjets_label==1) | (fj_ttbar_bsplit==1) | (fj_ttbar_bmerged==1))) | "
                     f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
                 )
             elif self.bkg == "qcd_old":
@@ -162,7 +168,7 @@ class PlotOutput:
                 )
             elif self.bkg == "qcd1lep":
                 mask += (
-                    f"& ( ((fj_QCD_label==1) & ({self.mbranch}<=0)) | "
+                    f"& ( ( ((fj_QCD_label==1) & ({self.mbranch}<=0)) | ((fj_wjets_label==1) | (fj_ttbar_bsplit==1) | (fj_ttbar_bmerged==1)) ) | "
                     f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
                 )
 
