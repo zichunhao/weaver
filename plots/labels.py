@@ -3,6 +3,9 @@ label_dict = {
     "qcd": {"legend": "QCD", "label": "fj_bkg_label"},
     "qcdnolep": {"legend": "QCD", "label": "fj_bkg_label"},
     "qcd1lep": {"legend": "QCD", "label": "fj_bkg_label"},
+    "w_asqcd": {"legend": "WJets", "label": "fj_bkg_label"},
+    "top_asqcd": {"legend": "Top", "label": "fj_bkg_label"},
+    "wtop_asqcd": {"legend": "WJets+Top", "label": "fj_bkg_label"},
 
     "top": {"legend": "Top", "label": "fj_isTop_label"},
     "top_lep": {"legend": "Top lep", "label": "fj_isToplep"},

@@ -206,8 +206,8 @@ def main(args):
             "Bkg",
             fp_tp_all,
             label="allsig_summary",
-            title=f"HWW vs {bkglegend}",
-            ptcut="",
+            title=f"HWW vs Bkg",
+            ptcut="%s $p_T$:[400-600] GeV, $|\eta|<2.4$"%(args.jet),
             msdcut="",
         )
 

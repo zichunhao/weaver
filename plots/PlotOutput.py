@@ -55,6 +55,7 @@ class PlotOutput:
 
         self.ptrange = [400, 600]
         self.msdrange = [60, 150]
+
         self.jet = jet
 
         self.sigfile = isigfile
@@ -108,16 +109,18 @@ class PlotOutput:
                 "fj_isQCDc",
                 "fj_isQCDcc",
                 "fj_isQCDothers",
-		"fj_ttbar_bsplit",
-                "fj_ttbar_bmerged",
-		"fj_wjets_label",
+            ]
+        elif "asqcd" in self.bkg:
+            bkglabels = [
+                "fj_isQCDb",
+                "fj_isQCDbb",
+                "fj_isQCDc",
+                "fj_isQCDcc",
+                "fj_isQCDothers",
             ]
         elif self.bkg == "qcd1lep":
             bkglabels = [
                 "fj_QCD_label",
-		"fj_ttbar_bsplit",
-                "fj_ttbar_bmerged",
-		"fj_wjets_label",
             ]
         elif self.bkg == "ttbar":
             bkglabels = [
@@ -146,6 +149,8 @@ class PlotOutput:
         if len(bkglabels)>0:
             branches.extend(bkglabels)
             branches.extend([f"score_{label}" for label in bkglabels])
+            if self.verbose:
+                print("Background labels ",bkglabels)
         else:
             branches.append(self.bkglabel)
             branches.extend([f"score_{self.bkglabel}"])
@@ -158,7 +163,12 @@ class PlotOutput:
         if self.mbranch:
             if self.bkg == "qcdnolep":
                 mask += (
-                    f"& ( ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)) & ({self.mbranch}<=0)) | ((fj_wjets_label==1) | (fj_ttbar_bsplit==1) | (fj_ttbar_bmerged==1))) | "
+                    f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)) & ({self.mbranch}<=0)) | "
+                    f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
+                )
+            elif "asqcd" in self.bkg:
+                mask += (
+                    f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)) ) | "
                     f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
                 )
             elif self.bkg == "qcd_old":
@@ -168,7 +178,7 @@ class PlotOutput:
                 )
             elif self.bkg == "qcd1lep":
                 mask += (
-                    f"& ( ( ((fj_QCD_label==1) & ({self.mbranch}<=0)) | ((fj_wjets_label==1) | (fj_ttbar_bsplit==1) | (fj_ttbar_bmerged==1)) ) | "
+                    f"& ( ((fj_QCD_label==1) & ({self.mbranch}<=0)) | "
                     f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
                 )
 
