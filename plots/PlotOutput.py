@@ -54,7 +54,10 @@ class PlotOutput:
             self.oldpn = None
 
         self.ptrange = [400, 600]
-        self.msdrange = [60, 150]
+        if '4q' in label_dict[sig]["label"] or '3q' in label_dict[sig]["label"]:
+            self.msdrange = [60, 150]
+        else:
+            self.msdrange = [30, 150]
 
         self.jet = jet
 
@@ -252,7 +255,7 @@ class PlotOutput:
                     continue
                 bin_low = bins[i]
                 bin_high = bins[i + 1]
-                bin_tag = f"-{var}{bin_low}-{bin_high}"
+                bin_tag = f"{var}:{bin_low}-{bin_high}"
                 bin_mask = mask & (events[branch] > bin_low) & (events[branch] < bin_high)
                 if ak.any(bin_mask):
                     rangemask[bin_tag] = bin_mask
@@ -281,7 +284,7 @@ class PlotOutput:
             self.mask_proc_sigmh125 = (self.events[self.siglabel] == 1) & self.mask_mh125
             self.mask_proc_sig = (self.events[self.siglabel] == 1) & self.mask_flat
             self.mhmasks = build_range(
-                list(range(20, 240, 20)), "mh", self.roc_mask_nomass, self.events, self.mbranch
+                list(range(20, 240, 20)), "mH", self.roc_mask_nomass, self.events, self.mbranch
             )
         else:
             print("No mbranch present")
@@ -305,7 +308,7 @@ class PlotOutput:
         # should we add the msD mask here?
         self.ptmasks = build_range(
             list(range(200, 1200, 200)),
-            "pt",
+            "pT",
             (abs(self.events[self.eta]) < 2.4),
             self.events,
             self.pt,
