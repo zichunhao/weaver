@@ -54,7 +54,11 @@ class PlotOutput:
             self.oldpn = None
 
         self.ptrange = [400, 600]
-        self.msdrange = [60, 150]
+        if '4q' in label_dict[sig]["label"] or '3q' in label_dict[sig]["label"]:
+            self.msdrange = [60, 150]
+        else:
+            self.msdrange = [30, 150]
+
         self.jet = jet
 
         self.sigfile = isigfile
@@ -109,6 +113,14 @@ class PlotOutput:
                 "fj_isQCDcc",
                 "fj_isQCDothers",
             ]
+        elif "asqcd" in self.bkg:
+            bkglabels = [
+                "fj_isQCDb",
+                "fj_isQCDbb",
+                "fj_isQCDc",
+                "fj_isQCDcc",
+                "fj_isQCDothers",
+            ]
         elif self.bkg == "qcd1lep":
             bkglabels = [
                 "fj_QCD_label",
@@ -140,6 +152,8 @@ class PlotOutput:
         if len(bkglabels)>0:
             branches.extend(bkglabels)
             branches.extend([f"score_{label}" for label in bkglabels])
+            if self.verbose:
+                print("Background labels ",bkglabels)
         else:
             branches.append(self.bkglabel)
             branches.extend([f"score_{self.bkglabel}"])
@@ -153,6 +167,11 @@ class PlotOutput:
             if self.bkg == "qcdnolep":
                 mask += (
                     f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)) & ({self.mbranch}<=0)) | "
+                    f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
+                )
+            elif "asqcd" in self.bkg:
+                mask += (
+                    f"& ( (((fj_isQCDb==1) | (fj_isQCDbb==1) | (fj_isQCDc==1) | (fj_isQCDcc==1) | (fj_isQCDothers==1)) ) | "
                     f"(({self.siglabel}==1) & ({self.mbranch}>0)) )"
                 )
             elif self.bkg == "qcd_old":
@@ -236,7 +255,7 @@ class PlotOutput:
                     continue
                 bin_low = bins[i]
                 bin_high = bins[i + 1]
-                bin_tag = f"-{var}{bin_low}-{bin_high}"
+                bin_tag = f"{var}:{bin_low}-{bin_high}"
                 bin_mask = mask & (events[branch] > bin_low) & (events[branch] < bin_high)
                 if ak.any(bin_mask):
                     rangemask[bin_tag] = bin_mask
@@ -265,7 +284,7 @@ class PlotOutput:
             self.mask_proc_sigmh125 = (self.events[self.siglabel] == 1) & self.mask_mh125
             self.mask_proc_sig = (self.events[self.siglabel] == 1) & self.mask_flat
             self.mhmasks = build_range(
-                list(range(20, 240, 20)), "mh", self.roc_mask_nomass, self.events, self.mbranch
+                list(range(20, 240, 20)), "mH", self.roc_mask_nomass, self.events, self.mbranch
             )
         else:
             print("No mbranch present")
@@ -289,7 +308,7 @@ class PlotOutput:
         # should we add the msD mask here?
         self.ptmasks = build_range(
             list(range(200, 1200, 200)),
-            "pt",
+            "pT",
             (abs(self.events[self.eta]) < 2.4),
             self.events,
             self.pt,

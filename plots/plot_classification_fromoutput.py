@@ -33,7 +33,7 @@ def get_rocs(p, args, jsig=0, signame=""):
         fp_tp["PNnonMD-nomasscut"] = p.roc(args.oldpn, "nomass")
     # add pt ranges
     for key, ptmask in p.ptmasks.items():
-        fp_tp[score + signame + key] = p.roc(score, "norocmask", ptmask)
+        fp_tp[key] = p.roc(score, "norocmask", ptmask)
     # add v/v* rocs
     fp_tp[score + signame + "_V_closer_Jet"] = p.roc(score, "sigmask", p.mask_vcloser)
     fp_tp[score + signame + "_V*_closer_Jet"] = p.roc(score, "sigmask", p.mask_vscloser)
@@ -48,7 +48,7 @@ def get_rocs(p, args, jsig=0, signame=""):
                 fp_tp[r"$m_H$ flat PNnonMD"] = p.roc(args.oldpn, "ptweight", p.mask_flat)
             # add mh ranges
             for key, mhmask in p.mhmasks.items():
-                fp_tp[score + signame + key] = p.roc(score, "norocmask", mhmask)
+                fp_tp[key] = p.roc(score, "norocmask", mhmask)
         if ak.any(p.mask_proc_mh120130) and ak.any(p.mask_proc_sigmh125):
             fp_tp[r"$m_H:[120,130]$ GeV $\times p_T^SM$"] = p.roc(
                 score, "ptweight", p.mask_proc_mh120130
@@ -129,18 +129,19 @@ def main(args):
                 for key,item in fp_tp.items():
                     fp_tp_sigfiles[key+signame] = item
                     if key==p.score:
-                        plot_keys["sigfiles"].append(key+signame)
+                        if not p.mbranch:
+                            plot_keys["sigfiles"].append(key+signame)
                         if j==0:
                             fp_tp_all[sig] = item
                     elif key==p.score+"-ratio":
                         plot_keys["ratio"].append(key+signame)
                     elif "closer" in key:
                         plot_keys["closer"].append(key + signame)
-                    elif "-pt" in key:
+                    elif "pT:" in key:
                         if j==0:
                             plot_keys["pt"].append(key+signame)
-                    elif "-mh" in key and p.mbranch:
-                        if key+signame not in plot_keys["mh"]:
+                    elif "mH:" in key and p.mbranch:
+                        if key not in plot_keys["mh"]:
                             plot_keys["mh"].append(key+signame)
                     elif "m_H" in key and p.mbranch and not fillmh:
                         # only do this for the first sample that has a range of mh
@@ -151,16 +152,18 @@ def main(args):
             else:
                 fp_tp_sigfiles = fp_tp
                 fp_tp_all[sig] = fp_tp[p.score]
+
                 for key,item in fp_tp.items():
-                    if key==p.score:
+                    if key==p.score and not p.mbranch:
                         plot_keys["sigfiles"].append(key)
-                    elif key == p.score + "-ratio":
+                        
+                    if key == p.score + "-ratio":
                         plot_keys["ratio"].append(key)
                     elif "closer" in key:
                         plot_keys["closer"].append(key)
                     elif "-pt" in key:
                         plot_keys["pt"].append(key)
-                    elif "-mh" in key and p.mbranch:
+                    elif "mH:" in key and p.mbranch:
                         plot_keys["mh"].append(key)
                     elif p.mbranch:
                         plot_keys["sigfiles"].extend([r"$m_H$ flat", r"$m_H$:125"])
@@ -206,9 +209,9 @@ def main(args):
             "Bkg",
             fp_tp_all,
             label="allsig_summary",
-            title=f"HWW vs {bkglegend}",
-            ptcut="",
-            msdcut="",
+            title=f"HWW vs %s"%bkg,
+            ptcut="%s $p_T$:[400-600] GeV, $|\eta|<2.4$"%(args.jet),
+            msdcut="$m_{SD}$:[%s-%s] GeV"%(p.msdrange[0],p.msdrange[1]),
         )
 
 
