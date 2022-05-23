@@ -133,8 +133,8 @@ def main(args):
                             plot_keys["sigfiles"].append(key+signame)
                         if j==0:
                             fp_tp_all[sig] = item
-                    elif key==p.score+"-ratio":
-                        plot_keys["ratio"].append(key+signame)
+                    elif key == p.score + "-ratio":
+                        plot_keys["ratio"].append(key + signame)
                     elif "closer" in key:
                         plot_keys["closer"].append(key + signame)
                     elif "pT:" in key:
@@ -152,11 +152,9 @@ def main(args):
             else:
                 fp_tp_sigfiles = fp_tp
                 fp_tp_all[sig] = fp_tp[p.score]
-
                 for key,item in fp_tp.items():
                     if key==p.score and not p.mbranch:
-                        plot_keys["sigfiles"].append(key)
-                        
+                        plot_keys["sigfiles"].append(key)     
                     if key == p.score + "-ratio":
                         plot_keys["ratio"].append(key)
                     elif "closer" in key:
@@ -198,6 +196,7 @@ def main(args):
                 per = round((1 - cat) * 100, 2)
                 tag = f"$\epsilon_B={per} \%$"
                 labels_to_plot.append(r"%s" % tag)
+
         ptcut = r"%s $p_T$:[%s-%s] GeV, $|\eta|<2.4$" % (p.jet, p.ptrange[0], p.ptrange[1])
         plot_var_aftercut(odir, hists_to_plot, labels_to_plot, r"m$_{SD}$ [GeV]", f"msd_{bkg}", ptcut)
 
